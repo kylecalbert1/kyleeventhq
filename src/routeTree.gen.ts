@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedWebsiteRouteImport } from './routes/_authenticated/website'
 import { Route as AuthenticatedSpeakersRouteImport } from './routes/_authenticated/speakers'
+import { Route as AuthenticatedMilestonesRouteImport } from './routes/_authenticated/milestones'
 import { Route as AuthenticatedBannersRouteImport } from './routes/_authenticated/banners'
 import { Route as AuthenticatedEventsEventIdRouteImport } from './routes/_authenticated/events.$eventId'
 
@@ -41,6 +42,11 @@ const AuthenticatedSpeakersRoute = AuthenticatedSpeakersRouteImport.update({
   path: '/speakers',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMilestonesRoute = AuthenticatedMilestonesRouteImport.update({
+  id: '/milestones',
+  path: '/milestones',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBannersRoute = AuthenticatedBannersRouteImport.update({
   id: '/banners',
   path: '/banners',
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/banners': typeof AuthenticatedBannersRoute
+  '/milestones': typeof AuthenticatedMilestonesRoute
   '/speakers': typeof AuthenticatedSpeakersRoute
   '/website': typeof AuthenticatedWebsiteRoute
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/banners': typeof AuthenticatedBannersRoute
+  '/milestones': typeof AuthenticatedMilestonesRoute
   '/speakers': typeof AuthenticatedSpeakersRoute
   '/website': typeof AuthenticatedWebsiteRoute
   '/': typeof AuthenticatedIndexRoute
@@ -74,6 +82,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/banners': typeof AuthenticatedBannersRoute
+  '/_authenticated/milestones': typeof AuthenticatedMilestonesRoute
   '/_authenticated/speakers': typeof AuthenticatedSpeakersRoute
   '/_authenticated/website': typeof AuthenticatedWebsiteRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -85,16 +94,25 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/banners'
+    | '/milestones'
     | '/speakers'
     | '/website'
     | '/events/$eventId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/banners' | '/speakers' | '/website' | '/' | '/events/$eventId'
+  to:
+    | '/auth'
+    | '/banners'
+    | '/milestones'
+    | '/speakers'
+    | '/website'
+    | '/'
+    | '/events/$eventId'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/banners'
+    | '/_authenticated/milestones'
     | '/_authenticated/speakers'
     | '/_authenticated/website'
     | '/_authenticated/'
@@ -143,6 +161,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSpeakersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/milestones': {
+      id: '/_authenticated/milestones'
+      path: '/milestones'
+      fullPath: '/milestones'
+      preLoaderRoute: typeof AuthenticatedMilestonesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/banners': {
       id: '/_authenticated/banners'
       path: '/banners'
@@ -162,6 +187,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBannersRoute: typeof AuthenticatedBannersRoute
+  AuthenticatedMilestonesRoute: typeof AuthenticatedMilestonesRoute
   AuthenticatedSpeakersRoute: typeof AuthenticatedSpeakersRoute
   AuthenticatedWebsiteRoute: typeof AuthenticatedWebsiteRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -170,6 +196,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBannersRoute: AuthenticatedBannersRoute,
+  AuthenticatedMilestonesRoute: AuthenticatedMilestonesRoute,
   AuthenticatedSpeakersRoute: AuthenticatedSpeakersRoute,
   AuthenticatedWebsiteRoute: AuthenticatedWebsiteRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
