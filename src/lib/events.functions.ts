@@ -1,0 +1,117 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+const EventInput = z.object({
+  code: z.string().min(1),
+  name: z.string().min(1),
+  business_line: z.enum(["AIAI", "CSC"]),
+  format: z.enum(["in_person", "virtual"]),
+  event_date: z.string().nullable().optional(),
+  venue: z.string().nullable().optional(),
+  kickoff_date: z.string().nullable().optional(),
+  washup_date: z.string().nullable().optional(),
+  website_status: z.enum(["draft", "proof_1", "proof_2", "signed_off", "live"]),
+  launch_date: z.string().nullable().optional(),
+  owner: z.string().nullable().optional(),
+});
+
+export const listEvents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("events")
+      .select("*")
+      .order("launch_date", { ascending: true, nullsFirst: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const listEventSummaries = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const [events, speakers, milestones] = await Promise.all([
+      context.supabase.from("events").select("*"),
+      context.supabase
+        .from("speakers")
+        .select("id,event_id,status,banner_status"),
+      context.supabase.from("event_milestones").select("id,event_id,type,status"),
+    ]);
+    if (events.error) throw new Error(events.error.message);
+    if (speakers.error) throw new Error(speakers.error.message);
+    if (milestones.error) throw new Error(milestones.error.message);
+
+    return (events.data ?? []).map((e) => {
+      const evSpeakers = (speakers.data ?? []).filter((s) => s.event_id === e.id);
+      const confirmed = evSpeakers.filter((s) => s.status === "confirmed").length;
+      const bannersSent = evSpeakers.filter(
+        (s) => s.banner_status === "sent" || s.banner_status === "confirmed_live",
+      ).length;
+      const evMilestones = (milestones.data ?? []).filter((m) => m.event_id === e.id);
+      const kickoff = evMilestones.find((m) => m.type === "kickoff");
+      const washup = evMilestones.find((m) => m.type === "washup");
+      return {
+        event: e,
+        speakerCount: evSpeakers.length,
+        confirmedCount: confirmed,
+        bannersSent,
+        bannerTotal: evSpeakers.length,
+        kickoffDone: kickoff?.status === "done",
+        kickoffExists: !!kickoff,
+        washupDone: washup?.status === "done",
+        washupExists: !!washup,
+      };
+    });
+  });
+
+export const getEvent = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("events")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Event not found");
+    return row;
+  });
+
+export const createEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => EventInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("events")
+      .insert(data)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const updateEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ id: z.string().uuid(), patch: EventInput.partial() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("events")
+      .update(data.patch)
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const deleteEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("events").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
