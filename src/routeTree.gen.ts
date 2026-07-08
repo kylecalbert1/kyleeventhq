@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedWebsiteRouteImport } from './routes/_authenticated/website'
 import { Route as AuthenticatedSpeakersRouteImport } from './routes/_authenticated/speakers'
 import { Route as AuthenticatedBannersRouteImport } from './routes/_authenticated/banners'
 import { Route as AuthenticatedEventsEventIdRouteImport } from './routes/_authenticated/events.$eventId'
@@ -28,6 +29,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedWebsiteRoute = AuthenticatedWebsiteRouteImport.update({
+  id: '/website',
+  path: '/website',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSpeakersRoute = AuthenticatedSpeakersRouteImport.update({
@@ -52,12 +58,14 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/banners': typeof AuthenticatedBannersRoute
   '/speakers': typeof AuthenticatedSpeakersRoute
+  '/website': typeof AuthenticatedWebsiteRoute
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/banners': typeof AuthenticatedBannersRoute
   '/speakers': typeof AuthenticatedSpeakersRoute
+  '/website': typeof AuthenticatedWebsiteRoute
   '/': typeof AuthenticatedIndexRoute
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
 }
@@ -67,20 +75,28 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/banners': typeof AuthenticatedBannersRoute
   '/_authenticated/speakers': typeof AuthenticatedSpeakersRoute
+  '/_authenticated/website': typeof AuthenticatedWebsiteRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/events/$eventId': typeof AuthenticatedEventsEventIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/banners' | '/speakers' | '/events/$eventId'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/banners'
+    | '/speakers'
+    | '/website'
+    | '/events/$eventId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/banners' | '/speakers' | '/' | '/events/$eventId'
+  to: '/auth' | '/banners' | '/speakers' | '/website' | '/' | '/events/$eventId'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/banners'
     | '/_authenticated/speakers'
+    | '/_authenticated/website'
     | '/_authenticated/'
     | '/_authenticated/events/$eventId'
   fileRoutesById: FileRoutesById
@@ -113,6 +129,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/website': {
+      id: '/_authenticated/website'
+      path: '/website'
+      fullPath: '/website'
+      preLoaderRoute: typeof AuthenticatedWebsiteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/speakers': {
       id: '/_authenticated/speakers'
       path: '/speakers'
@@ -140,6 +163,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBannersRoute: typeof AuthenticatedBannersRoute
   AuthenticatedSpeakersRoute: typeof AuthenticatedSpeakersRoute
+  AuthenticatedWebsiteRoute: typeof AuthenticatedWebsiteRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedEventsEventIdRoute: typeof AuthenticatedEventsEventIdRoute
 }
@@ -147,6 +171,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBannersRoute: AuthenticatedBannersRoute,
   AuthenticatedSpeakersRoute: AuthenticatedSpeakersRoute,
+  AuthenticatedWebsiteRoute: AuthenticatedWebsiteRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedEventsEventIdRoute: AuthenticatedEventsEventIdRoute,
 }
