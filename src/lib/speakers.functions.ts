@@ -7,6 +7,7 @@ const SpeakerInput = z.object({
   name: z.string().min(1),
   company: z.string().nullable().optional(),
   title: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
   status: z.enum(["contacted", "responded", "confirmed", "declined"]),
   session_title: z.string().nullable().optional(),
   session_format: z.enum(["keynote", "panel", "workshop", "fireside"]).nullable().optional(),
