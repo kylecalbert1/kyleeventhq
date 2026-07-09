@@ -119,6 +119,7 @@ export type Database = {
           company: string | null
           created_at: string
           dropbox_link: string | null
+          email: string | null
           event_id: string
           headshot_received: boolean
           id: string
@@ -138,6 +139,7 @@ export type Database = {
           company?: string | null
           created_at?: string
           dropbox_link?: string | null
+          email?: string | null
           event_id: string
           headshot_received?: boolean
           id?: string
@@ -157,6 +159,7 @@ export type Database = {
           company?: string | null
           created_at?: string
           dropbox_link?: string | null
+          email?: string | null
           event_id?: string
           headshot_received?: boolean
           id?: string

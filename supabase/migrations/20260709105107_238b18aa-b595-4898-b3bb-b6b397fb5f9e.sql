@@ -1,0 +1,1 @@
+ALTER TABLE public.speakers ADD COLUMN IF NOT EXISTS email TEXT;
