@@ -75,6 +75,7 @@ export function SpeakerFormDialog({
         name: speaker.name,
         company: speaker.company ?? "",
         title: speaker.title ?? "",
+        email: speaker.email ?? "",
         status: speaker.status,
         session_title: speaker.session_title ?? "",
         session_format: speaker.session_format ?? "",
@@ -87,7 +88,7 @@ export function SpeakerFormDialog({
         linkedin_post_confirmed: speaker.linkedin_post_confirmed,
       });
     } else {
-      setForm((f) => ({ ...f, event_id: defaultEventId ?? f.event_id, name: "", company: "", title: "", session_title: "", notes: "", linkedin_url: "", dropbox_link: "" }));
+      setForm((f) => ({ ...f, event_id: defaultEventId ?? f.event_id, name: "", company: "", title: "", email: "", session_title: "", notes: "", linkedin_url: "", dropbox_link: "" }));
     }
   }, [speaker, open, defaultEventId]);
 
