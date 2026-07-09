@@ -99,6 +99,7 @@ export function SpeakerFormDialog({
         name: form.name,
         company: form.company || null,
         title: form.title || null,
+        email: form.email || null,
         status: form.status,
         session_title: form.session_title || null,
         session_format: (form.session_format || null) as Speaker["session_format"],
