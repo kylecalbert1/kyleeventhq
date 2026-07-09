@@ -152,6 +152,7 @@ export function SpeakerFormDialog({
           <F label="Name"><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></F>
           <F label="Company"><Input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} /></F>
           <F label="Title"><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></F>
+          <F label="Email"><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></F>
           <F label="Status">
             <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as never })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
