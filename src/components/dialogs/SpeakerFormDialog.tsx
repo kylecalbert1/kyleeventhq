@@ -55,6 +55,7 @@ export function SpeakerFormDialog({
     name: "",
     company: "",
     title: "",
+    email: "",
     status: "contacted" as Speaker["status"],
     session_title: "",
     session_format: "" as "" | Speaker["session_format"],
