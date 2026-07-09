@@ -20,6 +20,7 @@ type Speaker = {
   name: string;
   company: string | null;
   title: string | null;
+  email: string | null;
   status: "contacted" | "responded" | "confirmed" | "declined";
   session_title: string | null;
   session_format: "keynote" | "panel" | "workshop" | "fireside" | null;
