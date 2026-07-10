@@ -417,7 +417,9 @@ function AccountFormDialog({
   });
 
   const remove = useMutation({
-    mutationFn: () => (account ? del({ data: { id: account.id } }) : Promise.resolve()),
+    mutationFn: async () => {
+      if (account) await del({ data: { id: account.id } });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["outreachAccounts", week] });
       toast.success("Deleted");
