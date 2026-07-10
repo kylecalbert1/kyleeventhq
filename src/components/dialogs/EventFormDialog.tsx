@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { createEvent, updateEvent, deleteEvent } from "@/lib/events.functions";
-import { BUSINESS_LINES, EVENT_FORMATS, WEBSITE_STAGES, labels } from "@/lib/status";
+import { BUSINESS_LINES, EVENT_FORMATS, WEBSITE_STAGES, SELF_STATUSES, labels } from "@/lib/status";
 import { qk } from "@/lib/queries";
 
 type EventRow = {
@@ -24,6 +24,10 @@ type EventRow = {
   website_status: "draft" | "proof_1" | "proof_2" | "signed_off" | "live";
   launch_date: string | null;
   owner: string | null;
+  proof1_due?: string | null;
+  proof2_due?: string | null;
+  final_signoff_due?: string | null;
+  self_status?: "on_track" | "needs_attention" | "off_track";
 };
 
 export function EventFormDialog({
@@ -52,6 +56,10 @@ export function EventFormDialog({
     website_status: "draft" as EventRow["website_status"],
     launch_date: "",
     owner: "",
+    proof1_due: "",
+    proof2_due: "",
+    final_signoff_due: "",
+    self_status: "on_track" as "on_track" | "needs_attention" | "off_track",
   });
 
   useEffect(() => {
@@ -68,6 +76,10 @@ export function EventFormDialog({
         website_status: event.website_status,
         launch_date: event.launch_date ?? "",
         owner: event.owner ?? "",
+        proof1_due: event.proof1_due ?? "",
+        proof2_due: event.proof2_due ?? "",
+        final_signoff_due: event.final_signoff_due ?? "",
+        self_status: event.self_status ?? "on_track",
       });
     } else {
       setForm({
@@ -82,6 +94,10 @@ export function EventFormDialog({
         website_status: "draft",
         launch_date: "",
         owner: "",
+        proof1_due: "",
+        proof2_due: "",
+        final_signoff_due: "",
+        self_status: "on_track",
       });
     }
   }, [event, open]);
