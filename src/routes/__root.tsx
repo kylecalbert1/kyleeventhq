@@ -82,9 +82,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Internal event operations tracker for producing B2B events." },
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:title", content: "Event Ops Command Center" },
-      { property: "og:description", content: "Internal event operations tracker." },
+      { property: "og:description", content: "Internal event operations tracker for producing B2B events." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Event Ops Command Center" },
+      { name: "twitter:description", content: "Internal event operations tracker for producing B2B events." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/19bbf8dc-c346-4ba1-bbc2-23461f40e886/id-preview-f65c361a--1b69743f-dcda-484f-a3af-afd5b0f775a7.lovable.app-1783681573520.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/19bbf8dc-c346-4ba1-bbc2-23461f40e886/id-preview-f65c361a--1b69743f-dcda-484f-a3af-afd5b0f775a7.lovable.app-1783681573520.png" },
     ],
     links: [
       {
