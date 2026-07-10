@@ -35,6 +35,18 @@ export type BusinessLine = (typeof BUSINESS_LINES)[number];
 export const EVENT_FORMATS = ["in_person", "virtual"] as const;
 export type EventFormat = (typeof EVENT_FORMATS)[number];
 
+export const OUTREACH_CHANNELS = [
+  "linkedin_connect",
+  "group_message",
+  "old_attendee_list",
+  "warm_intro",
+  "cold_email",
+] as const;
+export type OutreachChannel = (typeof OUTREACH_CHANNELS)[number];
+
+export const SELF_STATUSES = ["on_track", "needs_attention", "off_track"] as const;
+export type SelfStatus = (typeof SELF_STATUSES)[number];
+
 export const labels = {
   website: {
     draft: "Draft",
@@ -72,6 +84,18 @@ export const labels = {
   milestoneType: { kickoff: "Kickoff", washup: "Washup" } satisfies Record<MilestoneType, string>,
   milestoneStatus: { scheduled: "Scheduled", done: "Done" } satisfies Record<MilestoneStatusVal, string>,
   format: { in_person: "In-person", virtual: "Virtual" } satisfies Record<EventFormat, string>,
+  outreachChannel: {
+    linkedin_connect: "LinkedIn connect",
+    group_message: "Group message",
+    old_attendee_list: "Old attendee list",
+    warm_intro: "Warm intro",
+    cold_email: "Cold email",
+  } satisfies Record<OutreachChannel, string>,
+  selfStatus: {
+    on_track: "On track",
+    needs_attention: "Needs attention",
+    off_track: "Off track",
+  } satisfies Record<SelfStatus, string>,
 } as const;
 
 // Map each status to a pill color variant (defined as utility classes below).
@@ -103,7 +127,42 @@ export const pillClass = {
     AIAI: "bg-violet-100 text-violet-800 ring-violet-200",
     CSC: "bg-teal-100 text-teal-800 ring-teal-200",
   } satisfies Record<BusinessLine, string>,
+  outreachChannel: {
+    linkedin_connect: "bg-sky-100 text-sky-800 ring-sky-200",
+    group_message: "bg-violet-100 text-violet-800 ring-violet-200",
+    old_attendee_list: "bg-amber-100 text-amber-800 ring-amber-200",
+    warm_intro: "bg-emerald-100 text-emerald-800 ring-emerald-200",
+    cold_email: "bg-slate-100 text-slate-700 ring-slate-200",
+  } satisfies Record<OutreachChannel, string>,
+  selfStatus: {
+    on_track: "bg-emerald-100 text-emerald-800 ring-emerald-200",
+    needs_attention: "bg-amber-100 text-amber-800 ring-amber-200",
+    off_track: "bg-rose-100 text-rose-700 ring-rose-200",
+  } satisfies Record<SelfStatus, string>,
 } as const;
+
+export type ReadinessTone = "done" | "green" | "amber" | "red" | "none";
+
+export function readinessTone(due: string | null | undefined, done: boolean): ReadinessTone {
+  if (done) return "done";
+  if (!due) return "none";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(due);
+  const days = Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (days < 0) return "red";
+  if (days <= 3) return "red";
+  if (days <= 7) return "amber";
+  return "green";
+}
+
+export const readinessClass: Record<ReadinessTone, string> = {
+  done: "bg-emerald-600 text-white ring-emerald-600",
+  green: "bg-emerald-50 text-emerald-700 ring-emerald-200 border border-emerald-200",
+  amber: "bg-amber-50 text-amber-800 ring-amber-200 border border-amber-300",
+  red: "bg-rose-50 text-rose-700 ring-rose-200 border border-rose-300",
+  none: "bg-slate-50 text-slate-500 ring-slate-200 border border-dashed border-slate-300",
+};
 
 export function daysBetween(from: Date, to: Date | null | undefined): number | null {
   if (!to) return null;

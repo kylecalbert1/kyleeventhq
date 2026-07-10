@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { createEvent, updateEvent, deleteEvent } from "@/lib/events.functions";
-import { BUSINESS_LINES, EVENT_FORMATS, WEBSITE_STAGES, labels } from "@/lib/status";
+import { BUSINESS_LINES, EVENT_FORMATS, WEBSITE_STAGES, SELF_STATUSES, labels } from "@/lib/status";
 import { qk } from "@/lib/queries";
 
 type EventRow = {
@@ -24,6 +24,10 @@ type EventRow = {
   website_status: "draft" | "proof_1" | "proof_2" | "signed_off" | "live";
   launch_date: string | null;
   owner: string | null;
+  proof1_due?: string | null;
+  proof2_due?: string | null;
+  final_signoff_due?: string | null;
+  self_status?: "on_track" | "needs_attention" | "off_track";
 };
 
 export function EventFormDialog({
@@ -52,6 +56,10 @@ export function EventFormDialog({
     website_status: "draft" as EventRow["website_status"],
     launch_date: "",
     owner: "",
+    proof1_due: "",
+    proof2_due: "",
+    final_signoff_due: "",
+    self_status: "on_track" as "on_track" | "needs_attention" | "off_track",
   });
 
   useEffect(() => {
@@ -68,6 +76,10 @@ export function EventFormDialog({
         website_status: event.website_status,
         launch_date: event.launch_date ?? "",
         owner: event.owner ?? "",
+        proof1_due: event.proof1_due ?? "",
+        proof2_due: event.proof2_due ?? "",
+        final_signoff_due: event.final_signoff_due ?? "",
+        self_status: event.self_status ?? "on_track",
       });
     } else {
       setForm({
@@ -82,6 +94,10 @@ export function EventFormDialog({
         website_status: "draft",
         launch_date: "",
         owner: "",
+        proof1_due: "",
+        proof2_due: "",
+        final_signoff_due: "",
+        self_status: "on_track",
       });
     }
   }, [event, open]);
@@ -96,6 +112,9 @@ export function EventFormDialog({
         washup_date: form.washup_date || null,
         launch_date: form.launch_date || null,
         owner: form.owner || null,
+        proof1_due: form.proof1_due || null,
+        proof2_due: form.proof2_due || null,
+        final_signoff_due: form.final_signoff_due || null,
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
@@ -184,6 +203,23 @@ export function EventFormDialog({
           </Field>
           <Field label="Owner">
             <Input value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} />
+          </Field>
+          <Field label="Self status">
+            <Select value={form.self_status} onValueChange={(v) => setForm({ ...form, self_status: v as never })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SELF_STATUSES.map((s) => <SelectItem key={s} value={s}>{labels.selfStatus[s]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Proof 1 due">
+            <Input type="date" value={form.proof1_due} onChange={(e) => setForm({ ...form, proof1_due: e.target.value })} />
+          </Field>
+          <Field label="Proof 2 due">
+            <Input type="date" value={form.proof2_due} onChange={(e) => setForm({ ...form, proof2_due: e.target.value })} />
+          </Field>
+          <Field label="Final sign-off due" full>
+            <Input type="date" value={form.final_signoff_due} onChange={(e) => setForm({ ...form, final_signoff_due: e.target.value })} />
           </Field>
           <DialogFooter className="col-span-2 flex justify-between sm:justify-between">
             <div>

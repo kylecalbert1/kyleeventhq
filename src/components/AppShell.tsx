@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouter } from "@tanstack/react-router";
-import { LayoutGrid, Users, Image as ImageIcon, Globe, CalendarDays, LogOut } from "lucide-react";
+import { LayoutGrid, Users, Image as ImageIcon, Globe, CalendarDays, LogOut, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +10,7 @@ const NAV: { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean
   { to: "/banners", label: "Banners", icon: ImageIcon },
   { to: "/website", label: "Website", icon: Globe },
   { to: "/milestones", label: "Kickoff & Washup", icon: CalendarDays },
+  { to: "/outreach", label: "Weekly Outreach", icon: Target },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

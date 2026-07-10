@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { createSpeaker, updateSpeaker, deleteSpeaker } from "@/lib/speakers.functions";
-import { SPEAKER_STATUSES, BANNER_STATUSES, SESSION_FORMATS, labels } from "@/lib/status";
+import { SPEAKER_STATUSES, BANNER_STATUSES, SESSION_FORMATS, OUTREACH_CHANNELS, labels } from "@/lib/status";
 import { qk } from "@/lib/queries";
 import { eventsQuery } from "@/lib/queries";
 
@@ -31,6 +31,7 @@ type Speaker = {
   notes: string | null;
   dropbox_link: string | null;
   linkedin_post_confirmed: boolean;
+  outreach_channel?: "linkedin_connect" | "group_message" | "old_attendee_list" | "warm_intro" | "cold_email" | null;
 };
 
 export function SpeakerFormDialog({
@@ -66,6 +67,7 @@ export function SpeakerFormDialog({
     notes: "",
     dropbox_link: "",
     linkedin_post_confirmed: false,
+    outreach_channel: "" as "" | NonNullable<Speaker["outreach_channel"]>,
   });
 
   useEffect(() => {
@@ -86,6 +88,7 @@ export function SpeakerFormDialog({
         notes: speaker.notes ?? "",
         dropbox_link: speaker.dropbox_link ?? "",
         linkedin_post_confirmed: speaker.linkedin_post_confirmed,
+        outreach_channel: speaker.outreach_channel ?? "",
       });
     } else {
       setForm((f) => ({ ...f, event_id: defaultEventId ?? f.event_id, name: "", company: "", title: "", email: "", session_title: "", notes: "", linkedin_url: "", dropbox_link: "" }));
@@ -110,6 +113,7 @@ export function SpeakerFormDialog({
         notes: form.notes || null,
         dropbox_link: form.dropbox_link || null,
         linkedin_post_confirmed: form.linkedin_post_confirmed,
+        outreach_channel: (form.outreach_channel || null) as Speaker["outreach_channel"],
       };
       if (speaker) return update({ data: { id: speaker.id, patch: payload } });
       return create({ data: payload });
@@ -174,6 +178,12 @@ export function SpeakerFormDialog({
           </F>
           <F label="LinkedIn URL"><Input value={form.linkedin_url} onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })} /></F>
           <F label="Dropbox link"><Input value={form.dropbox_link} onChange={(e) => setForm({ ...form, dropbox_link: e.target.value })} /></F>
+          <F label="Outreach channel" full>
+            <Select value={form.outreach_channel || ""} onValueChange={(v) => setForm({ ...form, outreach_channel: v as never })}>
+              <SelectTrigger><SelectValue placeholder="How did you reach them?" /></SelectTrigger>
+              <SelectContent>{OUTREACH_CHANNELS.map((c) => <SelectItem key={c} value={c}>{labels.outreachChannel[c]}</SelectItem>)}</SelectContent>
+            </Select>
+          </F>
           <div className="col-span-2 flex flex-wrap gap-6 pt-1">
             <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.bio_received} onCheckedChange={(v) => setForm({ ...form, bio_received: !!v })} />Bio received</label>
             <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.headshot_received} onCheckedChange={(v) => setForm({ ...form, headshot_received: !!v })} />Headshot received</label>

@@ -67,12 +67,19 @@ export type Database = {
           code: string
           created_at: string
           event_date: string | null
+          final_signoff_due: string | null
           format: Database["public"]["Enums"]["event_format"]
           id: string
           kickoff_date: string | null
           launch_date: string | null
           name: string
           owner: string | null
+          proof1_done: boolean
+          proof1_due: string | null
+          proof2_done: boolean
+          proof2_due: string | null
+          self_status: Database["public"]["Enums"]["self_status"]
+          signoff_done: boolean
           updated_at: string
           venue: string | null
           washup_date: string | null
@@ -83,12 +90,19 @@ export type Database = {
           code: string
           created_at?: string
           event_date?: string | null
+          final_signoff_due?: string | null
           format: Database["public"]["Enums"]["event_format"]
           id?: string
           kickoff_date?: string | null
           launch_date?: string | null
           name: string
           owner?: string | null
+          proof1_done?: boolean
+          proof1_due?: string | null
+          proof2_done?: boolean
+          proof2_due?: string | null
+          self_status?: Database["public"]["Enums"]["self_status"]
+          signoff_done?: boolean
           updated_at?: string
           venue?: string | null
           washup_date?: string | null
@@ -99,18 +113,90 @@ export type Database = {
           code?: string
           created_at?: string
           event_date?: string | null
+          final_signoff_due?: string | null
           format?: Database["public"]["Enums"]["event_format"]
           id?: string
           kickoff_date?: string | null
           launch_date?: string | null
           name?: string
           owner?: string | null
+          proof1_done?: boolean
+          proof1_due?: string | null
+          proof2_done?: boolean
+          proof2_due?: string | null
+          self_status?: Database["public"]["Enums"]["self_status"]
+          signoff_done?: boolean
           updated_at?: string
           venue?: string | null
           washup_date?: string | null
           website_status?: Database["public"]["Enums"]["website_stage"]
         }
         Relationships: []
+      }
+      outreach_accounts: {
+        Row: {
+          account_name: string
+          camp_a_done: boolean
+          camp_a_template: string | null
+          camp_b_done: boolean
+          camp_b_template: string | null
+          created_at: string
+          event_id: string | null
+          id: string
+          inmail_done: boolean
+          inmail_template: string | null
+          li_invite_done: boolean
+          li_invite_template: string | null
+          notes: string | null
+          owner: string | null
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          account_name: string
+          camp_a_done?: boolean
+          camp_a_template?: string | null
+          camp_b_done?: boolean
+          camp_b_template?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          inmail_done?: boolean
+          inmail_template?: string | null
+          li_invite_done?: boolean
+          li_invite_template?: string | null
+          notes?: string | null
+          owner?: string | null
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          account_name?: string
+          camp_a_done?: boolean
+          camp_a_template?: string | null
+          camp_b_done?: boolean
+          camp_b_template?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          inmail_done?: boolean
+          inmail_template?: string | null
+          li_invite_done?: boolean
+          li_invite_template?: string | null
+          notes?: string | null
+          owner?: string | null
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_accounts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       speakers: {
         Row: {
@@ -127,6 +213,9 @@ export type Database = {
           linkedin_url: string | null
           name: string
           notes: string | null
+          outreach_channel:
+            | Database["public"]["Enums"]["outreach_channel"]
+            | null
           session_format: Database["public"]["Enums"]["session_format"] | null
           session_title: string | null
           status: Database["public"]["Enums"]["speaker_status"]
@@ -147,6 +236,9 @@ export type Database = {
           linkedin_url?: string | null
           name: string
           notes?: string | null
+          outreach_channel?:
+            | Database["public"]["Enums"]["outreach_channel"]
+            | null
           session_format?: Database["public"]["Enums"]["session_format"] | null
           session_title?: string | null
           status?: Database["public"]["Enums"]["speaker_status"]
@@ -167,6 +259,9 @@ export type Database = {
           linkedin_url?: string | null
           name?: string
           notes?: string | null
+          outreach_channel?:
+            | Database["public"]["Enums"]["outreach_channel"]
+            | null
           session_format?: Database["public"]["Enums"]["session_format"] | null
           session_title?: string | null
           status?: Database["public"]["Enums"]["speaker_status"]
@@ -230,6 +325,39 @@ export type Database = {
           },
         ]
       }
+      team_checklist_items: {
+        Row: {
+          category: Database["public"]["Enums"]["checklist_category"]
+          created_at: string
+          done: boolean
+          id: string
+          position: number
+          text: string
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["checklist_category"]
+          created_at?: string
+          done?: boolean
+          id?: string
+          position?: number
+          text: string
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["checklist_category"]
+          created_at?: string
+          done?: boolean
+          id?: string
+          position?: number
+          text?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       website_tasks: {
         Row: {
           assignee: string | null
@@ -274,6 +402,39 @@ export type Database = {
           },
         ]
       }
+      weekly_priorities: {
+        Row: {
+          created_at: string
+          done: boolean
+          id: string
+          position: number
+          text: string
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          done?: boolean
+          id?: string
+          position: number
+          text?: string
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          done?: boolean
+          id?: string
+          position?: number
+          text?: string
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -284,9 +445,17 @@ export type Database = {
     Enums: {
       banner_status: "not_started" | "created" | "sent" | "confirmed_live"
       business_line: "AIAI" | "CSC"
+      checklist_category: "sales" | "marketing" | "content" | "community"
       event_format: "in_person" | "virtual"
       milestone_status: "scheduled" | "done"
       milestone_type: "kickoff" | "washup"
+      outreach_channel:
+        | "linkedin_connect"
+        | "group_message"
+        | "old_attendee_list"
+        | "warm_intro"
+        | "cold_email"
+      self_status: "on_track" | "needs_attention" | "off_track"
       session_format: "keynote" | "panel" | "workshop" | "fireside"
       speaker_status: "contacted" | "responded" | "confirmed" | "declined"
       website_stage: "draft" | "proof_1" | "proof_2" | "signed_off" | "live"
@@ -426,9 +595,18 @@ export const Constants = {
     Enums: {
       banner_status: ["not_started", "created", "sent", "confirmed_live"],
       business_line: ["AIAI", "CSC"],
+      checklist_category: ["sales", "marketing", "content", "community"],
       event_format: ["in_person", "virtual"],
       milestone_status: ["scheduled", "done"],
       milestone_type: ["kickoff", "washup"],
+      outreach_channel: [
+        "linkedin_connect",
+        "group_message",
+        "old_attendee_list",
+        "warm_intro",
+        "cold_email",
+      ],
+      self_status: ["on_track", "needs_attention", "off_track"],
       session_format: ["keynote", "panel", "workshop", "fireside"],
       speaker_status: ["contacted", "responded", "confirmed", "declined"],
       website_stage: ["draft", "proof_1", "proof_2", "signed_off", "live"],

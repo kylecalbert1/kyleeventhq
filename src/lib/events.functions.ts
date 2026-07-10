@@ -14,6 +14,13 @@ const EventInput = z.object({
   website_status: z.enum(["draft", "proof_1", "proof_2", "signed_off", "live"]),
   launch_date: z.string().nullable().optional(),
   owner: z.string().nullable().optional(),
+  proof1_due: z.string().nullable().optional(),
+  proof2_due: z.string().nullable().optional(),
+  final_signoff_due: z.string().nullable().optional(),
+  proof1_done: z.boolean().optional(),
+  proof2_done: z.boolean().optional(),
+  signoff_done: z.boolean().optional(),
+  self_status: z.enum(["on_track", "needs_attention", "off_track"]).optional(),
 });
 
 export const listEvents = createServerFn({ method: "GET" })

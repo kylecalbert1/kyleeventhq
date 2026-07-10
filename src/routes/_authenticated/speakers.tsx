@@ -34,9 +34,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { StatusPill } from "@/components/StatusPill";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
+import { ChannelMixPanel } from "@/components/ChannelMixPanel";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent } from "@/lib/speakers.functions";
-import { labels } from "@/lib/status";
+import { labels, pillClass, OUTREACH_CHANNELS, type OutreachChannel } from "@/lib/status";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/speakers")({
@@ -239,6 +240,8 @@ function SpeakerBoard() {
         </div>
       </div>
 
+      <ChannelMixPanel speakers={filtered} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
         {COLUMNS.map((col) => (
           <div key={col.key} className="min-w-0">
@@ -302,6 +305,11 @@ function SpeakerBoard() {
                             {ev && (
                               <StatusPill className={eventChipCls}>
                                 {ev.code}
+                              </StatusPill>
+                            )}
+                            {s.outreach_channel && (
+                              <StatusPill className={pillClass.outreachChannel[s.outreach_channel as OutreachChannel]}>
+                                {labels.outreachChannel[s.outreach_channel as OutreachChannel]}
                               </StatusPill>
                             )}
                             {s.bio_received ? (
