@@ -112,6 +112,9 @@ export function EventFormDialog({
         washup_date: form.washup_date || null,
         launch_date: form.launch_date || null,
         owner: form.owner || null,
+        proof1_due: form.proof1_due || null,
+        proof2_due: form.proof2_due || null,
+        final_signoff_due: form.final_signoff_due || null,
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
@@ -200,6 +203,23 @@ export function EventFormDialog({
           </Field>
           <Field label="Owner">
             <Input value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} />
+          </Field>
+          <Field label="Self status">
+            <Select value={form.self_status} onValueChange={(v) => setForm({ ...form, self_status: v as never })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SELF_STATUSES.map((s) => <SelectItem key={s} value={s}>{labels.selfStatus[s]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Proof 1 due">
+            <Input type="date" value={form.proof1_due} onChange={(e) => setForm({ ...form, proof1_due: e.target.value })} />
+          </Field>
+          <Field label="Proof 2 due">
+            <Input type="date" value={form.proof2_due} onChange={(e) => setForm({ ...form, proof2_due: e.target.value })} />
+          </Field>
+          <Field label="Final sign-off due" full>
+            <Input type="date" value={form.final_signoff_due} onChange={(e) => setForm({ ...form, final_signoff_due: e.target.value })} />
           </Field>
           <DialogFooter className="col-span-2 flex justify-between sm:justify-between">
             <div>
