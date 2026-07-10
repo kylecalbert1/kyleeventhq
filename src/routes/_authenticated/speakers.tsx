@@ -36,7 +36,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent } from "@/lib/speakers.functions";
-import { labels } from "@/lib/status";
+import { labels, pillClass, OUTREACH_CHANNELS, type OutreachChannel } from "@/lib/status";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/speakers")({
