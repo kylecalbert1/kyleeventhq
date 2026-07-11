@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
@@ -22,22 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { StatusPill } from "@/components/StatusPill";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { ChannelMixPanel } from "@/components/ChannelMixPanel";
+import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent } from "@/lib/speakers.functions";
-import { labels, pillClass, OUTREACH_CHANNELS, type OutreachChannel } from "@/lib/status";
+import { labels, pillClass, type OutreachChannel } from "@/lib/status";
+import { openGmailCompose, firstNameOf } from "@/lib/gmail";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/speakers")({
@@ -50,36 +42,11 @@ export const Route = createFileRoute("/_authenticated/speakers")({
 });
 
 const COLUMNS = [
-  {
-    key: "contacted",
-    title: "Contacted",
-    accent: "border-t-sky-400",
-    dot: "bg-sky-400",
-  },
-  {
-    key: "responded",
-    title: "Responded",
-    accent: "border-t-violet-400",
-    dot: "bg-violet-400",
-  },
-  {
-    key: "confirmed",
-    title: "Confirmed",
-    accent: "border-t-emerald-500",
-    dot: "bg-emerald-500",
-  },
-  {
-    key: "banner_sent",
-    title: "Banner Sent",
-    accent: "border-t-amber-500",
-    dot: "bg-amber-500",
-  },
-  {
-    key: "bio_headshot_in",
-    title: "Bio/Headshot In",
-    accent: "border-t-teal-500",
-    dot: "bg-teal-500",
-  },
+  { key: "contacted", title: "Contacted", accent: "border-t-sky-400", dot: "bg-sky-400" },
+  { key: "responded", title: "Responded", accent: "border-t-violet-400", dot: "bg-violet-400" },
+  { key: "confirmed", title: "Confirmed", accent: "border-t-emerald-500", dot: "bg-emerald-500" },
+  { key: "banner_sent", title: "Banner Sent", accent: "border-t-amber-500", dot: "bg-amber-500" },
+  { key: "bio_headshot_in", title: "Bio/Headshot In", accent: "border-t-teal-500", dot: "bg-teal-500" },
 ] as const;
 
 type ColKey = (typeof COLUMNS)[number]["key"];
@@ -93,38 +60,21 @@ function columnFor(s: any): ColKey {
   return "contacted";
 }
 
-// Distinct visual per stage — outlined for early stages, solid for later.
 const stagePill: Record<ColKey, { label: string; cls: string }> = {
-  contacted: {
-    label: "Contacted",
-    cls: "border border-sky-400 text-sky-700 bg-sky-50/60",
-  },
-  responded: {
-    label: "Responded",
-    cls: "border border-violet-400 text-violet-700 bg-violet-50/60",
-  },
-  confirmed: {
-    label: "Confirmed",
-    cls: "bg-emerald-600 text-white ring-emerald-600",
-  },
-  banner_sent: {
-    label: "Banner Sent",
-    cls: "bg-amber-500 text-white ring-amber-500",
-  },
-  bio_headshot_in: {
-    label: "Bio/Headshot In",
-    cls: "bg-teal-600 text-white ring-teal-600",
-  },
+  contacted: { label: "Contacted", cls: "border border-sky-400 text-sky-700 bg-sky-50/60" },
+  responded: { label: "Responded", cls: "border border-violet-400 text-violet-700 bg-violet-50/60" },
+  confirmed: { label: "Confirmed", cls: "bg-emerald-600 text-white ring-emerald-600" },
+  banner_sent: { label: "Banner Sent", cls: "bg-amber-500 text-white ring-amber-500" },
+  bio_headshot_in: { label: "Bio/Headshot In", cls: "bg-teal-600 text-white ring-teal-600" },
 };
 
 const eventChipCls = "border border-slate-300 text-slate-700 bg-white";
-const okChipCls =
-  "border border-emerald-300 text-emerald-700 bg-emerald-50/70";
-const missingChipCls =
-  "border border-orange-400 text-orange-700 bg-orange-50/70";
+const okChipCls = "border border-emerald-300 text-emerald-700 bg-emerald-50/70";
+const missingChipCls = "border border-orange-400 text-orange-700 bg-orange-50/70";
 
 function SpeakerBoard() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const events = useQuery(eventsQuery);
   const speakers = useQuery(speakersQuery());
   const bulk = useServerFn(bulkMarkBannerSent);
@@ -132,10 +82,8 @@ function SpeakerBoard() {
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [lineFilter, setLineFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const [editing, setEditing] = useState<null | { open: boolean; speaker?: any }>(
-    null,
-  );
-  const [emailing, setEmailing] = useState<null | any>(null);
+  const [editing, setEditing] = useState<null | { open: boolean; speaker?: any }>(null);
+  const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
 
   const eventById = useMemo(
     () => Object.fromEntries((events.data ?? []).map((e) => [e.id, e])),
@@ -152,15 +100,15 @@ function SpeakerBoard() {
   });
 
   const grouped: Record<ColKey, any[]> = {
-    contacted: [],
-    responded: [],
-    confirmed: [],
-    banner_sent: [],
-    bio_headshot_in: [],
+    contacted: [], responded: [], confirmed: [], banner_sent: [], bio_headshot_in: [],
   };
   filtered.forEach((s: any) => grouped[columnFor(s)].push(s));
 
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
+  const selectedSpeakers = useMemo(
+    () => (speakers.data ?? []).filter((s: any) => selectedIds.includes(s.id)),
+    [speakers.data, selectedIds],
+  );
 
   const bulkMutation = useMutation({
     mutationFn: () => bulk({ data: { ids: selectedIds } }),
@@ -175,68 +123,90 @@ function SpeakerBoard() {
 
   async function copyLink(s: any) {
     const url = s.dropbox_link || s.linkedin_url;
-    if (!url) {
-      toast.error("No link stored for this speaker");
-      return;
-    }
+    if (!url) { toast.error("No link stored for this speaker"); return; }
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Link copied to clipboard");
-    } catch {
-      toast.error("Couldn't copy link");
-    }
+    } catch { toast.error("Couldn't copy link"); }
+  }
+
+  function emailOne(s: any, ev: any) {
+    if (!s.email) { toast.error("No email on file"); return; }
+    const firstName = firstNameOf(s.name);
+    const code = ev?.code ?? "our upcoming event";
+    openGmailCompose({
+      to: s.email,
+      subject: `${code} — quick check-in`,
+      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+    });
   }
 
   return (
-    <div className="p-6 md:p-8">
+    <div className="p-6 md:p-8 animate-fade-in">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Speaker pipeline
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Speaker pipeline</h1>
           <p className="text-sm text-muted-foreground">
             Track every speaker from first outreach to confirmed &amp; ready.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={eventFilter} onValueChange={setEventFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All events</SelectItem>
               {(events.data ?? []).map((e) => (
-                <SelectItem key={e.id} value={e.id}>
-                  {e.code}
-                </SelectItem>
+                <SelectItem key={e.id} value={e.id}>{e.code}</SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={lineFilter} onValueChange={setLineFilter}>
-            <SelectTrigger className="w-36">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All lines</SelectItem>
               <SelectItem value="AIAI">AIAI</SelectItem>
               <SelectItem value="CSC">CSC</SelectItem>
             </SelectContent>
           </Select>
-          {selectedIds.length > 0 && (
+          <Button onClick={() => setEditing({ open: true })} className="transition-transform hover:scale-[1.02]">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Add speaker
+          </Button>
+        </div>
+      </div>
+
+      {/* Selection action bar — animates in */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-out ${
+          selectedIds.length > 0 ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 shadow-sm">
+          <div className="text-sm font-medium">
+            {selectedIds.length} speaker{selectedIds.length === 1 ? "" : "s"} selected
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               size="sm"
+              variant="outline"
+              onClick={() => setSelected({})}
+            >
+              Clear
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
               onClick={() => bulkMutation.mutate()}
               disabled={bulkMutation.isPending}
             >
               <Send className="h-4 w-4 mr-1.5" />
-              Mark {selectedIds.length} banner
-              {selectedIds.length > 1 ? "s" : ""} sent
+              Mark banner{selectedIds.length > 1 ? "s" : ""} sent
             </Button>
-          )}
-          <Button onClick={() => setEditing({ open: true })}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Add speaker
-          </Button>
+            <Button size="sm" onClick={() => setBulkEmailOpen(true)}>
+              <Mail className="h-4 w-4 mr-1.5" />
+              Email selected
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -258,7 +228,7 @@ function SpeakerBoard() {
             </div>
             <div className="space-y-2 min-h-24">
               {grouped[col.key].length === 0 ? (
-                <div className="rounded-lg border border-dashed border-muted-foreground/25 bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground">
+                <div className="rounded-lg border border-dashed border-muted-foreground/25 bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground transition-colors hover:border-muted-foreground/40 hover:bg-muted/30">
                   No speakers yet
                 </div>
               ) : (
@@ -269,8 +239,8 @@ function SpeakerBoard() {
                   return (
                     <Card
                       key={s.id}
-                      className={`group p-3 border-t-2 ${col.accent} hover:shadow-md transition-shadow cursor-pointer`}
-                      onClick={() => setEditing({ open: true, speaker: s })}
+                      className={`group p-3 border-t-2 ${col.accent} cursor-pointer transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30`}
+                      onClick={() => navigate({ to: "/speakers/$speakerId", params: { speakerId: s.id } })}
                     >
                       <div className="flex items-start gap-2">
                         <Checkbox
@@ -282,7 +252,7 @@ function SpeakerBoard() {
                           }
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="font-semibold text-sm truncate leading-tight">
+                          <div className="font-semibold text-sm truncate leading-tight group-hover:text-primary transition-colors">
                             {s.name}
                           </div>
                           <div className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
@@ -299,14 +269,8 @@ function SpeakerBoard() {
                           </div>
 
                           <div className="flex flex-wrap gap-1 mt-2">
-                            <StatusPill className={pill.cls}>
-                              {pill.label}
-                            </StatusPill>
-                            {ev && (
-                              <StatusPill className={eventChipCls}>
-                                {ev.code}
-                              </StatusPill>
-                            )}
+                            <StatusPill className={pill.cls}>{pill.label}</StatusPill>
+                            {ev && <StatusPill className={eventChipCls}>{ev.code}</StatusPill>}
                             {s.outreach_channel && (
                               <StatusPill className={pillClass.outreachChannel[s.outreach_channel as OutreachChannel]}>
                                 {labels.outreachChannel[s.outreach_channel as OutreachChannel]}
@@ -327,8 +291,7 @@ function SpeakerBoard() {
                               </StatusPill>
                             ) : (
                               <StatusPill className={missingChipCls}>
-                                <AlertTriangle className="h-3 w-3" /> Missing
-                                headshot
+                                <AlertTriangle className="h-3 w-3" /> Missing headshot
                               </StatusPill>
                             )}
                           </div>
@@ -340,14 +303,8 @@ function SpeakerBoard() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 px-2 text-xs"
-                              onClick={() => {
-                                if (!s.email) {
-                                  toast.error("No email on file");
-                                  return;
-                                }
-                                setEmailing(s);
-                              }}
+                              className="h-7 px-2 text-xs transition-colors"
+                              onClick={() => emailOne(s, ev)}
                             >
                               <Mail className="h-3.5 w-3.5 mr-1" />
                               Email
@@ -355,7 +312,7 @@ function SpeakerBoard() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 px-2 text-xs"
+                              className="h-7 px-2 text-xs transition-colors"
                               onClick={() => copyLink(s)}
                             >
                               <Link2 className="h-3.5 w-3.5 mr-1" />
@@ -364,10 +321,8 @@ function SpeakerBoard() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 px-2 text-xs ml-auto"
-                              onClick={() =>
-                                setEditing({ open: true, speaker: s })
-                              }
+                              className="h-7 px-2 text-xs ml-auto transition-colors"
+                              onClick={() => setEditing({ open: true, speaker: s })}
                             >
                               <Pencil className="h-3.5 w-3.5 mr-1" />
                               Edit
@@ -391,98 +346,11 @@ function SpeakerBoard() {
           speaker={editing.speaker}
         />
       )}
-      <EmailComposeDialog
-        speaker={emailing}
-        event={emailing ? eventById[emailing.event_id] : undefined}
-        onOpenChange={(o) => !o && setEmailing(null)}
+      <BulkEmailDialog
+        open={bulkEmailOpen}
+        onOpenChange={setBulkEmailOpen}
+        speakers={selectedSpeakers}
       />
     </div>
-  );
-}
-
-function EmailComposeDialog({
-  speaker,
-  event,
-  onOpenChange,
-}: {
-  speaker: any | null;
-  event: any | undefined;
-  onOpenChange: (o: boolean) => void;
-}) {
-  const open = !!speaker;
-  const eventLabel = event ? `${event.code}` : "our upcoming event";
-  const firstName = speaker?.name?.split(" ")[0] ?? "there";
-  const defaultSubject = speaker
-    ? `${eventLabel} — quick check-in`
-    : "";
-  const defaultBody = speaker
-    ? `Hi ${firstName},\n\nJust following up on your session for ${eventLabel}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`
-    : "";
-
-  const [subject, setSubject] = useState(defaultSubject);
-  const [body, setBody] = useState(defaultBody);
-
-  // Reset when speaker changes
-  useMemo(() => {
-    setSubject(defaultSubject);
-    setBody(defaultBody);
-  }, [speaker?.id]);
-
-  function openInMailClient() {
-    if (!speaker?.email) return;
-    const url = `mailto:${encodeURIComponent(
-      speaker.email,
-    )}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = url;
-    onOpenChange(false);
-  }
-
-  async function copyBody() {
-    try {
-      await navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
-      toast.success("Email copied to clipboard");
-    } catch {
-      toast.error("Couldn't copy");
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Email {speaker?.name}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs">To</Label>
-            <Input value={speaker?.email ?? ""} readOnly />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Subject</Label>
-            <Input
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Message</Label>
-            <Textarea
-              rows={8}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={copyBody}>
-            Copy
-          </Button>
-          <Button onClick={openInMailClient}>
-            <Mail className="h-4 w-4 mr-1.5" />
-            Open in mail app
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
