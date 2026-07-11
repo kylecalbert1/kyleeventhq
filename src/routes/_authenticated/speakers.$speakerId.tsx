@@ -106,7 +106,7 @@ function SpeakerProfile() {
     .toUpperCase();
 
   function emailSpeaker() {
-    if (!speaker.email) {
+    if (!speaker || !speaker.email) {
       toast.error("No email on file");
       return;
     }
@@ -118,6 +118,7 @@ function SpeakerProfile() {
   }
 
   async function copyLink() {
+    if (!speaker) return;
     const url = speaker.dropbox_link || speaker.linkedin_url;
     if (!url) {
       toast.error("No link stored for this speaker");

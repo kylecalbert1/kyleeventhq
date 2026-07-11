@@ -17,6 +17,7 @@ import { Route as AuthenticatedSpeakersRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedOutreachRouteImport } from './routes/_authenticated/outreach'
 import { Route as AuthenticatedMilestonesRouteImport } from './routes/_authenticated/milestones'
 import { Route as AuthenticatedBannersRouteImport } from './routes/_authenticated/banners'
+import { Route as AuthenticatedSpeakersSpeakerIdRouteImport } from './routes/_authenticated/speakers.$speakerId'
 import { Route as AuthenticatedEventsEventIdRouteImport } from './routes/_authenticated/events.$eventId'
 
 const AuthRoute = AuthRouteImport.update({
@@ -58,6 +59,12 @@ const AuthenticatedBannersRoute = AuthenticatedBannersRouteImport.update({
   path: '/banners',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSpeakersSpeakerIdRoute =
+  AuthenticatedSpeakersSpeakerIdRouteImport.update({
+    id: '/$speakerId',
+    path: '/$speakerId',
+    getParentRoute: () => AuthenticatedSpeakersRoute,
+  } as any)
 const AuthenticatedEventsEventIdRoute =
   AuthenticatedEventsEventIdRouteImport.update({
     id: '/events/$eventId',
@@ -71,19 +78,21 @@ export interface FileRoutesByFullPath {
   '/banners': typeof AuthenticatedBannersRoute
   '/milestones': typeof AuthenticatedMilestonesRoute
   '/outreach': typeof AuthenticatedOutreachRoute
-  '/speakers': typeof AuthenticatedSpeakersRoute
+  '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/website': typeof AuthenticatedWebsiteRoute
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
+  '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/banners': typeof AuthenticatedBannersRoute
   '/milestones': typeof AuthenticatedMilestonesRoute
   '/outreach': typeof AuthenticatedOutreachRoute
-  '/speakers': typeof AuthenticatedSpeakersRoute
+  '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/website': typeof AuthenticatedWebsiteRoute
   '/': typeof AuthenticatedIndexRoute
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
+  '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -92,10 +101,11 @@ export interface FileRoutesById {
   '/_authenticated/banners': typeof AuthenticatedBannersRoute
   '/_authenticated/milestones': typeof AuthenticatedMilestonesRoute
   '/_authenticated/outreach': typeof AuthenticatedOutreachRoute
-  '/_authenticated/speakers': typeof AuthenticatedSpeakersRoute
+  '/_authenticated/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/_authenticated/website': typeof AuthenticatedWebsiteRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/events/$eventId': typeof AuthenticatedEventsEventIdRoute
+  '/_authenticated/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/speakers'
     | '/website'
     | '/events/$eventId'
+    | '/speakers/$speakerId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/website'
     | '/'
     | '/events/$eventId'
+    | '/speakers/$speakerId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -129,6 +141,7 @@ export interface FileRouteTypes {
     | '/_authenticated/website'
     | '/_authenticated/'
     | '/_authenticated/events/$eventId'
+    | '/_authenticated/speakers/$speakerId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -194,6 +207,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBannersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/speakers/$speakerId': {
+      id: '/_authenticated/speakers/$speakerId'
+      path: '/$speakerId'
+      fullPath: '/speakers/$speakerId'
+      preLoaderRoute: typeof AuthenticatedSpeakersSpeakerIdRouteImport
+      parentRoute: typeof AuthenticatedSpeakersRoute
+    }
     '/_authenticated/events/$eventId': {
       id: '/_authenticated/events/$eventId'
       path: '/events/$eventId'
@@ -204,11 +224,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedSpeakersRouteChildren {
+  AuthenticatedSpeakersSpeakerIdRoute: typeof AuthenticatedSpeakersSpeakerIdRoute
+}
+
+const AuthenticatedSpeakersRouteChildren: AuthenticatedSpeakersRouteChildren = {
+  AuthenticatedSpeakersSpeakerIdRoute: AuthenticatedSpeakersSpeakerIdRoute,
+}
+
+const AuthenticatedSpeakersRouteWithChildren =
+  AuthenticatedSpeakersRoute._addFileChildren(
+    AuthenticatedSpeakersRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBannersRoute: typeof AuthenticatedBannersRoute
   AuthenticatedMilestonesRoute: typeof AuthenticatedMilestonesRoute
   AuthenticatedOutreachRoute: typeof AuthenticatedOutreachRoute
-  AuthenticatedSpeakersRoute: typeof AuthenticatedSpeakersRoute
+  AuthenticatedSpeakersRoute: typeof AuthenticatedSpeakersRouteWithChildren
   AuthenticatedWebsiteRoute: typeof AuthenticatedWebsiteRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedEventsEventIdRoute: typeof AuthenticatedEventsEventIdRoute
@@ -218,7 +251,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBannersRoute: AuthenticatedBannersRoute,
   AuthenticatedMilestonesRoute: AuthenticatedMilestonesRoute,
   AuthenticatedOutreachRoute: AuthenticatedOutreachRoute,
-  AuthenticatedSpeakersRoute: AuthenticatedSpeakersRoute,
+  AuthenticatedSpeakersRoute: AuthenticatedSpeakersRouteWithChildren,
   AuthenticatedWebsiteRoute: AuthenticatedWebsiteRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedEventsEventIdRoute: AuthenticatedEventsEventIdRoute,
@@ -234,13 +267,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
