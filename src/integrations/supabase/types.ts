@@ -63,6 +63,7 @@ export type Database = {
       }
       events: {
         Row: {
+          asana_project_gid: string | null
           banner_dropbox_link: string | null
           business_line: Database["public"]["Enums"]["business_line"]
           code: string
@@ -87,6 +88,7 @@ export type Database = {
           website_status: Database["public"]["Enums"]["website_stage"]
         }
         Insert: {
+          asana_project_gid?: string | null
           banner_dropbox_link?: string | null
           business_line: Database["public"]["Enums"]["business_line"]
           code: string
@@ -111,6 +113,7 @@ export type Database = {
           website_status?: Database["public"]["Enums"]["website_stage"]
         }
         Update: {
+          asana_project_gid?: string | null
           banner_dropbox_link?: string | null
           business_line?: Database["public"]["Enums"]["business_line"]
           code?: string
