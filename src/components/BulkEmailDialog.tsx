@@ -248,7 +248,7 @@ export function BulkEmailDialog({
                           size="sm"
                           variant={st === "sent" ? "outline" : "default"}
                           disabled={!r.email || !connected || st === "sending"}
-                          onClick={() => sendOne(r)}
+                          onClick={() => requestSendOne(r)}
                         >
                           {st === "sent" ? "Resend" : "Send"}
                         </Button>
