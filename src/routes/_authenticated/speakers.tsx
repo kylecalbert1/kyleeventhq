@@ -8,15 +8,15 @@ import {
   Send,
   Mail,
   Link2,
-  Pencil,
-  CheckCircle2,
-  AlertTriangle,
-  Building2,
+  Eye,
   Sparkles,
   Reply,
   Clock,
   Search,
   X,
+  AlertTriangle,
+  LayoutGrid,
+  Rows3,
 } from "lucide-react";
 import { SyncDialog } from "@/components/SyncDialog";
 import { Button } from "@/components/ui/button";
@@ -38,10 +38,17 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent, updateSpeaker } from "@/lib/speakers.functions";
-import { labels, pillClass, daysBetween, OUTREACH_CHANNELS, type OutreachChannel } from "@/lib/status";
+import {
+  labels,
+  pillClass,
+  daysBetween,
+  OUTREACH_CHANNELS,
+  type OutreachChannel,
+} from "@/lib/status";
 import { firstNameOf, initialsOf } from "@/lib/gmail";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const searchSchema = z.object({
   attention: z.enum(["reply", "follow_up", "any"]).optional(),
@@ -75,7 +82,7 @@ function columnFor(s: any): ColKey {
   return "contacted";
 }
 
-function patchForColumn(target: ColKey, current: any): Record<string, any> {
+function patchForColumn(target: ColKey): Record<string, any> {
   switch (target) {
     case "contacted":
       return { status: "contacted" };
@@ -84,24 +91,33 @@ function patchForColumn(target: ColKey, current: any): Record<string, any> {
     case "confirmed":
       return { status: "confirmed" };
     case "banner_sent":
-      return {
-        status: current.status === "confirmed" ? "confirmed" : "confirmed",
-        banner_status: "sent",
-      };
+      return { status: "confirmed", banner_status: "sent" };
     case "bio_headshot_in":
       return { bio_received: true, headshot_received: true };
   }
 }
 
+// Distinct color per stage — solid pills, like the reference.
 const stagePill: Record<ColKey, { label: string; cls: string }> = {
-  contacted: { label: "Contacted", cls: "border border-sky-400 text-sky-700 bg-sky-50/60" },
-  responded: { label: "Responded", cls: "border border-violet-400 text-violet-700 bg-violet-50/60" },
-  confirmed: { label: "Confirmed", cls: "bg-emerald-600 text-white ring-emerald-600" },
-  banner_sent: { label: "Banner Sent", cls: "bg-amber-500 text-white ring-amber-500" },
-  bio_headshot_in: { label: "Bio/Headshot In", cls: "bg-teal-600 text-white ring-teal-600" },
+  contacted: { label: "Contacted", cls: "bg-sky-100 text-sky-800 ring-sky-200" },
+  responded: { label: "Responded", cls: "bg-violet-100 text-violet-800 ring-violet-200" },
+  confirmed: { label: "Confirmed", cls: "bg-emerald-100 text-emerald-800 ring-emerald-200" },
+  banner_sent: { label: "Banner Sent", cls: "bg-amber-100 text-amber-900 ring-amber-200" },
+  bio_headshot_in: { label: "Bio/Headshot In", cls: "bg-teal-100 text-teal-800 ring-teal-200" },
 };
 
-const eventChipCls = "border border-slate-300 text-slate-700 bg-white";
+const avatarGradient: Record<ColKey, string> = {
+  contacted: "from-sky-500 to-sky-600",
+  responded: "from-violet-500 to-violet-600",
+  confirmed: "from-emerald-500 to-emerald-600",
+  banner_sent: "from-amber-500 to-amber-600",
+  bio_headshot_in: "from-teal-500 to-teal-600",
+};
+
+// Event code pill — subtle indigo so it reads like a tag in the reference.
+const eventChipCls = "bg-indigo-50 text-indigo-700 ring-indigo-200";
+const missingChipCls =
+  "border border-orange-300 text-orange-800 bg-orange-50 ring-0";
 
 type OutreachAlertT =
   | { type: "reply"; label: "Reply needed"; cls: string; icon: typeof Reply }
@@ -115,7 +131,12 @@ function outreachAlert(s: any): OutreachAlertT {
   const lastAt: string | null = s.last_message_at ?? null;
   const direction: string | null = s.last_message_direction ?? null;
   if (!lastAt) {
-    return { type: "no_contact", label: "No contact logged", cls: "bg-slate-100 text-slate-600 ring-slate-200", icon: null };
+    return {
+      type: "no_contact",
+      label: "No contact logged",
+      cls: "bg-slate-100 text-slate-600 ring-slate-200",
+      icon: null,
+    };
   }
   const days = daysBetween(new Date(lastAt), new Date());
   if (days === null) return null;
@@ -128,10 +149,20 @@ function outreachAlert(s: any): OutreachAlertT {
   return null;
 }
 
-const okChipCls = "border border-emerald-300 text-emerald-700 bg-emerald-50/70";
-const missingChipCls = "border border-orange-400 text-orange-700 bg-orange-50/70";
-
 type SortKey = "stalest" | "name" | "event" | "status";
+type ViewMode = "list" | "board";
+type StageFilter = "all" | ColKey;
+
+function fmtShort(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+// Shared soft-card style — reused on Events and Banners for consistency.
+export const softCard =
+  "bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.05)] hover:shadow-[0_2px_4px_rgba(15,23,42,0.06),0_10px_28px_rgba(15,23,42,0.08)] transition-all duration-200";
 
 function SpeakerBoard() {
   const qc = useQueryClient();
@@ -142,6 +173,8 @@ function SpeakerBoard() {
   const bulk = useServerFn(bulkMarkBannerSent);
   const updateSp = useServerFn(updateSpeaker);
 
+  const [view, setView] = useState<ViewMode>("list");
+  const [stageFilter, setStageFilter] = useState<StageFilter>("all");
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [lineFilter, setLineFilter] = useState<string>("all");
   const [channelFilter, setChannelFilter] = useState<string>("all");
@@ -165,7 +198,7 @@ function SpeakerBoard() {
     [events.data],
   );
 
-  const filtered = useMemo(() => {
+  const preStageFiltered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return (speakers.data ?? []).filter((s: any) => {
       if (eventFilter !== "all" && s.event_id !== eventFilter) return false;
@@ -188,12 +221,26 @@ function SpeakerBoard() {
         if (attentionFilter === "any" && a.type !== "reply" && a.type !== "follow_up") return false;
       }
       if (term) {
-        const hay = `${s.name ?? ""} ${s.company ?? ""}`.toLowerCase();
+        const hay = `${s.name ?? ""} ${s.company ?? ""} ${s.email ?? ""}`.toLowerCase();
         if (!hay.includes(term)) return false;
       }
       return true;
     });
   }, [speakers.data, eventFilter, lineFilter, channelFilter, missingBio, missingHeadshot, attentionFilter, q, eventById]);
+
+  // Stage counts (pre-stage-filter, so the dropdown shows real totals).
+  const stageCounts = useMemo(() => {
+    const c: Record<ColKey, number> = {
+      contacted: 0, responded: 0, confirmed: 0, banner_sent: 0, bio_headshot_in: 0,
+    };
+    preStageFiltered.forEach((s: any) => { c[columnFor(s)]++; });
+    return c;
+  }, [preStageFiltered]);
+
+  const filtered = useMemo(() => {
+    if (stageFilter === "all") return preStageFiltered;
+    return preStageFiltered.filter((s: any) => columnFor(s) === stageFilter);
+  }, [preStageFiltered, stageFilter]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -208,7 +255,6 @@ function SpeakerBoard() {
         const rank: Record<string, number> = { contacted: 0, responded: 1, confirmed: 2, declined: 3 };
         return (rank[a.status] ?? 9) - (rank[b.status] ?? 9);
       }
-      // stalest: oldest last_message_at first; nulls first
       const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : -Infinity;
       const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : -Infinity;
       return ta - tb;
@@ -217,11 +263,7 @@ function SpeakerBoard() {
   }, [filtered, sortKey, eventById]);
 
   const grouped: Record<ColKey, any[]> = {
-    contacted: [],
-    responded: [],
-    confirmed: [],
-    banner_sent: [],
-    bio_headshot_in: [],
+    contacted: [], responded: [], confirmed: [], banner_sent: [], bio_headshot_in: [],
   };
   sorted.forEach((s: any) => grouped[columnFor(s)].push(s));
 
@@ -262,7 +304,7 @@ function SpeakerBoard() {
     const s = (speakers.data ?? []).find((x: any) => x.id === id);
     if (!s) return;
     if (columnFor(s) === target) return;
-    const patch = patchForColumn(target, s);
+    const patch = patchForColumn(target);
     dragMove.mutate({ id, patch });
     toast.success(`Moved ${s.name} → ${COLUMNS.find((c) => c.key === target)?.title}`);
   }
@@ -302,6 +344,7 @@ function SpeakerBoard() {
   }
 
   const hasFilters =
+    stageFilter !== "all" ||
     eventFilter !== "all" ||
     lineFilter !== "all" ||
     channelFilter !== "all" ||
@@ -311,6 +354,7 @@ function SpeakerBoard() {
     q.trim() !== "";
 
   function clearFilters() {
+    setStageFilter("all");
     setEventFilter("all");
     setLineFilter("all");
     setChannelFilter("all");
@@ -321,39 +365,94 @@ function SpeakerBoard() {
     navigate({ to: "/speakers", search: {} });
   }
 
+  const totalPreStage = preStageFiltered.length;
+
   return (
     <div className="p-6 md:p-8 animate-fade-in">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Speaker pipeline</h1>
           <p className="text-sm text-muted-foreground">
-            Track every speaker from first outreach to confirmed &amp; ready. Drag cards to move between columns.
+            {view === "board"
+              ? "Drag cards to move speakers between stages."
+              : "One-column feed — filter by stage above, switch to Board to drag between stages."}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => setSyncOpen(true)} className="transition-transform hover:scale-[1.02]">
+          {/* List / Board toggle */}
+          <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors",
+                view === "list" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900",
+              )}
+            >
+              <Rows3 className="h-3.5 w-3.5" />
+              List
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("board")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors",
+                view === "board" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900",
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Board
+            </button>
+          </div>
+          <Button variant="outline" onClick={() => setSyncOpen(true)}>
             <Sparkles className="h-4 w-4 mr-1.5" />
             Sync
           </Button>
-          <Button onClick={() => setEditing({ open: true })} className="transition-transform hover:scale-[1.02]">
+          <Button onClick={() => setEditing({ open: true })}>
             <Plus className="h-4 w-4 mr-1.5" />
             Add speaker
           </Button>
         </div>
       </div>
 
-      {/* Filter/sort bar */}
-      <Card className="p-3 mb-4">
+      {/* Primary Status filter — reference-style select */}
+      <div className="mb-3">
+        <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
+          <SelectTrigger
+            className="h-11 w-full sm:w-[420px] bg-white border-slate-200 shadow-sm rounded-xl px-4 text-sm font-medium"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Status
+              </span>
+              <SelectValue />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses ({totalPreStage})</SelectItem>
+            {COLUMNS.map((c) => (
+              <SelectItem key={c.key} value={c.key}>
+                {c.title} ({stageCounts[c.key]})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Full-width search */}
+      <div className="mb-4 relative">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Input
+          className="pl-10 h-11 rounded-xl bg-white border-slate-200 shadow-sm"
+          placeholder="Search by name, company or email…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
+
+      {/* Secondary filters */}
+      <Card className="p-3 mb-4 rounded-xl border-slate-200/70 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[220px] max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              className="pl-8 h-9"
-              placeholder="Search name or company"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
           <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
             <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Sort by" /></SelectTrigger>
             <SelectContent>
@@ -428,7 +527,7 @@ function SpeakerBoard() {
             Select all visible
           </label>
           <div className="text-xs text-muted-foreground tabular-nums">
-            {sorted.length} speaker{sorted.length === 1 ? "" : "s"}
+            {sorted.length} shown
           </div>
         </div>
       </Card>
@@ -443,13 +542,13 @@ function SpeakerBoard() {
         </div>
       </details>
 
-      {/* Selection action bar */}
+      {/* Selection bar */}
       <div
         className={`overflow-hidden transition-all duration-300 ease-out ${
           selectedIds.length > 0 ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
         }`}
       >
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 shadow-sm">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 shadow-sm">
           <div className="text-sm font-medium">
             {selectedIds.length} speaker{selectedIds.length === 1 ? "" : "s"} selected
           </div>
@@ -472,180 +571,86 @@ function SpeakerBoard() {
         </div>
       </div>
 
-
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-        {COLUMNS.map((col) => (
-          <div
-            key={col.key}
-            className={`min-w-0 rounded-lg transition-colors ${
-              dragOver === col.key ? "bg-primary/5 ring-2 ring-primary/40" : ""
-            }`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              if (dragOver !== col.key) setDragOver(col.key);
-            }}
-            onDragLeave={(e) => {
-              if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-              setDragOver(null);
-            }}
-            onDrop={(e) => handleDrop(col.key, e)}
-          >
-            <div className="flex items-center justify-between px-1 mb-2 pt-1">
-              <div className="flex items-center gap-2">
-                <span className={`h-2 w-2 rounded-full ${col.dot}`} />
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {col.title}
+      {view === "list" ? (
+        <div className="space-y-3">
+          {sorted.length === 0 ? (
+            <Card className="p-10 text-center text-sm text-muted-foreground rounded-2xl">
+              No speakers match these filters.
+            </Card>
+          ) : (
+            sorted.map((s: any) => {
+              const ev = eventById[s.event_id];
+              return (
+                <SpeakerListCard
+                  key={s.id}
+                  s={s}
+                  ev={ev}
+                  selected={!!selected[s.id]}
+                  onToggleSelect={(v) => setSelected({ ...selected, [s.id]: v })}
+                  onOpenDetail={() => setDetailSpeaker(s)}
+                  onEmail={() => emailOne(s, ev)}
+                  onCopyLink={() => copyLink(s)}
+                  onEdit={() => setEditing({ open: true, speaker: s })}
+                />
+              );
+            })
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+          {COLUMNS.map((col) => (
+            <div
+              key={col.key}
+              className={`min-w-0 rounded-xl transition-colors ${
+                dragOver === col.key ? "bg-primary/5 ring-2 ring-primary/40" : ""
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (dragOver !== col.key) setDragOver(col.key);
+              }}
+              onDragLeave={(e) => {
+                if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                setDragOver(null);
+              }}
+              onDrop={(e) => handleDrop(col.key, e)}
+            >
+              <div className="flex items-center justify-between px-1 mb-2 pt-1">
+                <div className="flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${col.dot}`} />
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {col.title}
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground tabular-nums">
+                  {grouped[col.key].length}
                 </div>
               </div>
-              <div className="text-xs text-muted-foreground tabular-nums">
-                {grouped[col.key].length}
+              <div className="space-y-2 min-h-24 px-1 pb-1">
+                {grouped[col.key].length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground">
+                    {dragOver === col.key ? "Drop here" : "No speakers"}
+                  </div>
+                ) : (
+                  grouped[col.key].map((s: any) => {
+                    const ev = eventById[s.event_id];
+                    return (
+                      <SpeakerBoardCard
+                        key={s.id}
+                        s={s}
+                        ev={ev}
+                        selected={!!selected[s.id]}
+                        onToggleSelect={(v) => setSelected({ ...selected, [s.id]: v })}
+                        onOpenDetail={() => setDetailSpeaker(s)}
+                        onEmail={() => emailOne(s, ev)}
+                      />
+                    );
+                  })
+                )}
               </div>
             </div>
-            <div className="space-y-2 min-h-24 px-1 pb-1">
-              {grouped[col.key].length === 0 ? (
-                <div className="rounded-lg border border-dashed border-muted-foreground/25 bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground transition-colors hover:border-muted-foreground/40 hover:bg-muted/30">
-                  {dragOver === col.key ? "Drop here" : "No speakers yet"}
-                </div>
-              ) : (
-                grouped[col.key].map((s: any) => {
-                  const ev = eventById[s.event_id];
-                  const colKey = columnFor(s);
-                  const pill = stagePill[colKey];
-                  return (
-                    <Card
-                      key={s.id}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("text/plain", s.id);
-                        e.dataTransfer.effectAllowed = "move";
-                      }}
-                      className={`group p-3 border-t-2 ${col.accent} cursor-pointer active:cursor-grabbing transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30`}
-                      onClick={() => setDetailSpeaker(s)}
-                    >
-                      <div className="flex items-start gap-2">
-                        <Checkbox
-                          className="mt-1"
-                          checked={!!selected[s.id]}
-                          onClick={(e) => e.stopPropagation()}
-                          onCheckedChange={(v) =>
-                            setSelected({ ...selected, [s.id]: !!v })
-                          }
-                        />
-                        <div
-                          className={`h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold ring-2 ring-background shadow-sm text-white bg-gradient-to-br ${
-                            colKey === "confirmed"
-                              ? "from-emerald-500 to-emerald-600"
-                              : colKey === "banner_sent"
-                                ? "from-amber-500 to-amber-600"
-                                : colKey === "bio_headshot_in"
-                                  ? "from-teal-500 to-teal-600"
-                                  : colKey === "responded"
-                                    ? "from-violet-500 to-violet-600"
-                                    : "from-sky-500 to-sky-600"
-                          }`}
-                        >
-                          {initialsOf(s.name)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="font-semibold text-sm truncate leading-tight group-hover:text-primary transition-colors">
-                              {s.name}
-                            </div>
-                            {(() => {
-                              const alert = outreachAlert(s);
-                              if (!alert) return null;
-                              return (
-                                <StatusPill className={alert.cls}>
-                                  {alert.icon && <alert.icon className="h-3 w-3" />}
-                                  {alert.label}
-                                </StatusPill>
-                              );
-                            })()}
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-                            {s.title && <span>{s.title}</span>}
-                            {s.title && s.company && <span className="opacity-40">·</span>}
-                            {s.company && (
-                              <span className="inline-flex items-center gap-0.5">
-                                <Building2 className="h-3 w-3 opacity-60" />
-                                {s.company}
-                              </span>
-                            )}
-                          </div>
-
-
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            <StatusPill className={pill.cls}>{pill.label}</StatusPill>
-                            {ev && <StatusPill className={eventChipCls}>{ev.code}</StatusPill>}
-                            {s.outreach_channel && (
-                              <StatusPill className={pillClass.outreachChannel[s.outreach_channel as OutreachChannel]}>
-                                {labels.outreachChannel[s.outreach_channel as OutreachChannel]}
-                              </StatusPill>
-                            )}
-                            {s.bio_received ? (
-                              <StatusPill className={okChipCls}>
-                                <CheckCircle2 className="h-3 w-3" /> Bio
-                              </StatusPill>
-                            ) : (
-                              <StatusPill className={missingChipCls}>
-                                <AlertTriangle className="h-3 w-3" /> Missing bio
-                              </StatusPill>
-                            )}
-                            {s.headshot_received ? (
-                              <StatusPill className={okChipCls}>
-                                <CheckCircle2 className="h-3 w-3" /> Headshot
-                              </StatusPill>
-                            ) : (
-                              <StatusPill className={missingChipCls}>
-                                <AlertTriangle className="h-3 w-3" /> Missing headshot
-                              </StatusPill>
-                            )}
-                          </div>
-
-                          <div
-                            className="flex items-center gap-1 mt-2.5 pt-2 border-t border-border/60"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2 text-xs transition-colors"
-                              onClick={() => emailOne(s, ev)}
-                              disabled={!s.email}
-                            >
-                              <Mail className="h-3.5 w-3.5 mr-1" />
-                              Email
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2 text-xs transition-colors"
-                              onClick={() => copyLink(s)}
-                            >
-                              <Link2 className="h-3.5 w-3.5 mr-1" />
-                              Copy link
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2 text-xs ml-auto transition-colors"
-                              onClick={() => setEditing({ open: true, speaker: s })}
-                            >
-                              <Pencil className="h-3.5 w-3.5 mr-1" />
-                              Edit
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {editing && (
         <SpeakerFormDialog
@@ -685,6 +690,279 @@ function SpeakerBoard() {
         onOpenChange={setSyncOpen}
         defaultEventId={eventFilter}
       />
+    </div>
+  );
+}
+
+/* ------------------------- Reference-style list card ------------------------- */
+
+function SpeakerListCard({
+  s,
+  ev,
+  selected,
+  onToggleSelect,
+  onOpenDetail,
+  onEmail,
+  onCopyLink,
+  onEdit,
+}: {
+  s: any;
+  ev: any;
+  selected: boolean;
+  onToggleSelect: (v: boolean) => void;
+  onOpenDetail: () => void;
+  onEmail: () => void;
+  onCopyLink: () => void;
+  onEdit: () => void;
+}) {
+  const colKey = columnFor(s);
+  const stage = stagePill[colKey];
+  const alert = outreachAlert(s);
+  const addedShort = fmtShort(s.created_at);
+  const lastShort = fmtShort(s.last_message_at);
+  const dir = s.last_message_direction as string | null;
+
+  const titleAtCompany = [s.title, s.company].filter(Boolean).join(" at ");
+
+  return (
+    <div className={cn(softCard, "p-5")}>
+      <div className="flex gap-4">
+        {/* checkbox + avatar */}
+        <div className="flex flex-col items-center gap-2 pt-0.5">
+          <Checkbox
+            checked={selected}
+            onCheckedChange={(v) => onToggleSelect(!!v)}
+          />
+          <div
+            className={cn(
+              "h-11 w-11 rounded-full flex items-center justify-center text-[13px] font-bold text-white shadow-sm bg-gradient-to-br",
+              avatarGradient[colKey],
+            )}
+          >
+            {initialsOf(s.name)}
+          </div>
+        </div>
+
+        {/* main body */}
+        <div className="flex-1 min-w-0">
+          {/* 1. Name + status pill inline */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <button
+              type="button"
+              onClick={onOpenDetail}
+              className="text-left text-lg font-semibold tracking-tight text-slate-900 hover:text-indigo-700 transition-colors truncate"
+            >
+              {s.name}
+            </button>
+            <StatusPill className={cn(stage.cls, "text-[11px] px-2.5 py-1 font-semibold")}>
+              {stage.label}
+            </StatusPill>
+          </div>
+
+          {/* 2. Title at Company */}
+          {titleAtCompany && (
+            <div className="mt-1 text-sm text-slate-500 truncate">{titleAtCompany}</div>
+          )}
+
+          {/* 3. Email + event pill + channel pill */}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {s.email && (
+              <span className="text-sm text-slate-600 truncate">{s.email}</span>
+            )}
+            {ev?.code && (
+              <StatusPill className={cn(eventChipCls, "text-[11px]")}>
+                {ev.code}
+              </StatusPill>
+            )}
+            {s.outreach_channel && (
+              <StatusPill
+                className={cn(
+                  pillClass.outreachChannel[s.outreach_channel as OutreachChannel],
+                  "text-[11px]",
+                )}
+              >
+                {labels.outreachChannel[s.outreach_channel as OutreachChannel]}
+              </StatusPill>
+            )}
+          </div>
+
+          {/* 4. Warning pills (only if applicable) */}
+          {(!s.bio_received || !s.headshot_received) && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {!s.bio_received && (
+                <StatusPill className={cn(missingChipCls, "text-[11px]")}>
+                  <AlertTriangle className="h-3 w-3" /> Missing bio
+                </StatusPill>
+              )}
+              {!s.headshot_received && (
+                <StatusPill className={cn(missingChipCls, "text-[11px]")}>
+                  <AlertTriangle className="h-3 w-3" /> Missing headshot
+                </StatusPill>
+              )}
+            </div>
+          )}
+
+          {/* 5. Metadata line */}
+          {(addedShort || lastShort) && (
+            <div className="mt-2.5 text-xs text-slate-400">
+              {addedShort && <>Added {addedShort}</>}
+              {addedShort && lastShort && <span className="mx-1.5">·</span>}
+              {lastShort && (
+                <>
+                  Last contact {lastShort}
+                  {dir ? ` (${dir})` : ""}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* 6. Outreach SLA pill */}
+          {alert && (alert.type === "reply" || alert.type === "follow_up") && (
+            <div className="mt-2">
+              <StatusPill className={cn(alert.cls, "text-[11px] font-semibold")}>
+                {alert.icon && <alert.icon className="h-3 w-3" />}
+                {alert.label}
+              </StatusPill>
+            </div>
+          )}
+
+          {/* 7. Text-link actions */}
+          <div className="mt-3 flex items-center gap-4 text-xs">
+            <button
+              type="button"
+              onClick={onEdit}
+              className="text-slate-500 hover:text-indigo-700 font-medium transition-colors"
+            >
+              + Add note
+            </button>
+            <button
+              type="button"
+              onClick={onEdit}
+              className="text-slate-500 hover:text-indigo-700 font-medium transition-colors"
+            >
+              Edit details
+            </button>
+          </div>
+        </div>
+
+        {/* Right-side vertical action stack */}
+        <div className="flex flex-col gap-2 shrink-0 w-[140px]">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onCopyLink}
+            className="rounded-full border-slate-200 bg-white hover:bg-slate-50 h-9 font-medium"
+          >
+            <Link2 className="h-3.5 w-3.5 mr-1.5" />
+            Copy Link
+          </Button>
+          <Button
+            size="sm"
+            onClick={onEmail}
+            disabled={!s.email}
+            className="rounded-full bg-indigo-600 hover:bg-indigo-700 text-white h-9 font-medium shadow-sm"
+          >
+            <Mail className="h-3.5 w-3.5 mr-1.5" />
+            Send Email
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onOpenDetail}
+            className="rounded-full h-9 font-medium text-indigo-700 hover:text-indigo-800 hover:bg-indigo-50"
+          >
+            <Eye className="h-3.5 w-3.5 mr-1.5" />
+            View details
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------- Board (draggable) card --------------------------- */
+
+function SpeakerBoardCard({
+  s,
+  ev,
+  selected,
+  onToggleSelect,
+  onOpenDetail,
+  onEmail,
+}: {
+  s: any;
+  ev: any;
+  selected: boolean;
+  onToggleSelect: (v: boolean) => void;
+  onOpenDetail: () => void;
+  onEmail: () => void;
+}) {
+  const colKey = columnFor(s);
+  const stage = stagePill[colKey];
+  const alert = outreachAlert(s);
+  return (
+    <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", s.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      className={cn(softCard, "p-3 cursor-pointer active:cursor-grabbing")}
+      onClick={onOpenDetail}
+    >
+      <div className="flex items-start gap-2">
+        <Checkbox
+          className="mt-1"
+          checked={selected}
+          onClick={(e) => e.stopPropagation()}
+          onCheckedChange={(v) => onToggleSelect(!!v)}
+        />
+        <div
+          className={cn(
+            "h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-sm bg-gradient-to-br",
+            avatarGradient[colKey],
+          )}
+        >
+          {initialsOf(s.name)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold text-sm truncate leading-tight">{s.name}</div>
+          {s.company && (
+            <div className="text-xs text-slate-500 truncate">{s.company}</div>
+          )}
+          <div className="flex flex-wrap gap-1 mt-2">
+            <StatusPill className={cn(stage.cls, "text-[10px]")}>{stage.label}</StatusPill>
+            {ev?.code && (
+              <StatusPill className={cn(eventChipCls, "text-[10px]")}>{ev.code}</StatusPill>
+            )}
+            {alert && (alert.type === "reply" || alert.type === "follow_up") && (
+              <StatusPill className={cn(alert.cls, "text-[10px]")}>
+                {alert.icon && <alert.icon className="h-3 w-3" />}
+                {alert.label}
+              </StatusPill>
+            )}
+          </div>
+          <div className="mt-2 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs"
+              onClick={onEmail}
+              disabled={!s.email}
+            >
+              <Mail className="h-3.5 w-3.5 mr-1" /> Email
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs ml-auto"
+              onClick={onOpenDetail}
+            >
+              <Eye className="h-3.5 w-3.5 mr-1" /> Details
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
