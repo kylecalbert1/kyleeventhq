@@ -318,12 +318,15 @@ export function SyncDialog({
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid grid-cols-2 w-full">
+          <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="calendar" className="gap-2">
               <CalendarClock className="h-4 w-4" /> Calendar leads
             </TabsTrigger>
             <TabsTrigger value="email" className="gap-2">
               <Mail className="h-4 w-4" /> Email thread status
+            </TabsTrigger>
+            <TabsTrigger value="banner" className="gap-2">
+              <ImageIcon className="h-4 w-4" /> Banner check
             </TabsTrigger>
           </TabsList>
 
