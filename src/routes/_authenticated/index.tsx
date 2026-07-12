@@ -480,7 +480,7 @@ function EventsGrid() {
                   params={{ eventId: ev.id }}
                   className="group"
                 >
-                  <Card className="p-5 h-full transition-all duration-200 ease-out hover:shadow-lg hover:border-primary/30 group-hover:-translate-y-1">
+                  <Card className="p-6 h-full bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.05)] transition-all duration-200 ease-out group-hover:shadow-[0_2px_4px_rgba(15,23,42,0.06),0_10px_28px_rgba(15,23,42,0.08)] group-hover:-translate-y-0.5">
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="min-w-0">
                         <div className="text-xs font-mono text-muted-foreground">{ev.code}</div>
