@@ -38,6 +38,7 @@ import {
   fetchLeadSuggestions,
   fetchEmailSuggestions,
   applyEmailSuggestion,
+  setSpeakerStatus,
 } from "@/lib/sync.functions";
 import { createSpeaker } from "@/lib/speakers.functions";
 import { eventsQuery } from "@/lib/queries";
@@ -53,8 +54,9 @@ type EmailSuggestion = {
   subject: string;
   snippet: string;
   from: string;
-  matched_speaker: { id: string; name: string; email: string } | null;
+  matched_speaker: { id: string; name: string; email: string; previous_status: string } | null;
   suggested_status: "confirmed" | "declined" | "needs_approval" | "unclear";
+  confidence: "high" | "medium" | "low";
   reasoning: string;
   needs: { bio: boolean; headshot: boolean; banner: boolean };
   received_at: string;
@@ -72,6 +74,12 @@ const statusCls: Record<EmailSuggestion["suggested_status"], string> = {
   declined: "bg-rose-600 text-white",
   needs_approval: "bg-amber-500 text-white",
   unclear: "bg-slate-400 text-white",
+};
+
+const confidenceCls: Record<EmailSuggestion["confidence"], string> = {
+  high: "border-emerald-500 text-emerald-700",
+  medium: "border-amber-500 text-amber-700",
+  low: "border-slate-400 text-slate-600",
 };
 
 export function SyncDialog({
@@ -109,6 +117,7 @@ export function SyncDialog({
   const fetchEmails = useServerFn(fetchEmailSuggestions);
   const create = useServerFn(createSpeaker);
   const apply = useServerFn(applyEmailSuggestion);
+  const revert = useServerFn(setSpeakerStatus);
 
   const leadsMut = useMutation({
     mutationFn: () => fetchLeads({ data: { pastDays: 30, futureDays: 60 } }),
@@ -126,14 +135,68 @@ export function SyncDialog({
 
   const emailMut = useMutation({
     mutationFn: () => fetchEmails({ data: undefined as any }),
-    onSuccess: (r) => {
+    onSuccess: async (r) => {
       if (!r.connected) {
         toast.error("Gmail not connected");
         setEmailSugs([]);
         return;
       }
-      setEmailSugs(r.suggestions);
-      toast.success(`Reviewed ${r.suggestions.length} thread${r.suggestions.length === 1 ? "" : "s"}`);
+
+      // Split: auto-apply high-confidence with a matched speaker + actionable status.
+      const auto = r.suggestions.filter(
+        (s) =>
+          s.matched_speaker &&
+          s.confidence === "high" &&
+          s.suggested_status !== "unclear",
+      );
+      const manual = r.suggestions.filter((s) => !auto.includes(s));
+      setEmailSugs(manual);
+
+      let applied = 0;
+      for (const sug of auto) {
+        try {
+          await apply({
+            data: {
+              speaker_id: sug.matched_speaker!.id,
+              suggested_status: sug.suggested_status,
+            },
+          });
+          applied++;
+          setDismissedEmails((s) => new Set(s).add(sug.thread_id));
+          const prev = sug.matched_speaker!.previous_status as
+            | "contacted"
+            | "responded"
+            | "confirmed"
+            | "declined";
+          const name = sug.matched_speaker!.name;
+          const speakerId = sug.matched_speaker!.id;
+          toast.success(
+            `Auto-applied "${statusLabel[sug.suggested_status]}" to ${name}`,
+            {
+              duration: 15000,
+              description: sug.reasoning,
+              action: {
+                label: "Undo",
+                onClick: async () => {
+                  try {
+                    await revert({ data: { speaker_id: speakerId, status: prev } });
+                    qc.invalidateQueries({ queryKey: ["speakers"] });
+                    toast.success(`Reverted ${name} to ${prev}`);
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Undo failed");
+                  }
+                },
+              },
+            },
+          );
+        } catch (e) {
+          console.error("Auto-apply failed", e);
+        }
+      }
+      if (applied > 0) qc.invalidateQueries({ queryKey: ["speakers"] });
+      toast.success(
+        `Reviewed ${r.suggestions.length} thread${r.suggestions.length === 1 ? "" : "s"} · ${applied} auto-applied · ${manual.length} to review`,
+      );
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Sync failed"),
   });
@@ -169,16 +232,37 @@ export function SyncDialog({
       toast.error("No matching speaker record");
       return;
     }
+    const prev = sug.matched_speaker.previous_status as
+      | "contacted"
+      | "responded"
+      | "confirmed"
+      | "declined";
+    const name = sug.matched_speaker.name;
+    const speakerId = sug.matched_speaker.id;
     try {
       await apply({
         data: {
-          speaker_id: sug.matched_speaker.id,
+          speaker_id: speakerId,
           suggested_status: sug.suggested_status,
         },
       });
       setDismissedEmails((s) => new Set(s).add(sug.thread_id));
       qc.invalidateQueries({ queryKey: ["speakers"] });
-      toast.success(`Updated ${sug.matched_speaker.name}`);
+      toast.success(`Updated ${name}`, {
+        duration: 15000,
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await revert({ data: { speaker_id: speakerId, status: prev } });
+              qc.invalidateQueries({ queryKey: ["speakers"] });
+              toast.success(`Reverted ${name} to ${prev}`);
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Undo failed");
+            }
+          },
+        },
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to apply");
     }
@@ -348,6 +432,9 @@ export function SyncDialog({
                             <div className="flex items-center gap-2 flex-wrap">
                               <Badge className={statusCls[sug.suggested_status]}>
                                 {statusLabel[sug.suggested_status]}
+                              </Badge>
+                              <Badge variant="outline" className={`text-[10px] ${confidenceCls[sug.confidence]}`}>
+                                {sug.confidence} confidence
                               </Badge>
                               {sug.matched_speaker ? (
                                 <span className="text-xs font-medium">
