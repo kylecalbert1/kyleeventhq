@@ -45,11 +45,6 @@ export function BulkEmailDialog({
   const [sendingAll, setSendingAll] = useState(false);
 
   const send = useServerFn(sendGmailEmail);
-  const gmailStatus = useQuery({
-    queryKey: ["gmail-connected"],
-    queryFn: () => useServerFn(checkGmailConnected)(),
-  });
-  // Simpler: call server fn directly via useServerFn hook stable ref
   const checkConn = useServerFn(checkGmailConnected);
   const connQuery = useQuery({
     queryKey: ["gmail-connected"],
