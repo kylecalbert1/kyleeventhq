@@ -60,6 +60,7 @@ function SpeakerProfile() {
   const events = useQuery(eventsQuery);
   const [editing, setEditing] = useState(false);
   const [sending, setSending] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
   const sendEmail = useServerFn(sendGmailEmail);
 
   const speaker = useMemo(
