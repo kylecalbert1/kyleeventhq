@@ -220,6 +220,7 @@ function header(headers: Array<{ name: string; value: string }>, name: string) {
 
 const ClassifySchema = z.object({
   suggested_status: z.enum(["confirmed", "declined", "needs_approval", "unclear"]),
+  confidence: z.enum(["high", "medium", "low"]),
   reasoning: z.string(),
   needs: z.object({
     bio: z.boolean(),
@@ -228,22 +229,30 @@ const ClassifySchema = z.object({
   }),
 });
 
-async function classifyMessage(text: string, lovableKey: string) {
-  const prompt = `You classify a reply from a prospective conference speaker.
+async function classifyThread(threadText: string, lovableKey: string) {
+  const prompt = `You classify a conversation thread with a prospective conference speaker. Use the ENTIRE recent conversation for context, not just the last message — the answer may have been stated earlier and only referenced later.
 
 Return ONLY a compact JSON object matching this schema:
-{"suggested_status":"confirmed"|"declined"|"needs_approval"|"unclear","reasoning":"one short sentence","needs":{"bio":boolean,"headshot":boolean,"banner":boolean}}
+{"suggested_status":"confirmed"|"declined"|"needs_approval"|"unclear","confidence":"high"|"medium"|"low","reasoning":"one short sentence","needs":{"bio":boolean,"headshot":boolean,"banner":boolean}}
 
-- "confirmed": they clearly agree to speak.
-- "declined": they clearly say no / can't do it.
-- "needs_approval": they need to check with their team/manager/legal/marketing before committing.
-- "unclear": can't tell, generic reply, or just scheduling logistics.
+Status meanings:
+- "confirmed": they clearly agree to speak (accepting invite, saying yes, confirming a slot, sending bio/headshot to lock it in).
+- "declined": they clearly decline (no thanks, can't make it, not a fit, passing).
+- "needs_approval": they must check with their team/manager/legal/marketing/PR before committing.
+- "unclear": genuinely ambiguous even after reading the full thread — only pure scheduling logistics, generic acknowledgements, or nothing on-topic.
 
-Set needs.bio/headshot/banner=true only if the reply mentions that specific outstanding item (asking about it, promising to send it, or apologizing for delay).
+Confidence:
+- "high": the thread contains an explicit, unambiguous statement matching the status. Auto-applying would be safe.
+- "medium": strong signal but some ambiguity or indirect phrasing.
+- "low": weak signal, mostly inference. Prefer this over guessing.
 
-Message:
+Do NOT default to "unclear" when the thread actually resolves the question — read it end-to-end first.
+
+Set needs.bio/headshot/banner=true only if the thread specifically mentions that item (asking, promising, apologizing for delay).
+
+Thread (most recent messages, oldest first):
 """
-${text.slice(0, 4000)}
+${threadText.slice(0, 12000)}
 """`;
 
   const res = await fetch(`${AI_GATEWAY}/chat/completions`, {
@@ -263,6 +272,7 @@ ${text.slice(0, 4000)}
     console.error(`AI classify failed [${res.status}]: ${t}`);
     return {
       suggested_status: "unclear" as const,
+      confidence: "low" as const,
       reasoning: "AI classification unavailable",
       needs: { bio: false, headshot: false, banner: false },
     };
@@ -274,6 +284,7 @@ ${text.slice(0, 4000)}
   } catch {
     return {
       suggested_status: "unclear" as const,
+      confidence: "low" as const,
       reasoning: "Could not parse AI response",
       needs: { bio: false, headshot: false, banner: false },
     };
@@ -299,7 +310,6 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       if (s.email) speakersByEmail.set(s.email.toLowerCase().trim(), s as any);
     }
 
-    // Build search queries
     const subjectQuery =
       'newer_than:60d (subject:"speaker information" OR subject:"speaker confirmation")';
     const emails = Array.from(speakersByEmail.keys()).slice(0, 30);
@@ -320,8 +330,9 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       subject: string;
       snippet: string;
       from: string;
-      matched_speaker: { id: string; name: string; email: string } | null;
+      matched_speaker: { id: string; name: string; email: string; previous_status: string } | null;
       suggested_status: "confirmed" | "declined" | "needs_approval" | "unclear";
+      confidence: "high" | "medium" | "low";
       reasoning: string;
       needs: { bio: boolean; headshot: boolean; banner: boolean };
       received_at: string;
@@ -329,7 +340,6 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
 
     const results: EmailSuggestion[] = [];
 
-    // Limit total AI calls
     const capped = Array.from(threadIds).slice(0, 20);
     for (const tid of capped) {
       try {
@@ -340,27 +350,53 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
         const subject = header(last.payload.headers, "Subject");
         const from = header(last.payload.headers, "From");
         const to = header(last.payload.headers, "To");
-        const text = extractText(last.payload).slice(0, 5000);
-        if (!text) continue;
 
-        // Match speaker by any email address involved
-        const involved = `${from} ${to}`.toLowerCase();
+        // Build full recent context from up to the last 6 messages (oldest first)
+        const recent = messages.slice(-6);
+        const threadText = recent
+          .map((m) => {
+            const f = header(m.payload.headers, "From");
+            const d = new Date(Number(m.internalDate)).toISOString().slice(0, 16).replace("T", " ");
+            const body = extractText(m.payload).replace(/\r\n/g, "\n").trim();
+            // Strip obvious quoted replies to reduce noise
+            const cleaned = body
+              .split(/\n(?:On .+ wrote:|-----Original Message-----|________________________________)/)[0]
+              .trim();
+            return `--- ${d} UTC — From: ${f} ---\n${cleaned}`;
+          })
+          .filter((chunk) => chunk.length > 0)
+          .join("\n\n");
+        if (!threadText) continue;
+
+        const lastBody = extractText(last.payload);
+
+        // Match speaker by any email address involved across the thread
         let matched: EmailSuggestion["matched_speaker"] = null;
+        const involvedAll = messages
+          .flatMap((m) => [header(m.payload.headers, "From"), header(m.payload.headers, "To")])
+          .join(" ")
+          .toLowerCase();
         for (const [email, sp] of speakersByEmail) {
-          if (involved.includes(email)) {
-            matched = { id: sp.id, name: sp.name, email: sp.email };
+          if (involvedAll.includes(email)) {
+            matched = {
+              id: sp.id,
+              name: sp.name,
+              email: sp.email,
+              previous_status: sp.status,
+            };
             break;
           }
         }
 
-        const ai = await classifyMessage(text, lovableKey);
+        const ai = await classifyThread(threadText, lovableKey);
         results.push({
           thread_id: tid,
           subject: subject || "(no subject)",
-          snippet: text.slice(0, 220).replace(/\s+/g, " ").trim(),
+          snippet: lastBody.slice(0, 220).replace(/\s+/g, " ").trim(),
           from,
           matched_speaker: matched,
           suggested_status: ai.suggested_status,
+          confidence: ai.confidence,
           reasoning: ai.reasoning,
           needs: ai.needs,
           received_at: new Date(Number(last.internalDate)).toISOString(),
@@ -373,6 +409,27 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
     results.sort((a, b) => (a.received_at < b.received_at ? 1 : -1));
 
     return { connected: true as const, suggestions: results };
+  });
+
+export const setSpeakerStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        speaker_id: z.string().uuid(),
+        status: z.enum(["contacted", "responded", "confirmed", "declined"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("speakers")
+      .update({ status: data.status })
+      .eq("id", data.speaker_id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
   });
 
 // ============ APPLY EMAIL SUGGESTION ============
