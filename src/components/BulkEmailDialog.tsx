@@ -15,6 +15,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { renderTemplate, firstNameOf } from "@/lib/gmail";
 import { sendGmailEmail, checkGmailConnected } from "@/lib/email.functions";
+import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
+import { BulkConfirmSendDialog } from "@/components/BulkConfirmSendDialog";
 
 type Speaker = {
   id: string;
@@ -40,6 +42,10 @@ export function BulkEmailDialog({
   const [body, setBody] = useState(
     "Hey {{firstName}},\n\nHope you're doing well! Could you send over your logo, headshot and short bio when you get a moment? It helps us finalise everything for the event.\n\nThanks so much!",
   );
+  const [confirmOne, setConfirmOne] = useState<
+    (ConfirmDraft & { id: string }) | null
+  >(null);
+  const [confirmAllOpen, setConfirmAllOpen] = useState(false);
   const [status, setStatus] = useState<Record<string, SendStatus>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sendingAll, setSendingAll] = useState(false);
