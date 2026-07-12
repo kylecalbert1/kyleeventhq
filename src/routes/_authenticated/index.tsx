@@ -496,20 +496,27 @@ function EventsGrid() {
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Calendar className="h-3.5 w-3.5" />
-                        {ev.launch_date
-                          ? days === null
-                            ? "—"
-                            : days < 0
-                              ? `Launched ${Math.abs(days)}d ago`
-                              : days === 0
-                                ? "Launches today"
-                                : `${days}d to launch`
-                          : "No launch date"}
+                        <span className="text-foreground font-medium">
+                          {ev.launch_date ? formatDate(ev.launch_date) : "Launch not set"}
+                        </span>
+                        {ev.launch_date && (
+                          <span className="text-muted-foreground">
+                            ·{" "}
+                            {days === null
+                              ? "—"
+                              : days < 0
+                                ? `Launched ${Math.abs(days)}d ago`
+                                : days === 0
+                                  ? "Launches today"
+                                  : `${days}d to launch`}
+                          </span>
+                        )}
                       </div>
                       <StatusPill className={pillClass.selfStatus[selfStatus]}>
                         {labels.selfStatus[selfStatus]}
                       </StatusPill>
                     </div>
+
 
                     <div className="grid grid-cols-3 gap-1.5 mb-3">
                       <ReadinessBadge n={1} due={ev.proof1_due} done={!!ev.proof1_done} />
