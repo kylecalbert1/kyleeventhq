@@ -28,6 +28,7 @@ type EventRow = {
   proof2_due?: string | null;
   final_signoff_due?: string | null;
   self_status?: "on_track" | "needs_attention" | "off_track";
+  asana_project_gid?: string | null;
 };
 
 export function EventFormDialog({
