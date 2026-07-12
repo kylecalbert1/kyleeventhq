@@ -213,6 +213,21 @@ export function BulkEmailDialog({
             connected Gmail account.
           </div>
 
+          <div className="space-y-1.5">
+            <Label className="text-xs">Template</Label>
+            <Select value={templateKey} onValueChange={(v) => applyTemplate(v as TemplateKey)}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(TEMPLATES) as TemplateKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>{TEMPLATES[k].label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              Picking a template pre-fills subject & body. Edits below stay local until you switch templates again.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs">Subject template</Label>
