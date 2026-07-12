@@ -243,6 +243,23 @@ export function EventFormDialog({
           <Field label="Final sign-off due" full>
             <Input type="date" value={form.final_signoff_due} onChange={(e) => setForm({ ...form, final_signoff_due: e.target.value })} />
           </Field>
+          <Field label="Asana Timeline project link (optional)" full>
+            <Input
+              type="url"
+              placeholder="https://app.asana.com/1/…/project/1213875920325118/timeline"
+              value={form.asana_link}
+              onChange={(e) => setForm({ ...form, asana_link: e.target.value })}
+            />
+            {form.asana_link && !looksLikeAsanaUrl(form.asana_link) ? (
+              <p className="text-xs text-amber-600">
+                This doesn't look like an Asana project URL — we'll save it as-is.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Link this once to auto-sync launch and kickoff dates from Asana.
+              </p>
+            )}
+          </Field>
           <DialogFooter className="col-span-2 flex justify-between sm:justify-between">
             <div>
               {event && (
