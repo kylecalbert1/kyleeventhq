@@ -117,6 +117,7 @@ export function SyncDialog({
   const fetchEmails = useServerFn(fetchEmailSuggestions);
   const create = useServerFn(createSpeaker);
   const apply = useServerFn(applyEmailSuggestion);
+  const revert = useServerFn(setSpeakerStatus);
 
   const leadsMut = useMutation({
     mutationFn: () => fetchLeads({ data: { pastDays: 30, futureDays: 60 } }),
