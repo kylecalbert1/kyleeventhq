@@ -190,6 +190,10 @@ function SpeakerBoard() {
               <SelectItem value="CSC">CSC</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => setSyncOpen(true)} className="transition-transform hover:scale-[1.02]">
+            <Sparkles className="h-4 w-4 mr-1.5" />
+            Sync
+          </Button>
           <Button onClick={() => setEditing({ open: true })} className="transition-transform hover:scale-[1.02]">
             <Plus className="h-4 w-4 mr-1.5" />
             Add speaker
