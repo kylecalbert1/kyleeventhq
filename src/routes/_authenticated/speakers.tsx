@@ -29,7 +29,7 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent } from "@/lib/speakers.functions";
 import { labels, pillClass, type OutreachChannel } from "@/lib/status";
-import { openGmailCompose, firstNameOf } from "@/lib/gmail";
+import { gmailComposeUrl, openGmailCompose, firstNameOf } from "@/lib/gmail";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/speakers")({
