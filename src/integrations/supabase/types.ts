@@ -63,6 +63,7 @@ export type Database = {
       }
       events: {
         Row: {
+          banner_dropbox_link: string | null
           business_line: Database["public"]["Enums"]["business_line"]
           code: string
           created_at: string
@@ -86,6 +87,7 @@ export type Database = {
           website_status: Database["public"]["Enums"]["website_stage"]
         }
         Insert: {
+          banner_dropbox_link?: string | null
           business_line: Database["public"]["Enums"]["business_line"]
           code: string
           created_at?: string
@@ -109,6 +111,7 @@ export type Database = {
           website_status?: Database["public"]["Enums"]["website_stage"]
         }
         Update: {
+          banner_dropbox_link?: string | null
           business_line?: Database["public"]["Enums"]["business_line"]
           code?: string
           created_at?: string
