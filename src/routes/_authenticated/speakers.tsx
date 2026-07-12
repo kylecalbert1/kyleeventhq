@@ -33,7 +33,7 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent } from "@/lib/speakers.functions";
-import { labels, pillClass, type OutreachChannel } from "@/lib/status";
+import { labels, pillClass, daysBetween, type OutreachChannel } from "@/lib/status";
 import { firstNameOf } from "@/lib/gmail";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { toast } from "sonner";
