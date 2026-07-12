@@ -539,13 +539,22 @@ function EventsGrid() {
                         icon={s.kickoffDone ? "done" : "pending"}
                         label="Kickoff"
                         value={
-                          s.kickoffExists
-                            ? s.kickoffDone
-                              ? "Done"
-                              : "Pending"
-                            : "Not scheduled"
+                          <>
+                            <span className="text-muted-foreground">
+                              {ev.kickoff_date ? formatDate(ev.kickoff_date) : "Not set"}
+                            </span>
+                            <span className="mx-1 text-muted-foreground/60">·</span>
+                            <span>
+                              {s.kickoffExists
+                                ? s.kickoffDone
+                                  ? "Done"
+                                  : "Pending"
+                                : "Not scheduled"}
+                            </span>
+                          </>
                         }
                       />
+
                       <Row
                         icon={s.washupDone ? "done" : "pending"}
                         label="Washup"
