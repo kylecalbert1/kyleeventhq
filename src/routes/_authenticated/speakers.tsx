@@ -520,18 +520,33 @@ function SpeakerBoard() {
                         e.dataTransfer.setData("text/plain", s.id);
                         e.dataTransfer.effectAllowed = "move";
                       }}
-                      className={`group p-3 border-t-2 ${col.accent} cursor-grab active:cursor-grabbing transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30`}
-                      onClick={() => navigate({ to: "/speakers/$speakerId", params: { speakerId: s.id } })}
+                      className={`group p-3 border-t-2 ${col.accent} cursor-pointer active:cursor-grabbing transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30`}
+                      onClick={() => setDetailSpeaker(s)}
                     >
                       <div className="flex items-start gap-2">
                         <Checkbox
-                          className="mt-0.5"
+                          className="mt-1"
                           checked={!!selected[s.id]}
                           onClick={(e) => e.stopPropagation()}
                           onCheckedChange={(v) =>
                             setSelected({ ...selected, [s.id]: !!v })
                           }
                         />
+                        <div
+                          className={`h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold ring-2 ring-background shadow-sm text-white bg-gradient-to-br ${
+                            colKey === "confirmed"
+                              ? "from-emerald-500 to-emerald-600"
+                              : colKey === "banner_sent"
+                                ? "from-amber-500 to-amber-600"
+                                : colKey === "bio_headshot_in"
+                                  ? "from-teal-500 to-teal-600"
+                                  : colKey === "responded"
+                                    ? "from-violet-500 to-violet-600"
+                                    : "from-sky-500 to-sky-600"
+                          }`}
+                        >
+                          {initialsOf(s.name)}
+                        </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
                             <div className="font-semibold text-sm truncate leading-tight group-hover:text-primary transition-colors">
@@ -558,6 +573,7 @@ function SpeakerBoard() {
                               </span>
                             )}
                           </div>
+
 
                           <div className="flex flex-wrap gap-1 mt-2">
                             <StatusPill className={pill.cls}>{pill.label}</StatusPill>
