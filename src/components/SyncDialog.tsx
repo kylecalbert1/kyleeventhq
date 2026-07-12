@@ -548,6 +548,100 @@ export function SyncDialog({
               </>
             )}
           </TabsContent>
+
+          {/* BANNER TAB */}
+          <TabsContent value="banner" className="flex-1 overflow-y-auto space-y-3 mt-3 pr-1">
+            {gmailStatus.data && !gmailStatus.data.connected ? (
+              <ConnectPrompt
+                title="Connect Gmail"
+                description="Link a Gmail account in Connectors to verify banners were actually sent."
+              />
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs text-muted-foreground">
+                    Checks every speaker marked "Banner sent" for a matching email in your Gmail Sent folder.
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => bannerMut.mutate()}
+                    disabled={bannerMut.isPending}
+                  >
+                    {bannerMut.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-1.5" />
+                    )}
+                    {bannerFlags ? "Refresh" : "Scan banners"}
+                  </Button>
+                </div>
+
+                {bannerFlags === null ? (
+                  <EmptyHint
+                    icon={<ImageIcon className="h-6 w-6" />}
+                    text="Click Scan banners to verify every 'Banner sent' speaker has a matching sent email."
+                  />
+                ) : bannerFlags.filter((f) => !dismissedBanners.has(f.speaker_id)).length === 0 ? (
+                  <EmptyHint icon={<CheckCircle2 className="h-6 w-6" />} text="No unverified banners." />
+                ) : (
+                  bannerFlags
+                    .filter((f) => !dismissedBanners.has(f.speaker_id))
+                    .map((f) => (
+                      <Card key={f.speaker_id} className="p-3 transition-all hover:shadow-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700">
+                                <AlertTriangle className="h-3 w-3 mr-1" /> No sent email found
+                              </Badge>
+                              <span className="text-xs font-medium">{f.speaker_name}</span>
+                              {f.event_label && (
+                                <Badge variant="secondary" className="text-[10px] font-normal">
+                                  {f.event_label}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1 truncate">
+                              {f.speaker_email}
+                            </div>
+                            <div className="text-[11px] italic text-muted-foreground mt-1">
+                              Banner status is "{f.banner_status}" but no matching email was found in your Sent folder.
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1 shrink-0">
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={async () => {
+                                try {
+                                  await revertBanner({ data: { speaker_id: f.speaker_id } });
+                                  setDismissedBanners((s) => new Set(s).add(f.speaker_id));
+                                  qc.invalidateQueries({ queryKey: ["speakers"] });
+                                  toast.success(`Reverted ${f.speaker_name} to Not started`);
+                                } catch (e) {
+                                  toast.error(e instanceof Error ? e.message : "Revert failed");
+                                }
+                              }}
+                            >
+                              <Undo2 className="h-3.5 w-3.5 mr-1" /> Revert to not started
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                setDismissedBanners((s) => new Set(s).add(f.speaker_id))
+                              }
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-1" /> Confirm sent anyway
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))
+                )}
+              </>
+            )}
+          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
