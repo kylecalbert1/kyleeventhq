@@ -164,8 +164,11 @@ function EventBannerGroup({
             <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{event.code}</span>
             <h2 className="text-lg font-semibold tracking-tight">{event.name}</h2>
           </div>
-          <div className="mt-1 text-xs text-muted-foreground">
-            {rows.length} banner{rows.length === 1 ? "" : "s"} · {counts.sent.length + counts.confirmed_live.length} sent
+          <div className="mt-1.5 flex items-center gap-2">
+            <ProgressBar sent={counts.sent.length + counts.confirmed_live.length} total={rows.length} />
+            <span className="text-xs font-medium text-muted-foreground tabular-nums">
+              {counts.sent.length + counts.confirmed_live.length}/{rows.length} sent
+            </span>
           </div>
         </div>
 
