@@ -20,7 +20,9 @@ import { StatusPill } from "@/components/StatusPill";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { labels, pillClass, type OutreachChannel } from "@/lib/status";
-import { gmailComposeUrl, openGmailCompose, firstNameOf } from "@/lib/gmail";
+import { firstNameOf } from "@/lib/gmail";
+import { sendGmailEmail } from "@/lib/email.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/speakers/$speakerId")({
