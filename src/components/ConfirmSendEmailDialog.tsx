@@ -1,0 +1,124 @@
+import { useEffect, useState } from "react";
+import { Send, Loader2, ShieldAlert } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+
+export type ConfirmDraft = {
+  to: string;
+  subject: string;
+  body: string;
+  recipientName?: string;
+};
+
+export function ConfirmSendEmailDialog({
+  open,
+  onOpenChange,
+  draft,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  draft: ConfirmDraft | null;
+  onConfirm: (edited: { subject: string; body: string }) => Promise<void>;
+}) {
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (draft) {
+      setSubject(draft.subject);
+      setBody(draft.body);
+    }
+  }, [draft]);
+
+  async function handleConfirm() {
+    setSending(true);
+    try {
+      await onConfirm({ subject, body });
+      onOpenChange(false);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !sending && onOpenChange(o)}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ShieldAlert className="h-5 w-5 text-amber-500" />
+            Confirm email
+            {draft?.recipientName ? ` to ${draft.recipientName}` : ""}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="rounded-md bg-amber-50/70 border border-amber-200 px-3 py-2 text-xs text-amber-900">
+            This email will be sent immediately from your connected Gmail
+            account. Review and edit before confirming.
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">To</Label>
+            <Input value={draft?.to ?? ""} readOnly className="bg-muted/40" />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Subject</Label>
+            <Input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              disabled={sending}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Body</Label>
+            <Textarea
+              rows={10}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              disabled={sending}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={sending}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={sending || !subject.trim() || !body.trim()}
+          >
+            {sending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                Sending…
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-1.5" />
+                Confirm &amp; send
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
