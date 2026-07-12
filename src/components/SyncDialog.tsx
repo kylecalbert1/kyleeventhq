@@ -38,6 +38,7 @@ import {
   fetchLeadSuggestions,
   fetchEmailSuggestions,
   applyEmailSuggestion,
+  setSpeakerStatus,
 } from "@/lib/sync.functions";
 import { createSpeaker } from "@/lib/speakers.functions";
 import { eventsQuery } from "@/lib/queries";
@@ -53,8 +54,9 @@ type EmailSuggestion = {
   subject: string;
   snippet: string;
   from: string;
-  matched_speaker: { id: string; name: string; email: string } | null;
+  matched_speaker: { id: string; name: string; email: string; previous_status: string } | null;
   suggested_status: "confirmed" | "declined" | "needs_approval" | "unclear";
+  confidence: "high" | "medium" | "low";
   reasoning: string;
   needs: { bio: boolean; headshot: boolean; banner: boolean };
   received_at: string;
@@ -72,6 +74,12 @@ const statusCls: Record<EmailSuggestion["suggested_status"], string> = {
   declined: "bg-rose-600 text-white",
   needs_approval: "bg-amber-500 text-white",
   unclear: "bg-slate-400 text-white",
+};
+
+const confidenceCls: Record<EmailSuggestion["confidence"], string> = {
+  high: "border-emerald-500 text-emerald-700",
+  medium: "border-amber-500 text-amber-700",
+  low: "border-slate-400 text-slate-600",
 };
 
 export function SyncDialog({
