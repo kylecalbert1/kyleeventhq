@@ -33,3 +33,14 @@ export function firstNameOf(fullName: string | null | undefined) {
   if (!fullName) return "there";
   return fullName.trim().split(/\s+/)[0] ?? "there";
 }
+
+export function initialsOf(fullName: string | null | undefined) {
+  if (!fullName) return "?";
+  return fullName
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+}
