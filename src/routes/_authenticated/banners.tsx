@@ -14,7 +14,7 @@ import { updateSponsor } from "@/lib/sponsors.functions";
 import { updateEvent } from "@/lib/events.functions";
 import { BANNER_STATUSES, labels, pillClass, type BannerStatusVal } from "@/lib/status";
 import { toast } from "sonner";
-import { ExternalLink, FolderOpen, User, Building2 } from "lucide-react";
+import { ExternalLink, FolderOpen, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/banners")({
