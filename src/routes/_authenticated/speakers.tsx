@@ -384,6 +384,11 @@ function SpeakerBoard() {
         draft={confirmEmail}
         onConfirm={performSendConfirmed}
       />
+      <SyncDialog
+        open={syncOpen}
+        onOpenChange={setSyncOpen}
+        defaultEventId={eventFilter}
+      />
     </div>
   );
 }
