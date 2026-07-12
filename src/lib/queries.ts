@@ -10,6 +10,7 @@ import { listWebsiteTasks } from "@/lib/website-tasks.functions";
 import { listMilestones } from "@/lib/milestones.functions";
 import { listWeeklyPriorities } from "@/lib/weekly-priorities.functions";
 import { listOutreachAccounts, listTeamChecklist } from "@/lib/outreach.functions";
+import { listEmailSends } from "@/lib/email-sends.functions";
 
 export const qk = {
   eventSummaries: () => ["eventSummaries"] as const,
@@ -22,7 +23,14 @@ export const qk = {
   weeklyPriorities: (week: string) => ["weeklyPriorities", week] as const,
   outreachAccounts: (week: string) => ["outreachAccounts", week] as const,
   teamChecklist: (week: string) => ["teamChecklist", week] as const,
+  emailSends: (eventId?: string) => ["emailSends", eventId ?? "all"] as const,
 };
+
+export const emailSendsQuery = (eventId?: string) =>
+  queryOptions({
+    queryKey: qk.emailSends(eventId),
+    queryFn: () => listEmailSends({ data: eventId ? { event_id: eventId } : {} }),
+  });
 
 export const eventSummariesQuery = queryOptions({
   queryKey: qk.eventSummaries(),
