@@ -30,6 +30,8 @@ import {
   AlertTriangle,
   Loader2,
   Sparkles,
+  Image as ImageIcon,
+  Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -39,6 +41,8 @@ import {
   fetchEmailSuggestions,
   applyEmailSuggestion,
   setSpeakerStatus,
+  fetchBannerVerification,
+  revertBannerStatus,
 } from "@/lib/sync.functions";
 import { createSpeaker } from "@/lib/speakers.functions";
 import { eventsQuery } from "@/lib/queries";
