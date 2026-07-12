@@ -311,8 +311,20 @@ function SpeakerBoard() {
                           }
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="font-semibold text-sm truncate leading-tight group-hover:text-primary transition-colors">
-                            {s.name}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="font-semibold text-sm truncate leading-tight group-hover:text-primary transition-colors">
+                              {s.name}
+                            </div>
+                            {(() => {
+                              const alert = outreachAlert(s);
+                              if (!alert) return null;
+                              return (
+                                <StatusPill className={alert.cls}>
+                                  {alert.icon && <alert.icon className="h-3 w-3" />}
+                                  {alert.label}
+                                </StatusPill>
+                              );
+                            })()}
                           </div>
                           <div className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
                             {s.title && <span>{s.title}</span>}
