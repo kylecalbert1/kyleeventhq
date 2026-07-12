@@ -600,7 +600,7 @@ function Row({
 }: {
   icon: "done" | "pending";
   label: string;
-  value: string;
+  value: React.ReactNode;
 }) {
   return (
     <div className="flex items-center gap-2 text-muted-foreground">
@@ -614,3 +614,4 @@ function Row({
     </div>
   );
 }
+
