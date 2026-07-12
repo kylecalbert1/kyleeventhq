@@ -408,11 +408,38 @@ function SpeakerBoard() {
               <X className="h-3.5 w-3.5 mr-1" /> Clear
             </Button>
           )}
-          <div className="ml-auto text-xs text-muted-foreground tabular-nums">
+          <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground cursor-pointer px-2 py-1 rounded-md hover:bg-muted/60 transition-colors">
+            <Checkbox
+              checked={sorted.length > 0 && sorted.every((s: any) => selected[s.id])}
+              onCheckedChange={(v) => {
+                if (v) {
+                  const next = { ...selected };
+                  sorted.forEach((s: any) => (next[s.id] = true));
+                  setSelected(next);
+                } else {
+                  const next = { ...selected };
+                  sorted.forEach((s: any) => delete next[s.id]);
+                  setSelected(next);
+                }
+              }}
+            />
+            Select all visible
+          </label>
+          <div className="text-xs text-muted-foreground tabular-nums">
             {sorted.length} speaker{sorted.length === 1 ? "" : "s"}
           </div>
         </div>
       </Card>
+
+      <details className="mb-4 group">
+        <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 select-none">
+          <span className="transition-transform group-open:rotate-90">▸</span>
+          Outreach channel breakdown
+        </summary>
+        <div className="mt-2">
+          <ChannelMixPanel speakers={filtered} />
+        </div>
+      </details>
 
       {/* Selection action bar */}
       <div
