@@ -20,7 +20,9 @@ import { StatusPill } from "@/components/StatusPill";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { labels, pillClass, type OutreachChannel } from "@/lib/status";
-import { gmailComposeUrl, openGmailCompose, firstNameOf } from "@/lib/gmail";
+import { firstNameOf } from "@/lib/gmail";
+import { sendGmailEmail } from "@/lib/email.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/speakers/$speakerId")({
@@ -56,6 +58,8 @@ function SpeakerProfile() {
   const speakers = useQuery(speakersQuery());
   const events = useQuery(eventsQuery);
   const [editing, setEditing] = useState(false);
+  const [sending, setSending] = useState(false);
+  const sendEmail = useServerFn(sendGmailEmail);
 
   const speaker = useMemo(
     () => (speakers.data ?? []).find((s: any) => s.id === speakerId),
@@ -105,16 +109,28 @@ function SpeakerProfile() {
     .join("")
     .toUpperCase();
 
-  function emailSpeaker() {
+  async function emailSpeaker() {
     if (!speaker || !speaker.email) {
       toast.error("No email on file");
       return;
     }
-    openGmailCompose({
-      to: speaker.email,
-      subject: `${event?.code ?? "Our event"} — quick check-in`,
-      body: `Hi ${firstName},\n\nJust following up on your session for ${event?.code ?? "our event"}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
-    });
+    const code = event?.code ?? "our event";
+    const t = toast.loading(`Sending email to ${firstName}…`);
+    setSending(true);
+    try {
+      await sendEmail({
+        data: {
+          to: speaker.email,
+          subject: `${code} — quick check-in`,
+          body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+        },
+      });
+      toast.success(`Sent to ${firstName}`, { id: t });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send", { id: t });
+    } finally {
+      setSending(false);
+    }
   }
 
   async function copyLink() {
@@ -263,32 +279,18 @@ function SpeakerProfile() {
             </div>
             <div className="space-y-2 text-sm">
               {speaker.email ? (
-                <a
-                  href={
-                    speaker.email
-                      ? gmailComposeUrl({
-                          to: speaker.email,
-                          subject: `${event?.code ?? "Our event"} — quick check-in`,
-                          body: `Hi ${firstName},\n\nJust following up on your session for ${event?.code ?? "our event"}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
-                        })
-                      : "#"
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    if (!speaker.email) {
-                      e.preventDefault();
-                      toast.error("No email on file");
-                      return;
-                    }
-                    emailSpeaker();
-                  }}
-                  className="flex items-center gap-2 w-full text-left rounded-md px-2 py-1.5 -mx-2 hover:bg-accent transition-colors group"
+                <button
+                  type="button"
+                  onClick={emailSpeaker}
+                  disabled={sending}
+                  className="flex items-center gap-2 w-full text-left rounded-md px-2 py-1.5 -mx-2 hover:bg-accent transition-colors group disabled:opacity-60"
                 >
                   <Mail className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
                   <span className="truncate flex-1">{speaker.email}</span>
-                  <ExternalLink className="h-3.5 w-3.5 opacity-0 group-hover:opacity-60 transition-opacity" />
-                </a>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground opacity-0 group-hover:opacity-80 transition-opacity">
+                    {sending ? "Sending…" : "Send"}
+                  </span>
+                </button>
               ) : (
                 <div className="flex items-center gap-2 text-muted-foreground text-xs px-2 py-1.5 -mx-2">
                   <Mail className="h-4 w-4" />

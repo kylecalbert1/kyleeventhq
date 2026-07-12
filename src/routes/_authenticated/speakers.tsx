@@ -29,7 +29,8 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent } from "@/lib/speakers.functions";
 import { labels, pillClass, type OutreachChannel } from "@/lib/status";
-import { gmailComposeUrl, openGmailCompose, firstNameOf } from "@/lib/gmail";
+import { firstNameOf } from "@/lib/gmail";
+import { sendGmailEmail } from "@/lib/email.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/speakers")({
@@ -110,6 +111,8 @@ function SpeakerBoard() {
     [speakers.data, selectedIds],
   );
 
+  const sendEmail = useServerFn(sendGmailEmail);
+
   const bulkMutation = useMutation({
     mutationFn: () => bulk({ data: { ids: selectedIds } }),
     onSuccess: (r: any) => {
@@ -130,26 +133,23 @@ function SpeakerBoard() {
     } catch { toast.error("Couldn't copy link"); }
   }
 
-  function emailOne(s: any, ev: any) {
+  async function emailOne(s: any, ev: any) {
     if (!s.email) { toast.error("No email on file"); return; }
     const firstName = firstNameOf(s.name);
     const code = ev?.code ?? "our upcoming event";
-    openGmailCompose({
-      to: s.email,
-      subject: `${code} — quick check-in`,
-      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
-    });
-  }
-
-  function emailAnchor(s: any, ev: any) {
-    if (!s.email) return null;
-    const firstName = firstNameOf(s.name);
-    const code = ev?.code ?? "our upcoming event";
-    return gmailComposeUrl({
-      to: s.email,
-      subject: `${code} — quick check-in`,
-      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
-    });
+    const t = toast.loading(`Sending email to ${firstName}…`);
+    try {
+      await sendEmail({
+        data: {
+          to: s.email,
+          subject: `${code} — quick check-in`,
+          body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+        },
+      });
+      toast.success(`Sent to ${firstName}`, { id: t });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send", { id: t });
+    }
   }
 
   return (
@@ -315,24 +315,11 @@ function SpeakerBoard() {
                               size="sm"
                               variant="ghost"
                               className="h-7 px-2 text-xs transition-colors"
-                              asChild
+                              onClick={() => emailOne(s, ev)}
+                              disabled={!s.email}
                             >
-                              <a
-                                href={emailAnchor(s, ev) ?? "#"}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => {
-                                  if (!s.email) {
-                                    e.preventDefault();
-                                    toast.error("No email on file");
-                                    return;
-                                  }
-                                  emailOne(s, ev);
-                                }}
-                              >
-                                <Mail className="h-3.5 w-3.5 mr-1" />
-                                Email
-                              </a>
+                              <Mail className="h-3.5 w-3.5 mr-1" />
+                              Email
                             </Button>
                             <Button
                               size="sm"
