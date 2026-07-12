@@ -58,6 +58,8 @@ function SpeakerProfile() {
   const speakers = useQuery(speakersQuery());
   const events = useQuery(eventsQuery);
   const [editing, setEditing] = useState(false);
+  const [sending, setSending] = useState(false);
+  const sendEmail = useServerFn(sendGmailEmail);
 
   const speaker = useMemo(
     () => (speakers.data ?? []).find((s: any) => s.id === speakerId),
