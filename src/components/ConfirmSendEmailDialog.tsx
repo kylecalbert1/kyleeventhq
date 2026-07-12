@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Send, Loader2, ShieldAlert } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -11,12 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
 
 export type ConfirmDraft = {
   to: string;
   subject: string;
   body: string;
   recipientName?: string;
+  templateType?: TemplateType;
+  eventId?: string | null;
+  speakerId?: string | null;
 };
 
 export function ConfirmSendEmailDialog({
@@ -33,6 +39,8 @@ export function ConfirmSendEmailDialog({
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
+  const logSend = useServerFn(logEmailSend);
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (draft) {
@@ -45,6 +53,29 @@ export function ConfirmSendEmailDialog({
     setSending(true);
     try {
       await onConfirm({ subject, body });
+      if (draft?.templateType) {
+        try {
+          await logSend({
+            data: {
+              event_id: draft.eventId ?? null,
+              template_type: draft.templateType,
+              subject,
+              body,
+              recipients: [
+                {
+                  speaker_id: draft.speakerId ?? null,
+                  email: draft.to,
+                  name: draft.recipientName ?? null,
+                },
+              ],
+            },
+          });
+          qc.invalidateQueries({ queryKey: ["emailSends"] });
+          qc.invalidateQueries({ queryKey: ["speakerActivity"] });
+        } catch (e) {
+          console.error("Failed to log email send:", e);
+        }
+      }
       onOpenChange(false);
     } finally {
       setSending(false);
