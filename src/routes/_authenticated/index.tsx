@@ -88,6 +88,18 @@ const healthRank: Record<SelfStatus, number> = {
   on_track: 2,
 };
 
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "Not set";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "Not set";
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+
 type KpiTone = "violet" | "emerald" | "sky" | "amber";
 
 const kpiTone: Record<
