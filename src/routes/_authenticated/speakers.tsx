@@ -101,11 +101,6 @@ function outreachAlert(s: any): OutreachAlert {
   return null;
 }
 
-function daysBetween(from: Date, to: Date | null | undefined): number | null {
-  if (!to) return null;
-  const ms = to.getTime() - from.getTime();
-  return Math.ceil(ms / (1000 * 60 * 60 * 24));
-}
 const okChipCls = "border border-emerald-300 text-emerald-700 bg-emerald-50/70";
 const missingChipCls = "border border-orange-400 text-orange-700 bg-orange-50/70";
 
