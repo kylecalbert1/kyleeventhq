@@ -32,13 +32,14 @@ import {
 } from "@/components/ui/select";
 import { StatusPill } from "@/components/StatusPill";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
+import { SpeakerDetailDialog } from "@/components/dialogs/SpeakerDetailDialog";
 import { ChannelMixPanel } from "@/components/ChannelMixPanel";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent, updateSpeaker } from "@/lib/speakers.functions";
 import { labels, pillClass, daysBetween, OUTREACH_CHANNELS, type OutreachChannel } from "@/lib/status";
-import { firstNameOf } from "@/lib/gmail";
+import { firstNameOf, initialsOf } from "@/lib/gmail";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { toast } from "sonner";
 
