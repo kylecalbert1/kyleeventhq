@@ -433,6 +433,9 @@ export function SyncDialog({
                               <Badge className={statusCls[sug.suggested_status]}>
                                 {statusLabel[sug.suggested_status]}
                               </Badge>
+                              <Badge variant="outline" className={`text-[10px] ${confidenceCls[sug.confidence]}`}>
+                                {sug.confidence} confidence
+                              </Badge>
                               {sug.matched_speaker ? (
                                 <span className="text-xs font-medium">
                                   {sug.matched_speaker.name}
