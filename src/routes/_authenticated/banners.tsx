@@ -5,14 +5,17 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusPill } from "@/components/StatusPill";
 import { speakersQuery, sponsorsQuery, eventsQuery } from "@/lib/queries";
 import { updateSpeaker } from "@/lib/speakers.functions";
 import { updateSponsor } from "@/lib/sponsors.functions";
-import { BANNER_STATUSES, labels, pillClass } from "@/lib/status";
+import { updateEvent } from "@/lib/events.functions";
+import { BANNER_STATUSES, labels, pillClass, type BannerStatusVal } from "@/lib/status";
 import { toast } from "sonner";
+import { ExternalLink, FolderOpen, User, Building2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/banners")({
   loader: ({ context }) =>
@@ -29,8 +32,7 @@ type Row = {
   id: string;
   event_id: string;
   name: string;
-  banner_status: string;
-  dropbox_link: string | null;
+  banner_status: BannerStatusVal;
   linkedin_post_confirmed: boolean;
 };
 
@@ -43,21 +45,29 @@ function Banners() {
 
   const upSpeaker = useServerFn(updateSpeaker);
   const upSponsor = useServerFn(updateSponsor);
+  const upEvent = useServerFn(updateEvent);
 
-  const eventById = useMemo(() => Object.fromEntries((events.data ?? []).map((e) => [e.id, e])), [events.data]);
+  const rowsByEvent = useMemo(() => {
+    const all: Row[] = [
+      ...(speakers.data ?? []).map((s: any) => ({
+        kind: "speaker" as const, id: s.id, event_id: s.event_id, name: s.name,
+        banner_status: s.banner_status, linkedin_post_confirmed: s.linkedin_post_confirmed,
+      })),
+      ...(sponsors.data ?? []).map((s: any) => ({
+        kind: "sponsor" as const, id: s.id, event_id: s.event_id, name: s.name,
+        banner_status: s.banner_status, linkedin_post_confirmed: s.linkedin_post_confirmed,
+      })),
+    ];
+    const map = new Map<string, Row[]>();
+    for (const r of all) {
+      if (eventFilter !== "all" && r.event_id !== eventFilter) continue;
+      if (!map.has(r.event_id)) map.set(r.event_id, []);
+      map.get(r.event_id)!.push(r);
+    }
+    return map;
+  }, [speakers.data, sponsors.data, eventFilter]);
 
-  const rows: Row[] = [
-    ...(speakers.data ?? []).map((s: any) => ({
-      kind: "speaker" as const, id: s.id, event_id: s.event_id, name: s.name,
-      banner_status: s.banner_status, dropbox_link: s.dropbox_link, linkedin_post_confirmed: s.linkedin_post_confirmed,
-    })),
-    ...(sponsors.data ?? []).map((s: any) => ({
-      kind: "sponsor" as const, id: s.id, event_id: s.event_id, name: s.name,
-      banner_status: s.banner_status, dropbox_link: s.dropbox_link, linkedin_post_confirmed: s.linkedin_post_confirmed,
-    })),
-  ].filter((r) => eventFilter === "all" || r.event_id === eventFilter);
-
-  const patch = useMutation({
+  const patchRow = useMutation({
     mutationFn: async ({ row, patch }: { row: Row; patch: any }) => {
       if (row.kind === "speaker") return upSpeaker({ data: { id: row.id, patch } });
       return upSponsor({ data: { id: row.id, patch } });
@@ -70,77 +80,204 @@ function Banners() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  const patchEvent = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: any }) =>
+      upEvent({ data: { id, patch } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["events"] });
+      qc.invalidateQueries({ queryKey: ["eventSummaries"] });
+      toast.success("Event Dropbox link saved");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const orderedEvents = (events.data ?? []).filter(
+    (e) => eventFilter === "all" || e.id === eventFilter,
+  );
+
   return (
-    <div className="p-6 md:p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 md:p-8 space-y-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Banner tracker</h1>
-          <p className="text-sm text-muted-foreground">Every banner in production, across all events.</p>
+          <p className="text-sm text-muted-foreground">
+            Every banner in production, grouped by event. Status here is the single source of truth — it also drives the Speaker Kanban and the Sync banner check.
+          </p>
         </div>
         <Select value={eventFilter} onValueChange={setEventFilter}>
           <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All events</SelectItem>
-            {(events.data ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{e.code} — {e.name}</SelectItem>)}
+            {(events.data ?? []).map((e) => (
+              <SelectItem key={e.id} value={e.id}>{e.code} — {e.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
-      <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Event</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Dropbox link</TableHead>
-              <TableHead>LinkedIn post</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => {
-              const ev = eventById[r.event_id];
-              return (
-                <TableRow key={`${r.kind}-${r.id}`}>
-                  <TableCell>{ev ? <span className="font-mono text-xs">{ev.code}</span> : "—"}</TableCell>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground capitalize">{r.kind}</TableCell>
-                  <TableCell>
-                    <Select value={r.banner_status} onValueChange={(v) => patch.mutate({ row: r, patch: { banner_status: v } })}>
-                      <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {BANNER_STATUSES.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            <StatusPill className={pillClass.banner[s]}>{labels.banner[s]}</StatusPill>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      className="h-8"
-                      placeholder="Paste Dropbox URL"
-                      defaultValue={r.dropbox_link ?? ""}
-                      onBlur={(e) => {
-                        const v = e.target.value.trim();
-                        if (v !== (r.dropbox_link ?? "")) patch.mutate({ row: r, patch: { dropbox_link: v || null } });
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Checkbox
-                      checked={r.linkedin_post_confirmed}
-                      onCheckedChange={(v) => patch.mutate({ row: r, patch: { linkedin_post_confirmed: !!v } })}
-                    />
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {rows.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">No banners.</TableCell></TableRow>}
-          </TableBody>
-        </Table>
-      </Card>
+
+      {orderedEvents.length === 0 && (
+        <Card className="p-8 text-center text-sm text-muted-foreground">No events.</Card>
+      )}
+
+      <div className="space-y-8">
+        {orderedEvents.map((ev) => {
+          const rows = rowsByEvent.get(ev.id) ?? [];
+          return (
+            <EventBannerGroup
+              key={ev.id}
+              event={ev}
+              rows={rows}
+              onPatchRow={(row, patch) => patchRow.mutate({ row, patch })}
+              onPatchEvent={(patch) => patchEvent.mutate({ id: ev.id, patch })}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function EventBannerGroup({
+  event,
+  rows,
+  onPatchRow,
+  onPatchEvent,
+}: {
+  event: any;
+  rows: Row[];
+  onPatchRow: (r: Row, patch: any) => void;
+  onPatchEvent: (patch: any) => void;
+}) {
+  const [linkDraft, setLinkDraft] = useState<string>(event.banner_dropbox_link ?? "");
+  const dirty = linkDraft.trim() !== (event.banner_dropbox_link ?? "");
+
+  const counts = BANNER_STATUSES.reduce<Record<BannerStatusVal, Row[]>>(
+    (acc, s) => ({ ...acc, [s]: rows.filter((r) => r.banner_status === s) }),
+    {} as any,
+  );
+
+  return (
+    <Card className="p-5 md:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{event.code}</span>
+            <h2 className="text-lg font-semibold tracking-tight">{event.name}</h2>
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {rows.length} banner{rows.length === 1 ? "" : "s"} · {counts.sent.length + counts.confirmed_live.length} sent
+          </div>
+        </div>
+
+        <div className="flex items-end gap-2 min-w-[320px]">
+          <div className="flex-1">
+            <label className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1">
+              <FolderOpen className="h-3.5 w-3.5" /> Shared Dropbox folder (all banners for this event)
+            </label>
+            <div className="flex gap-2">
+              <Input
+                className="h-9"
+                placeholder="Paste one Dropbox folder URL for this event"
+                value={linkDraft}
+                onChange={(e) => setLinkDraft(e.target.value)}
+              />
+              {event.banner_dropbox_link && (
+                <Button asChild variant="outline" size="sm" className="h-9">
+                  <a href={event.banner_dropbox_link} target="_blank" rel="noreferrer">
+                    Open <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                  </a>
+                </Button>
+              )}
+              {dirty && (
+                <Button
+                  size="sm"
+                  className="h-9"
+                  onClick={() => onPatchEvent({ banner_dropbox_link: linkDraft.trim() || null })}
+                >
+                  Save
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-md">
+          No speakers or sponsors yet for this event.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {BANNER_STATUSES.map((status) => (
+            <BannerColumn
+              key={status}
+              status={status}
+              rows={counts[status]}
+              onPatchRow={onPatchRow}
+            />
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function BannerColumn({
+  status,
+  rows,
+  onPatchRow,
+}: {
+  status: BannerStatusVal;
+  rows: Row[];
+  onPatchRow: (r: Row, patch: any) => void;
+}) {
+  return (
+    <div className="bg-muted/40 rounded-lg p-3 min-h-[120px]">
+      <div className="flex items-center justify-between mb-3">
+        <StatusPill className={pillClass.banner[status]}>{labels.banner[status]}</StatusPill>
+        <span className="text-xs text-muted-foreground font-medium">{rows.length}</span>
+      </div>
+      <div className="space-y-2">
+        {rows.map((r) => (
+          <BannerCard key={`${r.kind}-${r.id}`} row={r} onPatch={(patch) => onPatchRow(r, patch)} />
+        ))}
+        {rows.length === 0 && (
+          <div className="text-[11px] text-muted-foreground/70 italic px-1">—</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BannerCard({ row, onPatch }: { row: Row; onPatch: (patch: any) => void }) {
+  const Icon = row.kind === "speaker" ? User : Building2;
+  return (
+    <div className="bg-background border rounded-md p-2.5 shadow-sm hover:shadow transition-shadow">
+      <div className="flex items-start gap-2">
+        <Icon className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", row.kind === "speaker" ? "text-sky-600" : "text-violet-600")} />
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium truncate">{row.name}</div>
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{row.kind}</div>
+        </div>
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <Select value={row.banner_status} onValueChange={(v) => onPatch({ banner_status: v })}>
+          <SelectTrigger className="h-7 text-xs px-2 w-full"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {BANNER_STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>{labels.banner[s]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <label className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+        <Checkbox
+          className="h-3.5 w-3.5"
+          checked={row.linkedin_post_confirmed}
+          onCheckedChange={(v) => onPatch({ linkedin_post_confirmed: !!v })}
+        />
+        LinkedIn post
+      </label>
     </div>
   );
 }
