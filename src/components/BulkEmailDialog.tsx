@@ -86,12 +86,9 @@ export function BulkEmailDialog({
   onOpenChange: (o: boolean) => void;
   speakers: Speaker[];
 }) {
-  const [subject, setSubject] = useState(
-    "Quick ask for {{firstName}} — event assets",
-  );
-  const [body, setBody] = useState(
-    "Hey {{firstName}},\n\nHope you're doing well! Could you send over your logo, headshot and short bio when you get a moment? It helps us finalise everything for the event.\n\nThanks so much!",
-  );
+  const [templateKey, setTemplateKey] = useState<TemplateKey>("custom");
+  const [subject, setSubject] = useState(TEMPLATES.custom.subject);
+  const [body, setBody] = useState(TEMPLATES.custom.body);
   const [confirmOne, setConfirmOne] = useState<
     (ConfirmDraft & { id: string }) | null
   >(null);
@@ -99,6 +96,12 @@ export function BulkEmailDialog({
   const [status, setStatus] = useState<Record<string, SendStatus>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sendingAll, setSendingAll] = useState(false);
+
+  function applyTemplate(k: TemplateKey) {
+    setTemplateKey(k);
+    setSubject(TEMPLATES[k].subject);
+    setBody(TEMPLATES[k].body);
+  }
 
   const send = useServerFn(sendGmailEmail);
   const checkConn = useServerFn(checkGmailConnected);
