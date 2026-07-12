@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { ArrowLeft, Pencil, Plus, ExternalLink, Lock } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Pencil, Plus, ExternalLink, Lock, Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,7 @@ import {
   sponsorsQuery,
   websiteTasksQuery,
   milestonesQuery,
+  emailSendsQuery,
 } from "@/lib/queries";
 import { labels, pillClass } from "@/lib/status";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
@@ -20,6 +21,9 @@ import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { SponsorFormDialog } from "@/components/dialogs/SponsorFormDialog";
 import { WebsiteTaskFormDialog } from "@/components/dialogs/WebsiteTaskFormDialog";
 import { MilestoneFormDialog } from "@/components/dialogs/MilestoneFormDialog";
+import { BulkEmailDialog } from "@/components/BulkEmailDialog";
+import { SendHistoryPanel } from "@/components/SendHistoryPanel";
+import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
   loader: ({ params, context }) =>
@@ -29,6 +33,7 @@ export const Route = createFileRoute("/_authenticated/events/$eventId")({
       context.queryClient.ensureQueryData(sponsorsQuery(params.eventId)),
       context.queryClient.ensureQueryData(websiteTasksQuery(params.eventId)),
       context.queryClient.ensureQueryData(milestonesQuery(params.eventId)),
+      context.queryClient.ensureQueryData(emailSendsQuery(params.eventId)),
     ]),
   component: EventDetail,
 });
