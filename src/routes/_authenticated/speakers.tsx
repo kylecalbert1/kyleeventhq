@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   Building2,
   Sparkles,
+  Reply,
+  Clock,
 } from "lucide-react";
 import { SyncDialog } from "@/components/SyncDialog";
 import { Button } from "@/components/ui/button";
@@ -31,7 +33,7 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent } from "@/lib/speakers.functions";
-import { labels, pillClass, type OutreachChannel } from "@/lib/status";
+import { labels, pillClass, daysBetween, type OutreachChannel } from "@/lib/status";
 import { firstNameOf } from "@/lib/gmail";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { toast } from "sonner";
@@ -73,6 +75,32 @@ const stagePill: Record<ColKey, { label: string; cls: string }> = {
 };
 
 const eventChipCls = "border border-slate-300 text-slate-700 bg-white";
+
+type OutreachAlert =
+  | { type: "reply"; label: "Reply needed"; cls: string; icon: typeof Reply }
+  | { type: "follow_up"; label: "Follow up"; cls: string; icon: typeof Clock }
+  | { type: "no_contact"; label: "No contact logged"; cls: string; icon: null }
+  | null;
+
+function outreachAlert(s: any): OutreachAlert {
+  const status = s.status as string;
+  if (status !== "contacted" && status !== "responded") return null;
+  const lastAt: string | null = s.last_message_at ?? null;
+  const direction: string | null = s.last_message_direction ?? null;
+  if (!lastAt) {
+    return { type: "no_contact", label: "No contact logged", cls: "bg-slate-100 text-slate-600 ring-slate-200", icon: null };
+  }
+  const days = daysBetween(new Date(lastAt), new Date());
+  if (days === null) return null;
+  if (direction === "inbound" && days > 2) {
+    return { type: "reply", label: "Reply needed", cls: "bg-rose-100 text-rose-700 ring-rose-200", icon: Reply };
+  }
+  if (direction === "outbound" && days > 7) {
+    return { type: "follow_up", label: "Follow up", cls: "bg-amber-100 text-amber-800 ring-amber-200", icon: Clock };
+  }
+  return null;
+}
+
 const okChipCls = "border border-emerald-300 text-emerald-700 bg-emerald-50/70";
 const missingChipCls = "border border-orange-400 text-orange-700 bg-orange-50/70";
 
@@ -278,8 +306,20 @@ function SpeakerBoard() {
                           }
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="font-semibold text-sm truncate leading-tight group-hover:text-primary transition-colors">
-                            {s.name}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="font-semibold text-sm truncate leading-tight group-hover:text-primary transition-colors">
+                              {s.name}
+                            </div>
+                            {(() => {
+                              const alert = outreachAlert(s);
+                              if (!alert) return null;
+                              return (
+                                <StatusPill className={alert.cls}>
+                                  {alert.icon && <alert.icon className="h-3 w-3" />}
+                                  {alert.label}
+                                </StatusPill>
+                              );
+                            })()}
                           </div>
                           <div className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
                             {s.title && <span>{s.title}</span>}
