@@ -253,19 +253,48 @@ function BannerColumn({
 }
 
 function BannerCard({ row, onPatch }: { row: Row; onPatch: (patch: any) => void }) {
-  const Icon = row.kind === "speaker" ? User : Building2;
+  const initials = row.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
+  const isSponsor = row.kind === "sponsor";
+  const accentBorder = {
+    not_started: "border-l-slate-300",
+    created: "border-l-amber-400",
+    sent: "border-l-sky-400",
+    confirmed_live: "border-l-emerald-500",
+  }[row.banner_status];
   return (
-    <div className="bg-background border rounded-md p-2.5 shadow-sm hover:shadow transition-shadow">
+    <div className={cn("bg-background border border-l-4 rounded-md p-2.5 shadow-sm hover:shadow transition-shadow", accentBorder)}>
       <div className="flex items-start gap-2">
-        <Icon className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", row.kind === "speaker" ? "text-sky-600" : "text-violet-600")} />
+        <div
+          className={cn(
+            "h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 ring-1",
+            isSponsor
+              ? "bg-violet-100 text-violet-700 ring-violet-200"
+              : "bg-sky-100 text-sky-700 ring-sky-200",
+          )}
+          title={isSponsor ? "Sponsor" : "Speaker"}
+        >
+          {isSponsor ? <Building2 className="h-3.5 w-3.5" /> : (initials || "?")}
+        </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium truncate">{row.name}</div>
+          <div className="text-sm font-medium truncate leading-tight">{row.name}</div>
           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{row.kind}</div>
         </div>
       </div>
-      <div className="mt-2 flex items-center justify-between gap-2">
+      <div className="mt-2">
         <Select value={row.banner_status} onValueChange={(v) => onPatch({ banner_status: v })}>
-          <SelectTrigger className="h-7 text-xs px-2 w-full"><SelectValue /></SelectTrigger>
+          <SelectTrigger
+            className={cn(
+              "h-7 text-xs px-2 w-full font-medium border-0 ring-1 focus:ring-2",
+              pillClass.banner[row.banner_status],
+            )}
+          >
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             {BANNER_STATUSES.map((s) => (
               <SelectItem key={s} value={s}>{labels.banner[s]}</SelectItem>
@@ -284,3 +313,16 @@ function BannerCard({ row, onPatch }: { row: Row; onPatch: (patch: any) => void 
     </div>
   );
 }
+
+function ProgressBar({ sent, total }: { sent: number; total: number }) {
+  const pct = total === 0 ? 0 : Math.round((sent / total) * 100);
+  return (
+    <div className="h-1.5 w-32 rounded-full bg-muted overflow-hidden">
+      <div
+        className="h-full bg-emerald-500 transition-all"
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
