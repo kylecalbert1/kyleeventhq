@@ -109,16 +109,28 @@ function SpeakerProfile() {
     .join("")
     .toUpperCase();
 
-  function emailSpeaker() {
+  async function emailSpeaker() {
     if (!speaker || !speaker.email) {
       toast.error("No email on file");
       return;
     }
-    openGmailCompose({
-      to: speaker.email,
-      subject: `${event?.code ?? "Our event"} — quick check-in`,
-      body: `Hi ${firstName},\n\nJust following up on your session for ${event?.code ?? "our event"}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
-    });
+    const code = event?.code ?? "our event";
+    const t = toast.loading(`Sending email to ${firstName}…`);
+    setSending(true);
+    try {
+      await sendEmail({
+        data: {
+          to: speaker.email,
+          subject: `${code} — quick check-in`,
+          body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+        },
+      });
+      toast.success(`Sent to ${firstName}`, { id: t });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send", { id: t });
+    } finally {
+      setSending(false);
+    }
   }
 
   async function copyLink() {
