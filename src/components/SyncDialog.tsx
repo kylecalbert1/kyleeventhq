@@ -97,7 +97,7 @@ export function SyncDialog({
 }) {
   const qc = useQueryClient();
   const events = useQuery(eventsQuery);
-  const [tab, setTab] = useState<"calendar" | "email">("calendar");
+  const [tab, setTab] = useState<"calendar" | "email" | "banner">("calendar");
   const [eventId, setEventId] = useState<string | undefined>(
     defaultEventId && defaultEventId !== "all" ? defaultEventId : undefined,
   );
