@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   Building2,
+  Sparkles,
 } from "lucide-react";
+import { SyncDialog } from "@/components/SyncDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -87,6 +89,7 @@ function SpeakerBoard() {
   const [editing, setEditing] = useState<null | { open: boolean; speaker?: any }>(null);
   const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   const eventById = useMemo(
     () => Object.fromEntries((events.data ?? []).map((e) => [e.id, e])),
@@ -187,6 +190,10 @@ function SpeakerBoard() {
               <SelectItem value="CSC">CSC</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => setSyncOpen(true)} className="transition-transform hover:scale-[1.02]">
+            <Sparkles className="h-4 w-4 mr-1.5" />
+            Sync
+          </Button>
           <Button onClick={() => setEditing({ open: true })} className="transition-transform hover:scale-[1.02]">
             <Plus className="h-4 w-4 mr-1.5" />
             Add speaker
@@ -376,6 +383,11 @@ function SpeakerBoard() {
         onOpenChange={(o) => !o && setConfirmEmail(null)}
         draft={confirmEmail}
         onConfirm={performSendConfirmed}
+      />
+      <SyncDialog
+        open={syncOpen}
+        onOpenChange={setSyncOpen}
+        defaultEventId={eventFilter}
       />
     </div>
   );
