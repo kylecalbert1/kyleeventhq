@@ -101,6 +101,7 @@ export function EventFormDialog({
         proof2_due: "",
         final_signoff_due: "",
         self_status: "on_track",
+        asana_link: "",
       });
     }
   }, [event, open]);
