@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.log_speaker_changes() FROM PUBLIC, anon, authenticated;
