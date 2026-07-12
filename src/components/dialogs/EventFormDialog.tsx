@@ -82,6 +82,7 @@ export function EventFormDialog({
         proof2_due: event.proof2_due ?? "",
         final_signoff_due: event.final_signoff_due ?? "",
         self_status: event.self_status ?? "on_track",
+        asana_link: event.asana_project_gid ?? "",
       });
     } else {
       setForm({
