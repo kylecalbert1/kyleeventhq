@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   Building2,
   Sparkles,
+  Reply,
+  Clock,
 } from "lucide-react";
 import { SyncDialog } from "@/components/SyncDialog";
 import { Button } from "@/components/ui/button";
