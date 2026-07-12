@@ -508,14 +508,15 @@ export const fetchBannerVerification = createServerFn({ method: "POST" })
       if (!email) continue;
 
       const ev = sp.event_id ? eventsById.get(sp.event_id) : null;
-      // Window: since event created_at, capped between 30 and 120 days
-      let days = 120;
-      if (ev?.created_at) {
-        const d = Math.ceil((Date.now() - new Date(ev.created_at).getTime()) / 86400_000);
-        days = Math.min(120, Math.max(30, d));
-      }
 
-      const q = `in:sent to:${email} newer_than:${days}d (banner OR has:attachment)`;
+      // Event-specific term: match either the event code or full name.
+      const eventTerms: string[] = [];
+      if (ev?.code) eventTerms.push(`"${ev.code}"`);
+      if (ev?.name && ev.name !== ev.code) eventTerms.push(`"${ev.name}"`);
+      const eventClause = eventTerms.length ? ` (${eventTerms.join(" OR ")})` : "";
+
+      // Banner phrasing: "speaker banner" or plain "banner".
+      const q = `in:sent to:${email} ("speaker banner" OR banner)${eventClause}`;
       const url = new URL(`${GMAIL_GATEWAY}/users/me/messages`);
       url.searchParams.set("q", q);
       url.searchParams.set("maxResults", "1");
