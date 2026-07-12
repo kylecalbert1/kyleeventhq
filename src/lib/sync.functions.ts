@@ -462,3 +462,101 @@ export const applyEmailSuggestion = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+// ============ BANNER CHECK ============
+
+export const fetchBannerVerification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    const gmailKey = process.env.GOOGLE_MAIL_API_KEY;
+    if (!lovableKey || !gmailKey) {
+      return { connected: false as const, flagged: [] };
+    }
+
+    const { data: speakers, error } = await context.supabase
+      .from("speakers")
+      .select("id, name, email, banner_status, event_id, updated_at")
+      .in("banner_status", ["sent", "confirmed_live"]);
+    if (error) throw new Error(error.message);
+
+    const eventIds = Array.from(
+      new Set((speakers ?? []).map((s) => s.event_id).filter(Boolean)),
+    ) as string[];
+    const eventsById = new Map<string, { code: string; name: string; created_at: string }>();
+    if (eventIds.length) {
+      const { data: evs, error: eErr } = await context.supabase
+        .from("events")
+        .select("id, code, name, created_at")
+        .in("id", eventIds);
+      if (eErr) throw new Error(eErr.message);
+      for (const e of evs ?? []) eventsById.set(e.id, e as any);
+    }
+
+    type Flagged = {
+      speaker_id: string;
+      speaker_name: string;
+      speaker_email: string;
+      banner_status: string;
+      event_id: string | null;
+      event_label: string | null;
+    };
+    const flagged: Flagged[] = [];
+
+    for (const sp of speakers ?? []) {
+      const email = (sp.email ?? "").trim();
+      if (!email) continue;
+
+      const ev = sp.event_id ? eventsById.get(sp.event_id) : null;
+      // Window: since event created_at, capped between 30 and 120 days
+      let days = 120;
+      if (ev?.created_at) {
+        const d = Math.ceil((Date.now() - new Date(ev.created_at).getTime()) / 86400_000);
+        days = Math.min(120, Math.max(30, d));
+      }
+
+      const q = `in:sent to:${email} newer_than:${days}d (banner OR has:attachment)`;
+      const url = new URL(`${GMAIL_GATEWAY}/users/me/messages`);
+      url.searchParams.set("q", q);
+      url.searchParams.set("maxResults", "1");
+      const res = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "X-Connection-Api-Key": gmailKey,
+        },
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        console.error(`Gmail banner search failed [${res.status}] ${email}: ${t}`);
+        continue;
+      }
+      const body = (await res.json()) as { messages?: Array<{ id: string }>; resultSizeEstimate?: number };
+      const found = (body.messages?.length ?? 0) > 0;
+      if (!found) {
+        flagged.push({
+          speaker_id: sp.id,
+          speaker_name: sp.name,
+          speaker_email: email,
+          banner_status: sp.banner_status,
+          event_id: sp.event_id ?? null,
+          event_label: ev ? (ev.code || ev.name) : null,
+        });
+      }
+    }
+
+    return { connected: true as const, flagged };
+  });
+
+export const revertBannerStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ speaker_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("speakers")
+      .update({ banner_status: "not_started" })
+      .eq("id", data.speaker_id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
