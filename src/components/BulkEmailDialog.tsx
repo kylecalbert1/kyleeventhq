@@ -269,7 +269,7 @@ export function BulkEmailDialog({
             Close
           </Button>
           <Button
-            onClick={sendAll}
+            onClick={() => setConfirmAllOpen(true)}
             disabled={!connected || sendingAll || sendable.length === 0}
           >
             {sendingAll ? (
@@ -280,12 +280,40 @@ export function BulkEmailDialog({
             ) : (
               <>
                 <Send className="h-4 w-4 mr-1.5" />
-                Send all ({sendable.length})
+                Review &amp; send all ({sendable.length})
               </>
             )}
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <ConfirmSendEmailDialog
+        open={!!confirmOne}
+        onOpenChange={(o) => !o && setConfirmOne(null)}
+        draft={confirmOne}
+        onConfirm={async ({ subject: subj, body: bd }) => {
+          if (!confirmOne) return;
+          const row = rows.find((x) => x.id === confirmOne.id);
+          if (!row) return;
+          await performSend(row, { subject: subj, body: bd });
+          setConfirmOne(null);
+        }}
+      />
+
+      <BulkConfirmSendDialog
+        open={confirmAllOpen}
+        onOpenChange={setConfirmAllOpen}
+        rows={sendable
+          .filter((r) => status[r.id] !== "sent")
+          .map((r) => ({
+            id: r.id,
+            name: r.name,
+            to: r.email!,
+            subject: r.rSubject,
+            body: r.rBody,
+          }))}
+        onConfirm={performSendAll}
+      />
     </Dialog>
   );
 }
