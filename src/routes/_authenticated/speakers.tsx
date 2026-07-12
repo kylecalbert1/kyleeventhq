@@ -470,7 +470,7 @@ function SpeakerBoard() {
         </div>
       </div>
 
-      <ChannelMixPanel speakers={filtered} />
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
         {COLUMNS.map((col) => (
