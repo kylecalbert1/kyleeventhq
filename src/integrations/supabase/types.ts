@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      email_send_recipients: {
+        Row: {
+          created_at: string
+          email_send_id: string
+          id: string
+          recipient_email: string | null
+          recipient_name: string | null
+          speaker_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_send_id: string
+          id?: string
+          recipient_email?: string | null
+          recipient_name?: string | null
+          speaker_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_send_id?: string
+          id?: string
+          recipient_email?: string | null
+          recipient_name?: string | null
+          speaker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_send_recipients_email_send_id_fkey"
+            columns: ["email_send_id"]
+            isOneToOne: false
+            referencedRelation: "email_sends"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_send_recipients_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_sends: {
+        Row: {
+          body: string
+          created_at: string
+          event_id: string | null
+          id: string
+          recipient_count: number
+          sent_at: string
+          sent_by: string
+          subject: string
+          template_type: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          recipient_count?: number
+          sent_at?: string
+          sent_by?: string
+          subject: string
+          template_type: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          recipient_count?: number
+          sent_at?: string
+          sent_by?: string
+          subject?: string
+          template_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sends_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_milestones: {
         Row: {
           created_at: string
