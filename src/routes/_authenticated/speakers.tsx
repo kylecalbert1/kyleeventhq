@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   Building2,
+  Sparkles,
 } from "lucide-react";
+import { SyncDialog } from "@/components/SyncDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
