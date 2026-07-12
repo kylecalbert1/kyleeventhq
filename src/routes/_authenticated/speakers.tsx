@@ -135,20 +135,26 @@ function SpeakerBoard() {
     } catch { toast.error("Couldn't copy link"); }
   }
 
-  async function emailOne(s: any, ev: any) {
+  function emailOne(s: any, ev: any) {
     if (!s.email) { toast.error("No email on file"); return; }
     const firstName = firstNameOf(s.name);
     const code = ev?.code ?? "our upcoming event";
-    const t = toast.loading(`Sending email to ${firstName}…`);
+    setConfirmEmail({
+      to: s.email,
+      recipientName: firstName,
+      subject: `${code} — quick check-in`,
+      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+    });
+  }
+
+  async function performSendConfirmed(edited: { subject: string; body: string }) {
+    if (!confirmEmail) return;
+    const t = toast.loading(`Sending email to ${confirmEmail.recipientName ?? confirmEmail.to}…`);
     try {
       await sendEmail({
-        data: {
-          to: s.email,
-          subject: `${code} — quick check-in`,
-          body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
-        },
+        data: { to: confirmEmail.to, subject: edited.subject, body: edited.body },
       });
-      toast.success(`Sent to ${firstName}`, { id: t });
+      toast.success(`Sent to ${confirmEmail.recipientName ?? confirmEmail.to}`, { id: t });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to send", { id: t });
     }
