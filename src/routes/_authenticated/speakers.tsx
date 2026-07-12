@@ -32,13 +32,14 @@ import {
 } from "@/components/ui/select";
 import { StatusPill } from "@/components/StatusPill";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
+import { SpeakerDetailDialog } from "@/components/dialogs/SpeakerDetailDialog";
 import { ChannelMixPanel } from "@/components/ChannelMixPanel";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent, updateSpeaker } from "@/lib/speakers.functions";
 import { labels, pillClass, daysBetween, OUTREACH_CHANNELS, type OutreachChannel } from "@/lib/status";
-import { firstNameOf } from "@/lib/gmail";
+import { firstNameOf, initialsOf } from "@/lib/gmail";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { toast } from "sonner";
 
@@ -153,6 +154,7 @@ function SpeakerBoard() {
   const [sortKey, setSortKey] = useState<SortKey>("stalest");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<null | { open: boolean; speaker?: any }>(null);
+  const [detailSpeaker, setDetailSpeaker] = useState<any | null>(null);
   const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
@@ -464,7 +466,7 @@ function SpeakerBoard() {
             </Button>
             <Button size="sm" onClick={() => setBulkEmailOpen(true)}>
               <Mail className="h-4 w-4 mr-1.5" />
-              Email selected
+              Compose email
             </Button>
           </div>
         </div>
@@ -518,18 +520,33 @@ function SpeakerBoard() {
                         e.dataTransfer.setData("text/plain", s.id);
                         e.dataTransfer.effectAllowed = "move";
                       }}
-                      className={`group p-3 border-t-2 ${col.accent} cursor-grab active:cursor-grabbing transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30`}
-                      onClick={() => navigate({ to: "/speakers/$speakerId", params: { speakerId: s.id } })}
+                      className={`group p-3 border-t-2 ${col.accent} cursor-pointer active:cursor-grabbing transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30`}
+                      onClick={() => setDetailSpeaker(s)}
                     >
                       <div className="flex items-start gap-2">
                         <Checkbox
-                          className="mt-0.5"
+                          className="mt-1"
                           checked={!!selected[s.id]}
                           onClick={(e) => e.stopPropagation()}
                           onCheckedChange={(v) =>
                             setSelected({ ...selected, [s.id]: !!v })
                           }
                         />
+                        <div
+                          className={`h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold ring-2 ring-background shadow-sm text-white bg-gradient-to-br ${
+                            colKey === "confirmed"
+                              ? "from-emerald-500 to-emerald-600"
+                              : colKey === "banner_sent"
+                                ? "from-amber-500 to-amber-600"
+                                : colKey === "bio_headshot_in"
+                                  ? "from-teal-500 to-teal-600"
+                                  : colKey === "responded"
+                                    ? "from-violet-500 to-violet-600"
+                                    : "from-sky-500 to-sky-600"
+                          }`}
+                        >
+                          {initialsOf(s.name)}
+                        </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
                             <div className="font-semibold text-sm truncate leading-tight group-hover:text-primary transition-colors">
@@ -556,6 +573,7 @@ function SpeakerBoard() {
                               </span>
                             )}
                           </div>
+
 
                           <div className="flex flex-wrap gap-1 mt-2">
                             <StatusPill className={pill.cls}>{pill.label}</StatusPill>
@@ -636,6 +654,21 @@ function SpeakerBoard() {
           speaker={editing.speaker}
         />
       )}
+      <SpeakerDetailDialog
+        open={!!detailSpeaker}
+        onOpenChange={(o) => !o && setDetailSpeaker(null)}
+        speaker={detailSpeaker}
+        event={detailSpeaker ? eventById[detailSpeaker.event_id] : null}
+        onEdit={() => {
+          const s = detailSpeaker;
+          setDetailSpeaker(null);
+          if (s) setEditing({ open: true, speaker: s });
+        }}
+        onEmail={() => {
+          const s = detailSpeaker;
+          if (s) emailOne(s, eventById[s.event_id]);
+        }}
+      />
       <BulkEmailDialog
         open={bulkEmailOpen}
         onOpenChange={setBulkEmailOpen}

@@ -204,6 +204,38 @@ export type Database = {
           },
         ]
       }
+      speaker_activity_log: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          note: string | null
+          speaker_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          note?: string | null
+          speaker_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          note?: string | null
+          speaker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_activity_log_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       speakers: {
         Row: {
           banner_status: Database["public"]["Enums"]["banner_status"]

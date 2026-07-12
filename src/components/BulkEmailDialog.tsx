@@ -11,12 +11,62 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { renderTemplate, firstNameOf } from "@/lib/gmail";
 import { sendGmailEmail, checkGmailConnected } from "@/lib/email.functions";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { BulkConfirmSendDialog } from "@/components/BulkConfirmSendDialog";
+
+type TemplateKey =
+  | "custom"
+  | "confirmation"
+  | "banner_reminder"
+  | "bio_headshot_reminder"
+  | "follow_up";
+
+const TEMPLATES: Record<
+  TemplateKey,
+  { label: string; subject: string; body: string }
+> = {
+  custom: {
+    label: "Custom / blank",
+    subject: "Quick ask for {{firstName}} — event assets",
+    body:
+      "Hey {{firstName}},\n\nHope you're doing well! Could you send over your logo, headshot and short bio when you get a moment? It helps us finalise everything for the event.\n\nThanks so much!",
+  },
+  confirmation: {
+    label: "Speaker confirmation",
+    subject: "Confirming your session, {{firstName}} 🎉",
+    body:
+      "Hi {{firstName}},\n\nDelighted to confirm your session with us. We'll be in touch shortly with logistics, banner artwork and everything else you need.\n\nLet me know if any questions in the meantime.\n\nThanks!",
+  },
+  banner_reminder: {
+    label: "Banner request reminder",
+    subject: "Quick nudge on your speaker banner",
+    body:
+      "Hi {{firstName}},\n\nJust a quick nudge — our design team is putting speaker banners together this week. Could you confirm the title / description on your session is still accurate so we can lock it in?\n\nThanks!",
+  },
+  bio_headshot_reminder: {
+    label: "Bio & headshot reminder",
+    subject: "Sending over your bio & headshot?",
+    body:
+      "Hi {{firstName}},\n\nWhenever you get a minute, could you send over a short speaker bio (2–3 sentences) and a high-res headshot? We'll use them on the site and in promo.\n\nMuch appreciated!",
+  },
+  follow_up: {
+    label: "Follow-up — no reply",
+    subject: "Circling back, {{firstName}}",
+    body:
+      "Hi {{firstName}},\n\nJust circling back on my last note — happy to jump on a quick call if easier, otherwise a quick reply here works too. Would love to lock this in.\n\nThanks!",
+  },
+};
 
 type Speaker = {
   id: string;
@@ -36,12 +86,9 @@ export function BulkEmailDialog({
   onOpenChange: (o: boolean) => void;
   speakers: Speaker[];
 }) {
-  const [subject, setSubject] = useState(
-    "Quick ask for {{firstName}} — event assets",
-  );
-  const [body, setBody] = useState(
-    "Hey {{firstName}},\n\nHope you're doing well! Could you send over your logo, headshot and short bio when you get a moment? It helps us finalise everything for the event.\n\nThanks so much!",
-  );
+  const [templateKey, setTemplateKey] = useState<TemplateKey>("custom");
+  const [subject, setSubject] = useState(TEMPLATES.custom.subject);
+  const [body, setBody] = useState(TEMPLATES.custom.body);
   const [confirmOne, setConfirmOne] = useState<
     (ConfirmDraft & { id: string }) | null
   >(null);
@@ -49,6 +96,12 @@ export function BulkEmailDialog({
   const [status, setStatus] = useState<Record<string, SendStatus>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sendingAll, setSendingAll] = useState(false);
+
+  function applyTemplate(k: TemplateKey) {
+    setTemplateKey(k);
+    setSubject(TEMPLATES[k].subject);
+    setBody(TEMPLATES[k].body);
+  }
 
   const send = useServerFn(sendGmailEmail);
   const checkConn = useServerFn(checkGmailConnected);
@@ -158,6 +211,21 @@ export function BulkEmailDialog({
             Use <code className="bg-background px-1 py-0.5 rounded">{`{{firstName}}`}</code>{" "}
             as a merge tag. Each speaker gets a personalized email sent through your
             connected Gmail account.
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Template</Label>
+            <Select value={templateKey} onValueChange={(v) => applyTemplate(v as TemplateKey)}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(TEMPLATES) as TemplateKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>{TEMPLATES[k].label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              Picking a template pre-fills subject & body. Edits below stay local until you switch templates again.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
