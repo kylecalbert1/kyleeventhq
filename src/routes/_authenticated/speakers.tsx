@@ -141,6 +141,17 @@ function SpeakerBoard() {
     });
   }
 
+  function emailAnchor(s: any, ev: any) {
+    if (!s.email) return null;
+    const firstName = firstNameOf(s.name);
+    const code = ev?.code ?? "our upcoming event";
+    return gmailComposeUrl({
+      to: s.email,
+      subject: `${code} — quick check-in`,
+      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+    });
+  }
+
   return (
     <div className="p-6 md:p-8 animate-fade-in">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
