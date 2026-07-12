@@ -89,6 +89,7 @@ function SpeakerBoard() {
   const [editing, setEditing] = useState<null | { open: boolean; speaker?: any }>(null);
   const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   const eventById = useMemo(
     () => Object.fromEntries((events.data ?? []).map((e) => [e.id, e])),
