@@ -117,11 +117,42 @@ export function SyncDialog({
   const [emailSugs, setEmailSugs] = useState<EmailSuggestion[] | null>(null);
   const [dismissedEmails, setDismissedEmails] = useState<Set<string>>(new Set());
 
+  type BannerFlag = {
+    speaker_id: string;
+    speaker_name: string;
+    speaker_email: string;
+    banner_status: string;
+    event_id: string | null;
+    event_label: string | null;
+  };
+  const [bannerFlags, setBannerFlags] = useState<BannerFlag[] | null>(null);
+  const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
+
   const fetchLeads = useServerFn(fetchLeadSuggestions);
   const fetchEmails = useServerFn(fetchEmailSuggestions);
   const create = useServerFn(createSpeaker);
   const apply = useServerFn(applyEmailSuggestion);
   const revert = useServerFn(setSpeakerStatus);
+  const fetchBanners = useServerFn(fetchBannerVerification);
+  const revertBanner = useServerFn(revertBannerStatus);
+
+  const bannerMut = useMutation({
+    mutationFn: () => fetchBanners({ data: undefined as any }),
+    onSuccess: (r) => {
+      if (!r.connected) {
+        toast.error("Gmail not connected");
+        setBannerFlags([]);
+        return;
+      }
+      setBannerFlags(r.flagged);
+      toast.success(
+        r.flagged.length === 0
+          ? "All sent banners have matching Gmail evidence"
+          : `Flagged ${r.flagged.length} speaker${r.flagged.length === 1 ? "" : "s"} with no matching sent email`,
+      );
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Banner check failed"),
+  });
 
   const leadsMut = useMutation({
     mutationFn: () => fetchLeads({ data: { pastDays: 30, futureDays: 60 } }),
