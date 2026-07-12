@@ -82,14 +82,18 @@ export function BulkEmailDialog({
   open,
   onOpenChange,
   speakers,
+  initialTemplate,
+  eventId,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   speakers: Speaker[];
+  initialTemplate?: TemplateKey;
+  eventId?: string | null;
 }) {
-  const [templateKey, setTemplateKey] = useState<TemplateKey>("custom");
-  const [subject, setSubject] = useState(TEMPLATES.custom.subject);
-  const [body, setBody] = useState(TEMPLATES.custom.body);
+  const [templateKey, setTemplateKey] = useState<TemplateKey>(initialTemplate ?? "custom");
+  const [subject, setSubject] = useState(TEMPLATES[initialTemplate ?? "custom"].subject);
+  const [body, setBody] = useState(TEMPLATES[initialTemplate ?? "custom"].body);
   const [confirmOne, setConfirmOne] = useState<
     (ConfirmDraft & { id: string }) | null
   >(null);
@@ -97,6 +101,17 @@ export function BulkEmailDialog({
   const [status, setStatus] = useState<Record<string, SendStatus>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sendingAll, setSendingAll] = useState(false);
+  const logSend = useServerFn(logEmailSend);
+  const qcInvalidate = useQueryClient();
+
+  useEffect(() => {
+    if (open && initialTemplate) {
+      setTemplateKey(initialTemplate);
+      setSubject(TEMPLATES[initialTemplate].subject);
+      setBody(TEMPLATES[initialTemplate].body);
+    }
+  }, [open, initialTemplate]);
+
 
   function applyTemplate(k: TemplateKey) {
     setTemplateKey(k);
