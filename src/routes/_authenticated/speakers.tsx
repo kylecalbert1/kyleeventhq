@@ -111,6 +111,8 @@ function SpeakerBoard() {
     [speakers.data, selectedIds],
   );
 
+  const sendEmail = useServerFn(sendGmailEmail);
+
   const bulkMutation = useMutation({
     mutationFn: () => bulk({ data: { ids: selectedIds } }),
     onSuccess: (r: any) => {
@@ -131,26 +133,23 @@ function SpeakerBoard() {
     } catch { toast.error("Couldn't copy link"); }
   }
 
-  function emailOne(s: any, ev: any) {
+  async function emailOne(s: any, ev: any) {
     if (!s.email) { toast.error("No email on file"); return; }
     const firstName = firstNameOf(s.name);
     const code = ev?.code ?? "our upcoming event";
-    openGmailCompose({
-      to: s.email,
-      subject: `${code} — quick check-in`,
-      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
-    });
-  }
-
-  function emailAnchor(s: any, ev: any) {
-    if (!s.email) return null;
-    const firstName = firstNameOf(s.name);
-    const code = ev?.code ?? "our upcoming event";
-    return gmailComposeUrl({
-      to: s.email,
-      subject: `${code} — quick check-in`,
-      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
-    });
+    const t = toast.loading(`Sending email to ${firstName}…`);
+    try {
+      await sendEmail({
+        data: {
+          to: s.email,
+          subject: `${code} — quick check-in`,
+          body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+        },
+      });
+      toast.success(`Sent to ${firstName}`, { id: t });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send", { id: t });
+    }
   }
 
   return (
