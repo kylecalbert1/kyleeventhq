@@ -11,6 +11,22 @@ import { createEvent, updateEvent, deleteEvent } from "@/lib/events.functions";
 import { BUSINESS_LINES, EVENT_FORMATS, WEBSITE_STAGES, SELF_STATUSES, labels } from "@/lib/status";
 import { qk } from "@/lib/queries";
 
+function parseAsanaGid(input: string): string | null {
+  const v = input.trim();
+  if (!v) return null;
+  const m = v.match(/\/project\/(\d+)/);
+  if (m) return m[1];
+  if (/^\d+$/.test(v)) return v;
+  return v;
+}
+
+function looksLikeAsanaUrl(input: string): boolean {
+  const v = input.trim();
+  if (!v) return true;
+  if (/^\d+$/.test(v)) return true;
+  return /\/project\/\d+/.test(v);
+}
+
 type EventRow = {
   id: string;
   code: string;
@@ -28,6 +44,7 @@ type EventRow = {
   proof2_due?: string | null;
   final_signoff_due?: string | null;
   self_status?: "on_track" | "needs_attention" | "off_track";
+  asana_project_gid?: string | null;
 };
 
 export function EventFormDialog({
@@ -60,6 +77,7 @@ export function EventFormDialog({
     proof2_due: "",
     final_signoff_due: "",
     self_status: "on_track" as "on_track" | "needs_attention" | "off_track",
+    asana_link: "",
   });
 
   useEffect(() => {
@@ -80,6 +98,7 @@ export function EventFormDialog({
         proof2_due: event.proof2_due ?? "",
         final_signoff_due: event.final_signoff_due ?? "",
         self_status: event.self_status ?? "on_track",
+        asana_link: event.asana_project_gid ?? "",
       });
     } else {
       setForm({
@@ -98,14 +117,16 @@ export function EventFormDialog({
         proof2_due: "",
         final_signoff_due: "",
         self_status: "on_track",
+        asana_link: "",
       });
     }
   }, [event, open]);
 
   const save = useMutation({
     mutationFn: async () => {
+      const { asana_link, ...rest } = form;
       const payload = {
-        ...form,
+        ...rest,
         event_date: form.event_date || null,
         venue: form.venue || null,
         kickoff_date: form.kickoff_date || null,
@@ -115,6 +136,7 @@ export function EventFormDialog({
         proof1_due: form.proof1_due || null,
         proof2_due: form.proof2_due || null,
         final_signoff_due: form.final_signoff_due || null,
+        asana_project_gid: parseAsanaGid(asana_link),
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
@@ -220,6 +242,23 @@ export function EventFormDialog({
           </Field>
           <Field label="Final sign-off due" full>
             <Input type="date" value={form.final_signoff_due} onChange={(e) => setForm({ ...form, final_signoff_due: e.target.value })} />
+          </Field>
+          <Field label="Asana Timeline project link (optional)" full>
+            <Input
+              type="url"
+              placeholder="https://app.asana.com/1/…/project/1213875920325118/timeline"
+              value={form.asana_link}
+              onChange={(e) => setForm({ ...form, asana_link: e.target.value })}
+            />
+            {form.asana_link && !looksLikeAsanaUrl(form.asana_link) ? (
+              <p className="text-xs text-amber-600">
+                This doesn't look like an Asana project URL — we'll save it as-is.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Link this once to auto-sync launch and kickoff dates from Asana.
+              </p>
+            )}
           </Field>
           <DialogFooter className="col-span-2 flex justify-between sm:justify-between">
             <div>
