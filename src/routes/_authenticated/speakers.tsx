@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { z } from "zod";
 import {
   Plus,
   Send,
@@ -14,11 +15,14 @@ import {
   Sparkles,
   Reply,
   Clock,
+  Search,
+  X,
 } from "lucide-react";
 import { SyncDialog } from "@/components/SyncDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -32,13 +36,18 @@ import { ChannelMixPanel } from "@/components/ChannelMixPanel";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
-import { bulkMarkBannerSent } from "@/lib/speakers.functions";
-import { labels, pillClass, daysBetween, type OutreachChannel } from "@/lib/status";
+import { bulkMarkBannerSent, updateSpeaker } from "@/lib/speakers.functions";
+import { labels, pillClass, daysBetween, OUTREACH_CHANNELS, type OutreachChannel } from "@/lib/status";
 import { firstNameOf } from "@/lib/gmail";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { toast } from "sonner";
 
+const searchSchema = z.object({
+  attention: z.enum(["reply", "follow_up", "any"]).optional(),
+});
+
 export const Route = createFileRoute("/_authenticated/speakers")({
+  validateSearch: searchSchema,
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(speakersQuery()),
@@ -59,11 +68,28 @@ type ColKey = (typeof COLUMNS)[number]["key"];
 
 function columnFor(s: any): ColKey {
   if (s.bio_received && s.headshot_received) return "bio_headshot_in";
-  if (s.banner_status === "sent" || s.banner_status === "confirmed_live")
-    return "banner_sent";
+  if (s.banner_status === "sent" || s.banner_status === "confirmed_live") return "banner_sent";
   if (s.status === "confirmed") return "confirmed";
   if (s.status === "responded") return "responded";
   return "contacted";
+}
+
+function patchForColumn(target: ColKey, current: any): Record<string, any> {
+  switch (target) {
+    case "contacted":
+      return { status: "contacted" };
+    case "responded":
+      return { status: "responded" };
+    case "confirmed":
+      return { status: "confirmed" };
+    case "banner_sent":
+      return {
+        status: current.status === "confirmed" ? "confirmed" : "confirmed",
+        banner_status: "sent",
+      };
+    case "bio_headshot_in":
+      return { bio_received: true, headshot_received: true };
+  }
 }
 
 const stagePill: Record<ColKey, { label: string; cls: string }> = {
@@ -76,13 +102,13 @@ const stagePill: Record<ColKey, { label: string; cls: string }> = {
 
 const eventChipCls = "border border-slate-300 text-slate-700 bg-white";
 
-type OutreachAlert =
+type OutreachAlertT =
   | { type: "reply"; label: "Reply needed"; cls: string; icon: typeof Reply }
   | { type: "follow_up"; label: "Follow up"; cls: string; icon: typeof Clock }
   | { type: "no_contact"; label: "No contact logged"; cls: string; icon: null }
   | null;
 
-function outreachAlert(s: any): OutreachAlert {
+function outreachAlert(s: any): OutreachAlertT {
   const status = s.status as string;
   if (status !== "contacted" && status !== "responded") return null;
   const lastAt: string | null = s.last_message_at ?? null;
@@ -104,39 +130,98 @@ function outreachAlert(s: any): OutreachAlert {
 const okChipCls = "border border-emerald-300 text-emerald-700 bg-emerald-50/70";
 const missingChipCls = "border border-orange-400 text-orange-700 bg-orange-50/70";
 
+type SortKey = "stalest" | "name" | "event" | "status";
+
 function SpeakerBoard() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const events = useQuery(eventsQuery);
   const speakers = useQuery(speakersQuery());
   const bulk = useServerFn(bulkMarkBannerSent);
+  const updateSp = useServerFn(updateSpeaker);
 
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [lineFilter, setLineFilter] = useState<string>("all");
+  const [channelFilter, setChannelFilter] = useState<string>("all");
+  const [missingBio, setMissingBio] = useState(false);
+  const [missingHeadshot, setMissingHeadshot] = useState(false);
+  const [attentionFilter, setAttentionFilter] = useState<"all" | "reply" | "follow_up" | "any">(
+    search.attention ?? "all",
+  );
+  const [q, setQ] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("stalest");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<null | { open: boolean; speaker?: any }>(null);
   const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
+  const [dragOver, setDragOver] = useState<ColKey | null>(null);
 
   const eventById = useMemo(
     () => Object.fromEntries((events.data ?? []).map((e) => [e.id, e])),
     [events.data],
   );
 
-  const filtered = (speakers.data ?? []).filter((s: any) => {
-    if (eventFilter !== "all" && s.event_id !== eventFilter) return false;
-    if (lineFilter !== "all") {
-      const ev = eventById[s.event_id];
-      if (ev?.business_line !== lineFilter) return false;
-    }
-    return true;
-  });
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return (speakers.data ?? []).filter((s: any) => {
+      if (eventFilter !== "all" && s.event_id !== eventFilter) return false;
+      if (lineFilter !== "all") {
+        const ev = eventById[s.event_id];
+        if (ev?.business_line !== lineFilter) return false;
+      }
+      if (channelFilter !== "all") {
+        if (channelFilter === "untagged") {
+          if (s.outreach_channel) return false;
+        } else if (s.outreach_channel !== channelFilter) return false;
+      }
+      if (missingBio && s.bio_received) return false;
+      if (missingHeadshot && s.headshot_received) return false;
+      if (attentionFilter !== "all") {
+        const a = outreachAlert(s);
+        if (!a) return false;
+        if (attentionFilter === "reply" && a.type !== "reply") return false;
+        if (attentionFilter === "follow_up" && a.type !== "follow_up") return false;
+        if (attentionFilter === "any" && a.type !== "reply" && a.type !== "follow_up") return false;
+      }
+      if (term) {
+        const hay = `${s.name ?? ""} ${s.company ?? ""}`.toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [speakers.data, eventFilter, lineFilter, channelFilter, missingBio, missingHeadshot, attentionFilter, q, eventById]);
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a: any, b: any) => {
+      if (sortKey === "name") return (a.name ?? "").localeCompare(b.name ?? "");
+      if (sortKey === "event") {
+        const ea = eventById[a.event_id]?.code ?? "";
+        const eb = eventById[b.event_id]?.code ?? "";
+        return ea.localeCompare(eb);
+      }
+      if (sortKey === "status") {
+        const rank: Record<string, number> = { contacted: 0, responded: 1, confirmed: 2, declined: 3 };
+        return (rank[a.status] ?? 9) - (rank[b.status] ?? 9);
+      }
+      // stalest: oldest last_message_at first; nulls first
+      const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : -Infinity;
+      const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : -Infinity;
+      return ta - tb;
+    });
+    return arr;
+  }, [filtered, sortKey, eventById]);
 
   const grouped: Record<ColKey, any[]> = {
-    contacted: [], responded: [], confirmed: [], banner_sent: [], bio_headshot_in: [],
+    contacted: [],
+    responded: [],
+    confirmed: [],
+    banner_sent: [],
+    bio_headshot_in: [],
   };
-  filtered.forEach((s: any) => grouped[columnFor(s)].push(s));
+  sorted.forEach((s: any) => grouped[columnFor(s)].push(s));
 
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const selectedSpeakers = useMemo(
@@ -156,6 +241,29 @@ function SpeakerBoard() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+
+  const dragMove = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: any }) =>
+      updateSp({ data: { id, patch } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["speakers"] });
+      qc.invalidateQueries({ queryKey: ["eventSummaries"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to move"),
+  });
+
+  function handleDrop(target: ColKey, e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(null);
+    const id = e.dataTransfer.getData("text/plain");
+    if (!id) return;
+    const s = (speakers.data ?? []).find((x: any) => x.id === id);
+    if (!s) return;
+    if (columnFor(s) === target) return;
+    const patch = patchForColumn(target, s);
+    dragMove.mutate({ id, patch });
+    toast.success(`Moved ${s.name} → ${COLUMNS.find((c) => c.key === target)?.title}`);
+  }
 
   async function copyLink(s: any) {
     const url = s.dropbox_link || s.linkedin_url;
@@ -191,33 +299,36 @@ function SpeakerBoard() {
     }
   }
 
+  const hasFilters =
+    eventFilter !== "all" ||
+    lineFilter !== "all" ||
+    channelFilter !== "all" ||
+    missingBio ||
+    missingHeadshot ||
+    attentionFilter !== "all" ||
+    q.trim() !== "";
+
+  function clearFilters() {
+    setEventFilter("all");
+    setLineFilter("all");
+    setChannelFilter("all");
+    setMissingBio(false);
+    setMissingHeadshot(false);
+    setAttentionFilter("all");
+    setQ("");
+    navigate({ to: "/speakers", search: {} });
+  }
+
   return (
     <div className="p-6 md:p-8 animate-fade-in">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Speaker pipeline</h1>
           <p className="text-sm text-muted-foreground">
-            Track every speaker from first outreach to confirmed &amp; ready.
+            Track every speaker from first outreach to confirmed &amp; ready. Drag cards to move between columns.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Select value={eventFilter} onValueChange={setEventFilter}>
-            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All events</SelectItem>
-              {(events.data ?? []).map((e) => (
-                <SelectItem key={e.id} value={e.id}>{e.code}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={lineFilter} onValueChange={setLineFilter}>
-            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All lines</SelectItem>
-              <SelectItem value="AIAI">AIAI</SelectItem>
-              <SelectItem value="CSC">CSC</SelectItem>
-            </SelectContent>
-          </Select>
           <Button variant="outline" onClick={() => setSyncOpen(true)} className="transition-transform hover:scale-[1.02]">
             <Sparkles className="h-4 w-4 mr-1.5" />
             Sync
@@ -229,7 +340,81 @@ function SpeakerBoard() {
         </div>
       </div>
 
-      {/* Selection action bar — animates in */}
+      {/* Filter/sort bar */}
+      <Card className="p-3 mb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[220px] max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              className="pl-8 h-9"
+              placeholder="Search name or company"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
+          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+            <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Sort by" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="stalest">Sort: Stalest contact</SelectItem>
+              <SelectItem value="name">Sort: Name A–Z</SelectItem>
+              <SelectItem value="event">Sort: Event</SelectItem>
+              <SelectItem value="status">Sort: Status</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={eventFilter} onValueChange={setEventFilter}>
+            <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All events</SelectItem>
+              {(events.data ?? []).map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.code}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={lineFilter} onValueChange={setLineFilter}>
+            <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All lines</SelectItem>
+              <SelectItem value="AIAI">AIAI</SelectItem>
+              <SelectItem value="CSC">CSC</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={channelFilter} onValueChange={setChannelFilter}>
+            <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All channels</SelectItem>
+              <SelectItem value="untagged">Untagged</SelectItem>
+              {OUTREACH_CHANNELS.map((c) => (
+                <SelectItem key={c} value={c}>{labels.outreachChannel[c as OutreachChannel]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={attentionFilter} onValueChange={(v) => setAttentionFilter(v as any)}>
+            <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Attention: all</SelectItem>
+              <SelectItem value="any">Needs attention</SelectItem>
+              <SelectItem value="reply">Reply needed</SelectItem>
+              <SelectItem value="follow_up">Follow up</SelectItem>
+            </SelectContent>
+          </Select>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
+            <Checkbox checked={missingBio} onCheckedChange={(v) => setMissingBio(!!v)} /> Missing bio
+          </label>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
+            <Checkbox checked={missingHeadshot} onCheckedChange={(v) => setMissingHeadshot(!!v)} /> Missing headshot
+          </label>
+          {hasFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8">
+              <X className="h-3.5 w-3.5 mr-1" /> Clear
+            </Button>
+          )}
+          <div className="ml-auto text-xs text-muted-foreground tabular-nums">
+            {sorted.length} speaker{sorted.length === 1 ? "" : "s"}
+          </div>
+        </div>
+      </Card>
+
+      {/* Selection action bar */}
       <div
         className={`overflow-hidden transition-all duration-300 ease-out ${
           selectedIds.length > 0 ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
@@ -240,13 +425,7 @@ function SpeakerBoard() {
             {selectedIds.length} speaker{selectedIds.length === 1 ? "" : "s"} selected
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setSelected({})}
-            >
-              Clear
-            </Button>
+            <Button size="sm" variant="outline" onClick={() => setSelected({})}>Clear</Button>
             <Button
               size="sm"
               variant="outline"
@@ -268,8 +447,22 @@ function SpeakerBoard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
         {COLUMNS.map((col) => (
-          <div key={col.key} className="min-w-0">
-            <div className="flex items-center justify-between px-1 mb-2">
+          <div
+            key={col.key}
+            className={`min-w-0 rounded-lg transition-colors ${
+              dragOver === col.key ? "bg-primary/5 ring-2 ring-primary/40" : ""
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (dragOver !== col.key) setDragOver(col.key);
+            }}
+            onDragLeave={(e) => {
+              if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+              setDragOver(null);
+            }}
+            onDrop={(e) => handleDrop(col.key, e)}
+          >
+            <div className="flex items-center justify-between px-1 mb-2 pt-1">
               <div className="flex items-center gap-2">
                 <span className={`h-2 w-2 rounded-full ${col.dot}`} />
                 <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -280,10 +473,10 @@ function SpeakerBoard() {
                 {grouped[col.key].length}
               </div>
             </div>
-            <div className="space-y-2 min-h-24">
+            <div className="space-y-2 min-h-24 px-1 pb-1">
               {grouped[col.key].length === 0 ? (
                 <div className="rounded-lg border border-dashed border-muted-foreground/25 bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground transition-colors hover:border-muted-foreground/40 hover:bg-muted/30">
-                  No speakers yet
+                  {dragOver === col.key ? "Drop here" : "No speakers yet"}
                 </div>
               ) : (
                 grouped[col.key].map((s: any) => {
@@ -293,7 +486,12 @@ function SpeakerBoard() {
                   return (
                     <Card
                       key={s.id}
-                      className={`group p-3 border-t-2 ${col.accent} cursor-pointer transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30`}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", s.id);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      className={`group p-3 border-t-2 ${col.accent} cursor-grab active:cursor-grabbing transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30`}
                       onClick={() => navigate({ to: "/speakers/$speakerId", params: { speakerId: s.id } })}
                     >
                       <div className="flex items-start gap-2">
@@ -323,9 +521,7 @@ function SpeakerBoard() {
                           </div>
                           <div className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
                             {s.title && <span>{s.title}</span>}
-                            {s.title && s.company && (
-                              <span className="opacity-40">·</span>
-                            )}
+                            {s.title && s.company && <span className="opacity-40">·</span>}
                             {s.company && (
                               <span className="inline-flex items-center gap-0.5">
                                 <Building2 className="h-3 w-3 opacity-60" />
