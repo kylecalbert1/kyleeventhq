@@ -296,11 +296,24 @@ export function BulkEmailDialog({
             </div>
           </div>
 
-          {missingEmail > 0 && (
-            <div className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50/70 px-3 py-2 text-xs text-amber-800">
-              <AlertTriangle className="h-4 w-4" />
-              {missingEmail} selected speaker{missingEmail === 1 ? " has" : "s have"} no
-              email on file and will be skipped.
+          {sendable.length === 0 ? (
+            <div className="flex items-start gap-2 rounded-md border border-rose-300 bg-rose-50/70 px-3 py-2.5 text-sm text-rose-900">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <div className="font-medium">Current filters match 0 recipients.</div>
+                <div className="text-xs opacity-90">Adjust your selection above before sending.</div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-xs text-indigo-900">
+              <span className="font-semibold">{sendable.length}</span>
+              recipient{sendable.length === 1 ? "" : "s"} will receive this email
+              {missingEmail > 0 && (
+                <span className="text-amber-800">
+                  {" "}
+                  · {missingEmail} skipped (no email)
+                </span>
+              )}
             </div>
           )}
 
