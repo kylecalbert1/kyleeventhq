@@ -157,7 +157,7 @@ function EventBannerGroup({
   );
 
   return (
-    <Card className="p-5 md:p-6">
+    <Card className="p-5 md:p-6 bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.05)]">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
         <div>
           <div className="flex items-center gap-2">
@@ -267,7 +267,7 @@ function BannerCard({ row, onPatch }: { row: Row; onPatch: (patch: any) => void 
     confirmed_live: "border-l-emerald-500",
   }[row.banner_status];
   return (
-    <div className={cn("bg-background border border-l-4 rounded-md p-2.5 shadow-sm hover:shadow transition-shadow", accentBorder)}>
+    <div className={cn("bg-white border border-l-4 border-slate-200/70 rounded-xl p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_2px_8px_rgba(15,23,42,0.04)] hover:shadow-[0_2px_4px_rgba(15,23,42,0.06),0_6px_16px_rgba(15,23,42,0.06)] transition-all", accentBorder)}>
       <div className="flex items-start gap-2">
         <div
           className={cn(
