@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Mail, AlertTriangle, CheckCircle2, XCircle, Loader2, Send, ExternalLink } from "lucide-react";
 import {
   Dialog,
@@ -18,12 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { renderTemplate, firstNameOf } from "@/lib/gmail";
 import { sendGmailEmail, checkGmailConnected } from "@/lib/email.functions";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { BulkConfirmSendDialog } from "@/components/BulkConfirmSendDialog";
+import { logEmailSend } from "@/lib/email-sends.functions";
 
 type TemplateKey =
   | "custom"
@@ -81,14 +82,18 @@ export function BulkEmailDialog({
   open,
   onOpenChange,
   speakers,
+  initialTemplate,
+  eventId,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   speakers: Speaker[];
+  initialTemplate?: TemplateKey;
+  eventId?: string | null;
 }) {
-  const [templateKey, setTemplateKey] = useState<TemplateKey>("custom");
-  const [subject, setSubject] = useState(TEMPLATES.custom.subject);
-  const [body, setBody] = useState(TEMPLATES.custom.body);
+  const [templateKey, setTemplateKey] = useState<TemplateKey>(initialTemplate ?? "custom");
+  const [subject, setSubject] = useState(TEMPLATES[initialTemplate ?? "custom"].subject);
+  const [body, setBody] = useState(TEMPLATES[initialTemplate ?? "custom"].body);
   const [confirmOne, setConfirmOne] = useState<
     (ConfirmDraft & { id: string }) | null
   >(null);
@@ -96,6 +101,17 @@ export function BulkEmailDialog({
   const [status, setStatus] = useState<Record<string, SendStatus>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sendingAll, setSendingAll] = useState(false);
+  const logSend = useServerFn(logEmailSend);
+  const qcInvalidate = useQueryClient();
+
+  useEffect(() => {
+    if (open && initialTemplate) {
+      setTemplateKey(initialTemplate);
+      setSubject(TEMPLATES[initialTemplate].subject);
+      setBody(TEMPLATES[initialTemplate].body);
+    }
+  }, [open, initialTemplate]);
+
 
   function applyTemplate(k: TemplateKey) {
     setTemplateKey(k);
@@ -160,18 +176,55 @@ export function BulkEmailDialog({
       subject: r.rSubject,
       body: r.rBody,
       recipientName: r.name,
+      templateType: templateKey,
+      eventId: eventId ?? null,
+      speakerId: r.id,
     });
   }
 
   async function performSendAll() {
     setSendingAll(true);
-    // Sequentially to avoid rate limits
+    const justSent: Array<{ id: string; name: string; email: string }> = [];
     for (const r of sendable) {
       if (status[r.id] === "sent") continue;
       // eslint-disable-next-line no-await-in-loop
       await performSend(r);
+      // Read latest via functional check: we track via local capture instead
+      // since performSend uses setStatus. Re-read from the DOM state isn't
+      // possible here — instead, check if it wasn't marked failed.
+      // We'll simply verify by attempting a lookup after the fact below.
     }
     setSendingAll(false);
+    // After the loop, gather everyone currently marked sent (that had an email)
+    // and log one batch. We use the latest state via a setter callback.
+    setStatus((currentStatus) => {
+      const sentRecipients = sendable
+        .filter((r) => currentStatus[r.id] === "sent")
+        .map((r) => ({ id: r.id, name: r.name, email: r.email! }));
+      if (sentRecipients.length > 0) {
+        logSend({
+          data: {
+            event_id: eventId ?? null,
+            template_type: templateKey,
+            subject,
+            body,
+            recipients: sentRecipients.map((r) => ({
+              speaker_id: r.id,
+              email: r.email,
+              name: r.name,
+            })),
+          },
+        })
+          .then(() => {
+            qcInvalidate.invalidateQueries({ queryKey: ["emailSends"] });
+            qcInvalidate.invalidateQueries({ queryKey: ["speakerActivity"] });
+          })
+          .catch((e) => console.error("Failed to log batch email send:", e));
+      }
+      return currentStatus;
+    });
+    // Silence unused-var to keep the reference above meaningful.
+    void justSent;
   }
 
   const sentCount = Object.values(status).filter((s) => s === "sent").length;
@@ -243,11 +296,24 @@ export function BulkEmailDialog({
             </div>
           </div>
 
-          {missingEmail > 0 && (
-            <div className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50/70 px-3 py-2 text-xs text-amber-800">
-              <AlertTriangle className="h-4 w-4" />
-              {missingEmail} selected speaker{missingEmail === 1 ? " has" : "s have"} no
-              email on file and will be skipped.
+          {sendable.length === 0 ? (
+            <div className="flex items-start gap-2 rounded-md border border-rose-300 bg-rose-50/70 px-3 py-2.5 text-sm text-rose-900">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <div className="font-medium">Current filters match 0 recipients.</div>
+                <div className="text-xs opacity-90">Adjust your selection above before sending.</div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-xs text-indigo-900">
+              <span className="font-semibold">{sendable.length}</span>
+              recipient{sendable.length === 1 ? "" : "s"} will receive this email
+              {missingEmail > 0 && (
+                <span className="text-amber-800">
+                  {" "}
+                  · {missingEmail} skipped (no email)
+                </span>
+              )}
             </div>
           )}
 

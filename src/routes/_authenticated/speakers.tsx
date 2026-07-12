@@ -36,6 +36,7 @@ import { SpeakerDetailDialog } from "@/components/dialogs/SpeakerDetailDialog";
 import { ChannelMixPanel } from "@/components/ChannelMixPanel";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
+import { SendHistoryPanel } from "@/components/SendHistoryPanel";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent, updateSpeaker } from "@/lib/speakers.functions";
 import {
@@ -327,6 +328,9 @@ function SpeakerBoard() {
       recipientName: firstName,
       subject: `${code} — quick check-in`,
       body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+      templateType: "custom",
+      eventId: s.event_id ?? null,
+      speakerId: s.id,
     });
   }
 
@@ -532,6 +536,10 @@ function SpeakerBoard() {
         </div>
       </Card>
 
+      <div className="mb-4">
+        <SendHistoryPanel />
+      </div>
+
       <details className="mb-4 group">
         <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 select-none">
           <span className="transition-transform group-open:rotate-90">▸</span>
@@ -678,6 +686,7 @@ function SpeakerBoard() {
         open={bulkEmailOpen}
         onOpenChange={setBulkEmailOpen}
         speakers={selectedSpeakers}
+        eventId={eventFilter !== "all" ? eventFilter : null}
       />
       <ConfirmSendEmailDialog
         open={!!confirmEmail}

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { ArrowLeft, Pencil, Plus, ExternalLink, Lock } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Pencil, Plus, ExternalLink, Lock, Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,7 @@ import {
   sponsorsQuery,
   websiteTasksQuery,
   milestonesQuery,
+  emailSendsQuery,
 } from "@/lib/queries";
 import { labels, pillClass } from "@/lib/status";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
@@ -20,6 +21,9 @@ import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { SponsorFormDialog } from "@/components/dialogs/SponsorFormDialog";
 import { WebsiteTaskFormDialog } from "@/components/dialogs/WebsiteTaskFormDialog";
 import { MilestoneFormDialog } from "@/components/dialogs/MilestoneFormDialog";
+import { BulkEmailDialog } from "@/components/BulkEmailDialog";
+import { SendHistoryPanel } from "@/components/SendHistoryPanel";
+import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
   loader: ({ params, context }) =>
@@ -29,6 +33,7 @@ export const Route = createFileRoute("/_authenticated/events/$eventId")({
       context.queryClient.ensureQueryData(sponsorsQuery(params.eventId)),
       context.queryClient.ensureQueryData(websiteTasksQuery(params.eventId)),
       context.queryClient.ensureQueryData(milestonesQuery(params.eventId)),
+      context.queryClient.ensureQueryData(emailSendsQuery(params.eventId)),
     ]),
   component: EventDetail,
 });
@@ -83,8 +88,14 @@ function EventDetail() {
           <TabsTrigger value="speakers">Speakers</TabsTrigger>
           <TabsTrigger value="banners">Banners</TabsTrigger>
           <TabsTrigger value="website">Website</TabsTrigger>
+          <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="milestones">Kickoff & Washup</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="email" className="mt-4 space-y-4">
+          <EmailSection eventId={eventId} speakers={speakers.data ?? []} />
+        </TabsContent>
+
 
         <TabsContent value="speakers" className="mt-4">
           <SectionHeader title="Speakers" onAdd={() => setSpeakerEdit({ open: true })} />
@@ -234,6 +245,113 @@ function SectionHeader({ title, onAdd }: { title: string; onAdd?: () => void }) 
     <div className="flex justify-between items-center mb-3">
       <h2 className="text-sm font-semibold">{title}</h2>
       {onAdd && <Button variant="outline" size="sm" onClick={onAdd}><Plus className="h-3.5 w-3.5 mr-1" />Add</Button>}
+    </div>
+  );
+}
+
+const TEMPLATE_ORDER: TemplateType[] = [
+  "confirmation",
+  "banner_reminder",
+  "bio_headshot_reminder",
+  "follow_up",
+  "custom",
+];
+
+function EmailSection({ eventId, speakers }: { eventId: string; speakers: any[] }) {
+  const sends = useQuery(emailSendsQuery(eventId));
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [initialTemplate, setInitialTemplate] = useState<TemplateType>("custom");
+
+  const perTemplate = useMemo(() => {
+    const map = new Map<TemplateType, { count: number; latest: string | null }>();
+    for (const t of TEMPLATE_ORDER) map.set(t, { count: 0, latest: null });
+    for (const s of sends.data ?? []) {
+      const cur = map.get(s.template_type) ?? { count: 0, latest: null };
+      cur.count += s.recipient_count;
+      if (!cur.latest || new Date(s.sent_at) > new Date(cur.latest)) {
+        cur.latest = s.sent_at;
+      }
+      map.set(s.template_type, cur);
+    }
+    return map;
+  }, [sends.data]);
+
+  function fmt(iso: string | null) {
+    if (!iso) return "Not sent yet";
+    return new Date(iso).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  function launchCompose(template: TemplateType) {
+    setInitialTemplate(template);
+    setComposeOpen(true);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-sm font-semibold flex items-center gap-1.5">
+              <Mail className="h-4 w-4 text-indigo-600" /> Email templates
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Kyle triggers these sends manually based on pipeline status — this is tracking, not automation.
+            </p>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {speakers.length} speaker{speakers.length === 1 ? "" : "s"} on this event
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+          {TEMPLATE_ORDER.map((t) => {
+            const info = perTemplate.get(t)!;
+            return (
+              <Card
+                key={t}
+                className="p-4 rounded-2xl border-slate-200/70 shadow-sm flex flex-col gap-3"
+              >
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">
+                    {TEMPLATE_LABELS[t]}
+                  </div>
+                  <div className="mt-2 text-xs text-slate-500">
+                    <span className="font-semibold text-slate-700 tabular-nums">
+                      {info.count}
+                    </span>{" "}
+                    sent all-time
+                  </div>
+                  <div className="text-xs text-slate-500 mt-0.5">
+                    Latest: {fmt(info.latest)}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  className="rounded-full bg-indigo-600 hover:bg-indigo-700 text-white h-8 mt-auto"
+                  onClick={() => launchCompose(t)}
+                  disabled={speakers.length === 0}
+                >
+                  <Send className="h-3.5 w-3.5 mr-1.5" />
+                  Send now
+                </Button>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      <SendHistoryPanel eventId={eventId} defaultOpen title="Send history (this event)" />
+
+      <BulkEmailDialog
+        open={composeOpen}
+        onOpenChange={setComposeOpen}
+        speakers={speakers}
+        initialTemplate={initialTemplate}
+        eventId={eventId}
+      />
     </div>
   );
 }
