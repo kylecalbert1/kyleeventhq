@@ -466,7 +466,7 @@ function SpeakerBoard() {
             </Button>
             <Button size="sm" onClick={() => setBulkEmailOpen(true)}>
               <Mail className="h-4 w-4 mr-1.5" />
-              Email selected
+              Compose email
             </Button>
           </div>
         </div>
