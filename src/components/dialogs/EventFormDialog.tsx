@@ -108,8 +108,9 @@ export function EventFormDialog({
 
   const save = useMutation({
     mutationFn: async () => {
+      const { asana_link, ...rest } = form;
       const payload = {
-        ...form,
+        ...rest,
         event_date: form.event_date || null,
         venue: form.venue || null,
         kickoff_date: form.kickoff_date || null,
@@ -119,6 +120,7 @@ export function EventFormDialog({
         proof1_due: form.proof1_due || null,
         proof2_due: form.proof2_due || null,
         final_signoff_due: form.final_signoff_due || null,
+        asana_project_gid: parseAsanaGid(asana_link),
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
