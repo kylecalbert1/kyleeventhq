@@ -88,8 +88,14 @@ function EventDetail() {
           <TabsTrigger value="speakers">Speakers</TabsTrigger>
           <TabsTrigger value="banners">Banners</TabsTrigger>
           <TabsTrigger value="website">Website</TabsTrigger>
+          <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="milestones">Kickoff & Washup</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="email" className="mt-4 space-y-4">
+          <EmailSection eventId={eventId} speakers={speakers.data ?? []} />
+        </TabsContent>
+
 
         <TabsContent value="speakers" className="mt-4">
           <SectionHeader title="Speakers" onAdd={() => setSpeakerEdit({ open: true })} />
