@@ -355,4 +355,3 @@ function EmailSection({ eventId, speakers }: { eventId: string; speakers: any[] 
     </div>
   );
 }
-}
