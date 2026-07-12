@@ -81,3 +81,23 @@ export const bulkMarkBannerSent = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, count: data.ids.length };
   });
+
+export const listSpeakerActivity = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ speaker_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("speaker_activity_log")
+      .select("*")
+      .eq("speaker_id", data.speaker_id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as Array<{
+      id: string;
+      speaker_id: string;
+      event_type: string;
+      note: string | null;
+      created_at: string;
+    }>;
+  });
