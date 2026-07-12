@@ -373,6 +373,12 @@ function SpeakerProfile() {
           speaker={speaker}
         />
       )}
+      <ConfirmSendEmailDialog
+        open={!!confirmEmail}
+        onOpenChange={(o) => !o && setConfirmEmail(null)}
+        draft={confirmEmail}
+        onConfirm={performSendConfirmed}
+      />
     </div>
   );
 }
