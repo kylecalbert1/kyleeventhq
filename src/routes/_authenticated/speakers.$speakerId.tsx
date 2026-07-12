@@ -20,7 +20,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { labels, pillClass, type OutreachChannel } from "@/lib/status";
-import { openGmailCompose, firstNameOf } from "@/lib/gmail";
+import { gmailComposeUrl, openGmailCompose, firstNameOf } from "@/lib/gmail";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/speakers/$speakerId")({
