@@ -29,7 +29,7 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent } from "@/lib/speakers.functions";
 import { labels, pillClass, type OutreachChannel } from "@/lib/status";
-import { openGmailCompose, firstNameOf } from "@/lib/gmail";
+import { gmailComposeUrl, openGmailCompose, firstNameOf } from "@/lib/gmail";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/speakers")({
@@ -135,6 +135,17 @@ function SpeakerBoard() {
     const firstName = firstNameOf(s.name);
     const code = ev?.code ?? "our upcoming event";
     openGmailCompose({
+      to: s.email,
+      subject: `${code} — quick check-in`,
+      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+    });
+  }
+
+  function emailAnchor(s: any, ev: any) {
+    if (!s.email) return null;
+    const firstName = firstNameOf(s.name);
+    const code = ev?.code ?? "our upcoming event";
+    return gmailComposeUrl({
       to: s.email,
       subject: `${code} — quick check-in`,
       body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
@@ -304,10 +315,24 @@ function SpeakerBoard() {
                               size="sm"
                               variant="ghost"
                               className="h-7 px-2 text-xs transition-colors"
-                              onClick={() => emailOne(s, ev)}
+                              asChild
                             >
-                              <Mail className="h-3.5 w-3.5 mr-1" />
-                              Email
+                              <a
+                                href={emailAnchor(s, ev) ?? "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  if (!s.email) {
+                                    e.preventDefault();
+                                    toast.error("No email on file");
+                                    return;
+                                  }
+                                  emailOne(s, ev);
+                                }}
+                              >
+                                <Mail className="h-3.5 w-3.5 mr-1" />
+                                Email
+                              </a>
                             </Button>
                             <Button
                               size="sm"

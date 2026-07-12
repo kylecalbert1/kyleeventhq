@@ -1,4 +1,4 @@
-// Open Gmail web compose in a new tab instead of the native mail client.
+// Open Gmail web compose in a genuine new browser tab instead of the native mail client.
 export function gmailComposeUrl(opts: {
   to?: string | null;
   subject?: string;
@@ -18,7 +18,11 @@ export function gmailComposeUrl(opts: {
 }
 
 export function openGmailCompose(opts: Parameters<typeof gmailComposeUrl>[0]) {
-  window.open(gmailComposeUrl(opts), "_blank", "noopener,noreferrer");
+  const a = document.createElement("a");
+  a.href = gmailComposeUrl(opts);
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.click();
 }
 
 export function renderTemplate(template: string, vars: Record<string, string>) {
