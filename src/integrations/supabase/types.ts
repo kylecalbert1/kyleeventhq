@@ -212,6 +212,8 @@ export type Database = {
           event_id: string
           headshot_received: boolean
           id: string
+          last_message_at: string | null
+          last_message_direction: string | null
           linkedin_post_confirmed: boolean
           linkedin_url: string | null
           name: string
@@ -235,6 +237,8 @@ export type Database = {
           event_id: string
           headshot_received?: boolean
           id?: string
+          last_message_at?: string | null
+          last_message_direction?: string | null
           linkedin_post_confirmed?: boolean
           linkedin_url?: string | null
           name: string
@@ -258,6 +262,8 @@ export type Database = {
           event_id?: string
           headshot_received?: boolean
           id?: string
+          last_message_at?: string | null
+          last_message_direction?: string | null
           linkedin_post_confirmed?: boolean
           linkedin_url?: string | null
           name?: string
