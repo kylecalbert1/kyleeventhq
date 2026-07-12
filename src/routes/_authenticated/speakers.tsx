@@ -654,6 +654,21 @@ function SpeakerBoard() {
           speaker={editing.speaker}
         />
       )}
+      <SpeakerDetailDialog
+        open={!!detailSpeaker}
+        onOpenChange={(o) => !o && setDetailSpeaker(null)}
+        speaker={detailSpeaker}
+        event={detailSpeaker ? eventById[detailSpeaker.event_id] : null}
+        onEdit={() => {
+          const s = detailSpeaker;
+          setDetailSpeaker(null);
+          if (s) setEditing({ open: true, speaker: s });
+        }}
+        onEmail={() => {
+          const s = detailSpeaker;
+          if (s) emailOne(s, eventById[s.event_id]);
+        }}
+      />
       <BulkEmailDialog
         open={bulkEmailOpen}
         onOpenChange={setBulkEmailOpen}
