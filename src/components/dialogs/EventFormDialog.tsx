@@ -11,6 +11,22 @@ import { createEvent, updateEvent, deleteEvent } from "@/lib/events.functions";
 import { BUSINESS_LINES, EVENT_FORMATS, WEBSITE_STAGES, SELF_STATUSES, labels } from "@/lib/status";
 import { qk } from "@/lib/queries";
 
+function parseAsanaGid(input: string): string | null {
+  const v = input.trim();
+  if (!v) return null;
+  const m = v.match(/\/project\/(\d+)/);
+  if (m) return m[1];
+  if (/^\d+$/.test(v)) return v;
+  return v;
+}
+
+function looksLikeAsanaUrl(input: string): boolean {
+  const v = input.trim();
+  if (!v) return true;
+  if (/^\d+$/.test(v)) return true;
+  return /\/project\/\d+/.test(v);
+}
+
 type EventRow = {
   id: string;
   code: string;
