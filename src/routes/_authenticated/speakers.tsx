@@ -26,6 +26,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { ChannelMixPanel } from "@/components/ChannelMixPanel";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
+import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent } from "@/lib/speakers.functions";
 import { labels, pillClass, type OutreachChannel } from "@/lib/status";
@@ -85,6 +86,7 @@ function SpeakerBoard() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<null | { open: boolean; speaker?: any }>(null);
   const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
 
   const eventById = useMemo(
     () => Object.fromEntries((events.data ?? []).map((e) => [e.id, e])),
@@ -133,20 +135,26 @@ function SpeakerBoard() {
     } catch { toast.error("Couldn't copy link"); }
   }
 
-  async function emailOne(s: any, ev: any) {
+  function emailOne(s: any, ev: any) {
     if (!s.email) { toast.error("No email on file"); return; }
     const firstName = firstNameOf(s.name);
     const code = ev?.code ?? "our upcoming event";
-    const t = toast.loading(`Sending email to ${firstName}…`);
+    setConfirmEmail({
+      to: s.email,
+      recipientName: firstName,
+      subject: `${code} — quick check-in`,
+      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+    });
+  }
+
+  async function performSendConfirmed(edited: { subject: string; body: string }) {
+    if (!confirmEmail) return;
+    const t = toast.loading(`Sending email to ${confirmEmail.recipientName ?? confirmEmail.to}…`);
     try {
       await sendEmail({
-        data: {
-          to: s.email,
-          subject: `${code} — quick check-in`,
-          body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
-        },
+        data: { to: confirmEmail.to, subject: edited.subject, body: edited.body },
       });
-      toast.success(`Sent to ${firstName}`, { id: t });
+      toast.success(`Sent to ${confirmEmail.recipientName ?? confirmEmail.to}`, { id: t });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to send", { id: t });
     }
@@ -362,6 +370,12 @@ function SpeakerBoard() {
         open={bulkEmailOpen}
         onOpenChange={setBulkEmailOpen}
         speakers={selectedSpeakers}
+      />
+      <ConfirmSendEmailDialog
+        open={!!confirmEmail}
+        onOpenChange={(o) => !o && setConfirmEmail(null)}
+        draft={confirmEmail}
+        onConfirm={performSendConfirmed}
       />
     </div>
   );

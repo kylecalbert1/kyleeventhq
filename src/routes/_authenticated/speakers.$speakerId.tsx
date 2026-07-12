@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/StatusPill";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
+import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { labels, pillClass, type OutreachChannel } from "@/lib/status";
 import { firstNameOf } from "@/lib/gmail";
@@ -59,6 +60,7 @@ function SpeakerProfile() {
   const events = useQuery(eventsQuery);
   const [editing, setEditing] = useState(false);
   const [sending, setSending] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
   const sendEmail = useServerFn(sendGmailEmail);
 
   const speaker = useMemo(
@@ -109,23 +111,30 @@ function SpeakerProfile() {
     .join("")
     .toUpperCase();
 
-  async function emailSpeaker() {
+  function emailSpeaker() {
     if (!speaker || !speaker.email) {
       toast.error("No email on file");
       return;
     }
     const code = event?.code ?? "our event";
-    const t = toast.loading(`Sending email to ${firstName}…`);
+    setConfirmEmail({
+      to: speaker.email,
+      recipientName: firstName,
+      subject: `${code} — quick check-in`,
+      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+    });
+  }
+
+  async function performSendConfirmed(edited: { subject: string; body: string }) {
+    if (!confirmEmail) return;
+    const label = confirmEmail.recipientName ?? confirmEmail.to;
+    const t = toast.loading(`Sending email to ${label}…`);
     setSending(true);
     try {
       await sendEmail({
-        data: {
-          to: speaker.email,
-          subject: `${code} — quick check-in`,
-          body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
-        },
+        data: { to: confirmEmail.to, subject: edited.subject, body: edited.body },
       });
-      toast.success(`Sent to ${firstName}`, { id: t });
+      toast.success(`Sent to ${label}`, { id: t });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to send", { id: t });
     } finally {
@@ -364,6 +373,12 @@ function SpeakerProfile() {
           speaker={speaker}
         />
       )}
+      <ConfirmSendEmailDialog
+        open={!!confirmEmail}
+        onOpenChange={(o) => !o && setConfirmEmail(null)}
+        draft={confirmEmail}
+        onConfirm={performSendConfirmed}
+      />
     </div>
   );
 }

@@ -15,6 +15,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { renderTemplate, firstNameOf } from "@/lib/gmail";
 import { sendGmailEmail, checkGmailConnected } from "@/lib/email.functions";
+import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
+import { BulkConfirmSendDialog } from "@/components/BulkConfirmSendDialog";
 
 type Speaker = {
   id: string;
@@ -40,6 +42,10 @@ export function BulkEmailDialog({
   const [body, setBody] = useState(
     "Hey {{firstName}},\n\nHope you're doing well! Could you send over your logo, headshot and short bio when you get a moment? It helps us finalise everything for the event.\n\nThanks so much!",
   );
+  const [confirmOne, setConfirmOne] = useState<
+    (ConfirmDraft & { id: string }) | null
+  >(null);
+  const [confirmAllOpen, setConfirmAllOpen] = useState(false);
   const [status, setStatus] = useState<Record<string, SendStatus>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sendingAll, setSendingAll] = useState(false);
@@ -68,14 +74,23 @@ export function BulkEmailDialog({
   const missingEmail = rows.filter((r) => !r.email).length;
   const sendable = rows.filter((r) => r.email);
 
-  async function sendOne(r: (typeof rows)[number]) {
+  async function performSend(
+    r: (typeof rows)[number],
+    override?: { subject: string; body: string },
+  ) {
     if (!r.email) {
       setStatus((s) => ({ ...s, [r.id]: "skipped" }));
       return;
     }
     setStatus((s) => ({ ...s, [r.id]: "sending" }));
     try {
-      await send({ data: { to: r.email, subject: r.rSubject, body: r.rBody } });
+      await send({
+        data: {
+          to: r.email,
+          subject: override?.subject ?? r.rSubject,
+          body: override?.body ?? r.rBody,
+        },
+      });
       setStatus((s) => ({ ...s, [r.id]: "sent" }));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed";
@@ -84,13 +99,24 @@ export function BulkEmailDialog({
     }
   }
 
-  async function sendAll() {
+  function requestSendOne(r: (typeof rows)[number]) {
+    if (!r.email) return;
+    setConfirmOne({
+      id: r.id,
+      to: r.email,
+      subject: r.rSubject,
+      body: r.rBody,
+      recipientName: r.name,
+    });
+  }
+
+  async function performSendAll() {
     setSendingAll(true);
     // Sequentially to avoid rate limits
     for (const r of sendable) {
       if (status[r.id] === "sent") continue;
       // eslint-disable-next-line no-await-in-loop
-      await sendOne(r);
+      await performSend(r);
     }
     setSendingAll(false);
   }
@@ -222,7 +248,7 @@ export function BulkEmailDialog({
                           size="sm"
                           variant={st === "sent" ? "outline" : "default"}
                           disabled={!r.email || !connected || st === "sending"}
-                          onClick={() => sendOne(r)}
+                          onClick={() => requestSendOne(r)}
                         >
                           {st === "sent" ? "Resend" : "Send"}
                         </Button>
@@ -243,7 +269,7 @@ export function BulkEmailDialog({
             Close
           </Button>
           <Button
-            onClick={sendAll}
+            onClick={() => setConfirmAllOpen(true)}
             disabled={!connected || sendingAll || sendable.length === 0}
           >
             {sendingAll ? (
@@ -254,12 +280,40 @@ export function BulkEmailDialog({
             ) : (
               <>
                 <Send className="h-4 w-4 mr-1.5" />
-                Send all ({sendable.length})
+                Review &amp; send all ({sendable.length})
               </>
             )}
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <ConfirmSendEmailDialog
+        open={!!confirmOne}
+        onOpenChange={(o) => !o && setConfirmOne(null)}
+        draft={confirmOne}
+        onConfirm={async ({ subject: subj, body: bd }) => {
+          if (!confirmOne) return;
+          const row = rows.find((x) => x.id === confirmOne.id);
+          if (!row) return;
+          await performSend(row, { subject: subj, body: bd });
+          setConfirmOne(null);
+        }}
+      />
+
+      <BulkConfirmSendDialog
+        open={confirmAllOpen}
+        onOpenChange={setConfirmAllOpen}
+        rows={sendable
+          .filter((r) => status[r.id] !== "sent")
+          .map((r) => ({
+            id: r.id,
+            name: r.name,
+            to: r.email!,
+            subject: r.rSubject,
+            body: r.rBody,
+          }))}
+        onConfirm={performSendAll}
+      />
     </Dialog>
   );
 }
