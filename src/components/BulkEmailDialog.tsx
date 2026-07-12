@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Mail, AlertTriangle, CheckCircle2, XCircle, Loader2, Send, ExternalLink } from "lucide-react";
 import {
   Dialog,
