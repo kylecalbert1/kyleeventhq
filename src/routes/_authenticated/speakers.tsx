@@ -315,10 +315,24 @@ function SpeakerBoard() {
                               size="sm"
                               variant="ghost"
                               className="h-7 px-2 text-xs transition-colors"
-                              onClick={() => emailOne(s, ev)}
+                              asChild
                             >
-                              <Mail className="h-3.5 w-3.5 mr-1" />
-                              Email
+                              <a
+                                href={emailAnchor(s, ev) ?? "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  if (!s.email) {
+                                    e.preventDefault();
+                                    toast.error("No email on file");
+                                    return;
+                                  }
+                                  emailOne(s, ev);
+                                }}
+                              >
+                                <Mail className="h-3.5 w-3.5 mr-1" />
+                                Email
+                              </a>
                             </Button>
                             <Button
                               size="sm"
