@@ -75,6 +75,37 @@ const stagePill: Record<ColKey, { label: string; cls: string }> = {
 };
 
 const eventChipCls = "border border-slate-300 text-slate-700 bg-white";
+
+type OutreachAlert =
+  | { type: "reply"; label: "Reply needed"; cls: string; icon: typeof Reply }
+  | { type: "follow_up"; label: "Follow up"; cls: string; icon: typeof Clock }
+  | { type: "no_contact"; label: "No contact logged"; cls: string; icon: null }
+  | null;
+
+function outreachAlert(s: any): OutreachAlert {
+  const status = s.status as string;
+  if (status !== "contacted" && status !== "responded") return null;
+  const lastAt: string | null = s.last_message_at ?? null;
+  const direction: string | null = s.last_message_direction ?? null;
+  if (!lastAt) {
+    return { type: "no_contact", label: "No contact logged", cls: "bg-slate-100 text-slate-600 ring-slate-200", icon: null };
+  }
+  const days = daysBetween(new Date(lastAt), new Date());
+  if (days === null) return null;
+  if (direction === "inbound" && days > 2) {
+    return { type: "reply", label: "Reply needed", cls: "bg-rose-100 text-rose-700 ring-rose-200", icon: Reply };
+  }
+  if (direction === "outbound" && days > 7) {
+    return { type: "follow_up", label: "Follow up", cls: "bg-amber-100 text-amber-800 ring-amber-200", icon: Clock };
+  }
+  return null;
+}
+
+function daysBetween(from: Date, to: Date | null | undefined): number | null {
+  if (!to) return null;
+  const ms = to.getTime() - from.getTime();
+  return Math.ceil(ms / (1000 * 60 * 60 * 24));
+}
 const okChipCls = "border border-emerald-300 text-emerald-700 bg-emerald-50/70";
 const missingChipCls = "border border-orange-400 text-orange-700 bg-orange-50/70";
 
