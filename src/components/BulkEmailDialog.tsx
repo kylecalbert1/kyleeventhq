@@ -74,14 +74,23 @@ export function BulkEmailDialog({
   const missingEmail = rows.filter((r) => !r.email).length;
   const sendable = rows.filter((r) => r.email);
 
-  async function sendOne(r: (typeof rows)[number]) {
+  async function performSend(
+    r: (typeof rows)[number],
+    override?: { subject: string; body: string },
+  ) {
     if (!r.email) {
       setStatus((s) => ({ ...s, [r.id]: "skipped" }));
       return;
     }
     setStatus((s) => ({ ...s, [r.id]: "sending" }));
     try {
-      await send({ data: { to: r.email, subject: r.rSubject, body: r.rBody } });
+      await send({
+        data: {
+          to: r.email,
+          subject: override?.subject ?? r.rSubject,
+          body: override?.body ?? r.rBody,
+        },
+      });
       setStatus((s) => ({ ...s, [r.id]: "sent" }));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed";
@@ -90,13 +99,24 @@ export function BulkEmailDialog({
     }
   }
 
-  async function sendAll() {
+  function requestSendOne(r: (typeof rows)[number]) {
+    if (!r.email) return;
+    setConfirmOne({
+      id: r.id,
+      to: r.email,
+      subject: r.rSubject,
+      body: r.rBody,
+      recipientName: r.name,
+    });
+  }
+
+  async function performSendAll() {
     setSendingAll(true);
     // Sequentially to avoid rate limits
     for (const r of sendable) {
       if (status[r.id] === "sent") continue;
       // eslint-disable-next-line no-await-in-loop
-      await sendOne(r);
+      await performSend(r);
     }
     setSendingAll(false);
   }
