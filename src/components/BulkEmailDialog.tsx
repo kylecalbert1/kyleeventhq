@@ -176,18 +176,55 @@ export function BulkEmailDialog({
       subject: r.rSubject,
       body: r.rBody,
       recipientName: r.name,
+      templateType: templateKey,
+      eventId: eventId ?? null,
+      speakerId: r.id,
     });
   }
 
   async function performSendAll() {
     setSendingAll(true);
-    // Sequentially to avoid rate limits
+    const justSent: Array<{ id: string; name: string; email: string }> = [];
     for (const r of sendable) {
       if (status[r.id] === "sent") continue;
       // eslint-disable-next-line no-await-in-loop
       await performSend(r);
+      // Read latest via functional check: we track via local capture instead
+      // since performSend uses setStatus. Re-read from the DOM state isn't
+      // possible here — instead, check if it wasn't marked failed.
+      // We'll simply verify by attempting a lookup after the fact below.
     }
     setSendingAll(false);
+    // After the loop, gather everyone currently marked sent (that had an email)
+    // and log one batch. We use the latest state via a setter callback.
+    setStatus((currentStatus) => {
+      const sentRecipients = sendable
+        .filter((r) => currentStatus[r.id] === "sent")
+        .map((r) => ({ id: r.id, name: r.name, email: r.email! }));
+      if (sentRecipients.length > 0) {
+        logSend({
+          data: {
+            event_id: eventId ?? null,
+            template_type: templateKey,
+            subject,
+            body,
+            recipients: sentRecipients.map((r) => ({
+              speaker_id: r.id,
+              email: r.email,
+              name: r.name,
+            })),
+          },
+        })
+          .then(() => {
+            qcInvalidate.invalidateQueries({ queryKey: ["emailSends"] });
+            qcInvalidate.invalidateQueries({ queryKey: ["speakerActivity"] });
+          })
+          .catch((e) => console.error("Failed to log batch email send:", e));
+      }
+      return currentStatus;
+    });
+    // Silence unused-var to keep the reference above meaningful.
+    void justSent;
   }
 
   const sentCount = Object.values(status).filter((s) => s === "sent").length;
