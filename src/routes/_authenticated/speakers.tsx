@@ -755,26 +755,42 @@ function SpeakerListCard({
 
         {/* main body */}
         <div className="flex-1 min-w-0">
-          {/* 1. Name + status pill inline */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <button
-              type="button"
-              onClick={onOpenDetail}
-              className="text-left text-lg font-semibold tracking-tight text-slate-900 hover:text-indigo-700 transition-colors truncate"
+          {/* Top row: name + status pill (left)   Copy Link (right) */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
+              <button
+                type="button"
+                onClick={onOpenDetail}
+                className="text-left text-lg font-semibold tracking-tight text-slate-900 hover:text-indigo-700 transition-colors truncate"
+              >
+                {s.name}
+              </button>
+              <StatusPill className={cn(stage.cls, "text-[11px] px-2.5 py-1 font-semibold")}>
+                {stage.label}
+              </StatusPill>
+              {ev?.code && (
+                <StatusPill className={cn(eventChipCls, "text-[11px]")}>
+                  {ev.code}
+                </StatusPill>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCopyLink}
+              className="shrink-0 rounded-full border-sky-200 bg-sky-50/60 hover:bg-sky-100 text-sky-700 h-8 px-3 text-xs font-medium"
             >
-              {s.name}
-            </button>
-            <StatusPill className={cn(stage.cls, "text-[11px] px-2.5 py-1 font-semibold")}>
-              {stage.label}
-            </StatusPill>
+              <Link2 className="h-3.5 w-3.5 mr-1.5" />
+              Copy Link
+            </Button>
           </div>
 
-          {/* 2. Title at Company */}
+          {/* Title at Company */}
           {titleAtCompany && (
             <div className="mt-1 text-sm text-slate-500 truncate">{titleAtCompany}</div>
           )}
 
-          {/* 3. Email + LinkedIn + event pill + channel pill */}
+          {/* Email + LinkedIn chip + channel */}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {s.email && (
               <span className="text-sm text-slate-600 truncate">{s.email}</span>
@@ -784,17 +800,12 @@ function SpeakerListCard({
                 href={s.linkedin_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                title="Open LinkedIn profile"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center justify-center rounded-full h-6 w-6 bg-sky-50 hover:bg-sky-100 text-sky-700 ring-1 ring-sky-200 transition-colors"
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-sky-50 hover:bg-sky-100 text-sky-700 ring-1 ring-sky-200 text-[11px] font-medium transition-colors"
               >
-                <Linkedin className="h-3.5 w-3.5" />
+                <Linkedin className="h-3 w-3" />
+                LinkedIn
               </a>
-            )}
-            {ev?.code && (
-              <StatusPill className={cn(eventChipCls, "text-[11px]")}>
-                {ev.code}
-              </StatusPill>
             )}
             {s.outreach_channel && (
               <StatusPill
@@ -808,7 +819,7 @@ function SpeakerListCard({
             )}
           </div>
 
-          {/* 4. Warning pills (only if applicable) */}
+          {/* Warning pills */}
           {(!s.bio_received || !s.headshot_received) && (
             <div className="mt-2 flex flex-wrap gap-2">
               {!s.bio_received && (
@@ -824,21 +835,20 @@ function SpeakerListCard({
             </div>
           )}
 
-          {/* 5. Metadata line */}
+          {/* Metadata line: added left, last outreach right */}
           {(addedShort || lastShort) && (
-            <div className="mt-2.5 text-xs text-slate-400">
-              {addedShort && <>Added {addedShort}</>}
-              {addedShort && lastShort && <span className="mx-1.5">·</span>}
+            <div className="mt-2.5 flex items-center justify-between text-xs text-slate-400">
+              <span>{addedShort ? <>Added {addedShort}</> : null}</span>
               {lastShort && (
-                <>
-                  Last contact {lastShort}
+                <span>
+                  Last outreach: {lastShort}
                   {dir ? ` (${dir})` : ""}
-                </>
+                </span>
               )}
             </div>
           )}
 
-          {/* 6. Outreach SLA pill */}
+          {/* Outreach SLA pill */}
           {alert && (alert.type === "reply" || alert.type === "follow_up") && (
             <div className="mt-2">
               <StatusPill className={cn(alert.cls, "text-[11px] font-semibold")}>
@@ -848,8 +858,25 @@ function SpeakerListCard({
             </div>
           )}
 
-          {/* 7. Text-link actions */}
-          <div className="mt-3 flex items-center gap-4 text-xs">
+          {/* Bottom action row */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+            <button
+              type="button"
+              onClick={onEmail}
+              disabled={!s.email}
+              className="inline-flex items-center gap-1 text-indigo-700 hover:text-indigo-900 font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              Send email
+            </button>
+            <button
+              type="button"
+              onClick={onOpenDetail}
+              className="inline-flex items-center gap-1 text-slate-600 hover:text-indigo-700 font-medium transition-colors"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              View details
+            </button>
             <button
               type="button"
               onClick={onEdit}
@@ -862,40 +889,9 @@ function SpeakerListCard({
               onClick={onEdit}
               className="text-slate-500 hover:text-indigo-700 font-medium transition-colors"
             >
-              Edit details
+              ✏️ Edit details
             </button>
           </div>
-        </div>
-
-        {/* Right-side vertical action stack */}
-        <div className="flex flex-col gap-2 shrink-0 w-[140px]">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onCopyLink}
-            className="rounded-full border-slate-200 bg-white hover:bg-slate-50 h-9 font-medium"
-          >
-            <Link2 className="h-3.5 w-3.5 mr-1.5" />
-            Copy Link
-          </Button>
-          <Button
-            size="sm"
-            onClick={onEmail}
-            disabled={!s.email}
-            className="rounded-full bg-indigo-600 hover:bg-indigo-700 text-white h-9 font-medium shadow-sm"
-          >
-            <Mail className="h-3.5 w-3.5 mr-1.5" />
-            Send Email
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onOpenDetail}
-            className="rounded-full h-9 font-medium text-indigo-700 hover:text-indigo-800 hover:bg-indigo-50"
-          >
-            <Eye className="h-3.5 w-3.5 mr-1.5" />
-            View details
-          </Button>
         </div>
       </div>
     </div>
