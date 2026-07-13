@@ -36,7 +36,7 @@ function WebsiteBoard() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
-  const grouped: Record<string, any[]> = { draft: [], proof_1: [], proof_2: [], signed_off: [], live: [] };
+  const grouped: Record<string, any[]> = { draft: [], proof_1: [], proof_2: [], amendments: [], signed_off: [], live: [] };
   (tasks.data ?? []).forEach((t: any) => grouped[t.status]?.push(t));
 
   function requestMove(task: any, to: string) {
