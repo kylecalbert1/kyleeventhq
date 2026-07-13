@@ -72,16 +72,20 @@ function minutesBetween(a: string, b: string): number {
   return bh * 60 + bm - (ah * 60 + am);
 }
 
-function recomputeTimes(items: Item[], virtualBuffer = 0): Item[] {
-  let cur = items[0]?.start_time || "09:00";
+function recomputeTimes(items: Item[], virtualBuffer = 0, forceStart?: string): Item[] {
+  let cur = forceStart ?? items[0]?.start_time ?? "09:00";
   return items.map((it, i) => {
-    const start = i === 0 ? cur : cur;
+    const start = cur;
     const next = addMinutes(start, it.duration_min + (i < items.length - 1 ? virtualBuffer : 0));
     const result = { ...it, start_time: start, position: i + 1 };
     cur = next;
     return result;
   });
 }
+
+const VIRTUAL_DAY_START = "09:00";
+const VIRTUAL_DAY_END = "17:00";
+const VIRTUAL_DAY_MINUTES = 8 * 60; // 480
 
 function skeletonFor(
   template: TemplateKey,
@@ -129,8 +133,21 @@ function skeletonFor(
       mk("chairperson_remarks", "Chairperson closing"),
     ];
   }
-  // virtual
-  return [mk("keynote"), mk("panel"), mk("keynote"), mk("panel")];
+  // virtual — fixed 9am-5pm EDT (480 min total incl. buffers)
+  return [
+    mk("chairperson_remarks", "Welcome & housekeeping", 15),
+    mk("keynote", "Opening keynote", 40),
+    mk("panel", "Morning panel", 45),
+    mk("break", "Break", 10),
+    mk("sponsored_keynote", "Sponsor keynote", 30),
+    mk("keynote", "Midday keynote", 40),
+    mk("lunch", "Lunch break", 45),
+    mk("panel", "Afternoon panel", 45),
+    mk("keynote", "Afternoon keynote", 40),
+    mk("break", "Break", 10),
+    mk("panel", "Closing panel", 45),
+    mk("chairperson_remarks", "Closing remarks", 15),
+  ];
 }
 
 export function AgendaBuilder({
@@ -183,11 +200,23 @@ export function AgendaBuilder({
     return m;
   }, [templatesQ.data, template]);
 
+  const isVirtual = template === "virtual";
+
   const rows = useMemo(() => {
     if (!items) return [];
-    if (template === "virtual") return recomputeTimes(items, virtualBuffer);
+    if (isVirtual) return recomputeTimes(items, virtualBuffer, VIRTUAL_DAY_START);
     return recomputeTimes(items, 0);
-  }, [items, template, virtualBuffer]);
+  }, [items, isVirtual, virtualBuffer]);
+
+  const virtualOverrun = useMemo(() => {
+    if (!isVirtual || rows.length === 0) return 0;
+    const last = rows[rows.length - 1];
+    const endMin =
+      Number(last.start_time!.split(":")[0]) * 60 +
+      Number(last.start_time!.split(":")[1]) +
+      last.duration_min;
+    return endMin - (9 * 60 + VIRTUAL_DAY_MINUTES);
+  }, [isVirtual, rows]);
 
   const sponsorBackToBack = useMemo(() => {
     const flags = new Set<number>();
@@ -300,7 +329,7 @@ export function AgendaBuilder({
     URL.revokeObjectURL(url);
   }
 
-  const startTime = items?.[0]?.start_time ?? "09:00";
+  const startTime = isVirtual ? VIRTUAL_DAY_START : (items?.[0]?.start_time ?? "09:00");
 
   return (
     <div className="space-y-4">
@@ -324,11 +353,12 @@ export function AgendaBuilder({
         </div>
         <div className="space-y-1">
           <div className="text-[11px] font-medium text-slate-600 uppercase tracking-wide">
-            Day start
+            Day start {isVirtual && <span className="text-slate-400">(fixed)</span>}
           </div>
           <Input
             type="time"
             value={startTime}
+            disabled={isVirtual}
             onChange={(e) =>
               setItems((prev) =>
                 prev && prev.length > 0
@@ -339,7 +369,7 @@ export function AgendaBuilder({
             className="w-32"
           />
         </div>
-        {template === "virtual" && (
+        {isVirtual && (
           <div className="space-y-1">
             <div className="text-[11px] font-medium text-slate-600 uppercase tracking-wide">
               Buffer (min)
@@ -379,6 +409,19 @@ export function AgendaBuilder({
         </div>
       </Card>
 
+      {isVirtual && (
+        <div className="flex items-center justify-between gap-2 text-xs px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800">
+          <span className="font-medium">
+            Virtual event day: fixed {VIRTUAL_DAY_START}–{VIRTUAL_DAY_END} · All times EDT
+          </span>
+          {virtualOverrun > 0 && (
+            <span className="inline-flex items-center gap-1 font-semibold text-rose-700">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Sessions overrun the day by {virtualOverrun} min — trim to fit inside {VIRTUAL_DAY_END}.
+            </span>
+          )}
+        </div>
+      )}
 
       {sponsorBackToBack.size > 0 && (
         <div className="flex items-center gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2">

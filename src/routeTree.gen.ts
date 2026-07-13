@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedWebsiteRouteImport } from './routes/_authenticated/website'
 import { Route as AuthenticatedSpeakersRouteImport } from './routes/_authenticated/speakers'
+import { Route as AuthenticatedProofingRouteImport } from './routes/_authenticated/proofing'
 import { Route as AuthenticatedOutreachRouteImport } from './routes/_authenticated/outreach'
 import { Route as AuthenticatedMilestonesRouteImport } from './routes/_authenticated/milestones'
 import { Route as AuthenticatedBannersRouteImport } from './routes/_authenticated/banners'
@@ -42,6 +43,11 @@ const AuthenticatedWebsiteRoute = AuthenticatedWebsiteRouteImport.update({
 const AuthenticatedSpeakersRoute = AuthenticatedSpeakersRouteImport.update({
   id: '/speakers',
   path: '/speakers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProofingRoute = AuthenticatedProofingRouteImport.update({
+  id: '/proofing',
+  path: '/proofing',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedOutreachRoute = AuthenticatedOutreachRouteImport.update({
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/banners': typeof AuthenticatedBannersRoute
   '/milestones': typeof AuthenticatedMilestonesRoute
   '/outreach': typeof AuthenticatedOutreachRoute
+  '/proofing': typeof AuthenticatedProofingRoute
   '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/website': typeof AuthenticatedWebsiteRoute
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/banners': typeof AuthenticatedBannersRoute
   '/milestones': typeof AuthenticatedMilestonesRoute
   '/outreach': typeof AuthenticatedOutreachRoute
+  '/proofing': typeof AuthenticatedProofingRoute
   '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/website': typeof AuthenticatedWebsiteRoute
   '/': typeof AuthenticatedIndexRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/_authenticated/banners': typeof AuthenticatedBannersRoute
   '/_authenticated/milestones': typeof AuthenticatedMilestonesRoute
   '/_authenticated/outreach': typeof AuthenticatedOutreachRoute
+  '/_authenticated/proofing': typeof AuthenticatedProofingRoute
   '/_authenticated/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/_authenticated/website': typeof AuthenticatedWebsiteRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/banners'
     | '/milestones'
     | '/outreach'
+    | '/proofing'
     | '/speakers'
     | '/website'
     | '/events/$eventId'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/banners'
     | '/milestones'
     | '/outreach'
+    | '/proofing'
     | '/speakers'
     | '/website'
     | '/'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/_authenticated/banners'
     | '/_authenticated/milestones'
     | '/_authenticated/outreach'
+    | '/_authenticated/proofing'
     | '/_authenticated/speakers'
     | '/_authenticated/website'
     | '/_authenticated/'
@@ -184,6 +196,13 @@ declare module '@tanstack/react-router' {
       path: '/speakers'
       fullPath: '/speakers'
       preLoaderRoute: typeof AuthenticatedSpeakersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/proofing': {
+      id: '/_authenticated/proofing'
+      path: '/proofing'
+      fullPath: '/proofing'
+      preLoaderRoute: typeof AuthenticatedProofingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/outreach': {
@@ -241,6 +260,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBannersRoute: typeof AuthenticatedBannersRoute
   AuthenticatedMilestonesRoute: typeof AuthenticatedMilestonesRoute
   AuthenticatedOutreachRoute: typeof AuthenticatedOutreachRoute
+  AuthenticatedProofingRoute: typeof AuthenticatedProofingRoute
   AuthenticatedSpeakersRoute: typeof AuthenticatedSpeakersRouteWithChildren
   AuthenticatedWebsiteRoute: typeof AuthenticatedWebsiteRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -251,6 +271,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBannersRoute: AuthenticatedBannersRoute,
   AuthenticatedMilestonesRoute: AuthenticatedMilestonesRoute,
   AuthenticatedOutreachRoute: AuthenticatedOutreachRoute,
+  AuthenticatedProofingRoute: AuthenticatedProofingRoute,
   AuthenticatedSpeakersRoute: AuthenticatedSpeakersRouteWithChildren,
   AuthenticatedWebsiteRoute: AuthenticatedWebsiteRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
