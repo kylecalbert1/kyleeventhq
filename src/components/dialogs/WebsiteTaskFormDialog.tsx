@@ -245,11 +245,17 @@ export function WebsiteTaskFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-slate-500">Proofing stages</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs uppercase tracking-wide text-slate-500">Proofing stages</Label>
+              {asanaDues && (
+                <span className="text-[10px] text-slate-500">Dates on right pulled live from Asana</span>
+              )}
+            </div>
             <StageRow
-              label="Buddy proof complete"
+              label="1st website proof (buddy)"
               checked={form.buddy_proof_done}
               date={form.buddy_proof_date}
+              asanaDue={asanaDues?.buddy_proof ?? null}
               onCheck={(v) =>
                 setForm({
                   ...form,
@@ -262,9 +268,10 @@ export function WebsiteTaskFormDialog({
               onDate={(v) => setForm({ ...form, buddy_proof_date: v })}
             />
             <StageRow
-              label="Marketer proof complete"
+              label="2nd website proof (marketing)"
               checked={form.marketer_proof_done}
               date={form.marketer_proof_date}
+              asanaDue={asanaDues?.marketer_proof ?? null}
               onCheck={(v) =>
                 setForm({
                   ...form,
@@ -277,9 +284,26 @@ export function WebsiteTaskFormDialog({
               onDate={(v) => setForm({ ...form, marketer_proof_date: v })}
             />
             <StageRow
-              label="Final sign-off complete"
+              label="Marketing amendments actioned"
+              checked={form.amendments_actioned_done}
+              date={form.amendments_actioned_date}
+              asanaDue={asanaDues?.amendments_actioned ?? null}
+              onCheck={(v) =>
+                setForm({
+                  ...form,
+                  amendments_actioned_done: v,
+                  amendments_actioned_date: v && !form.amendments_actioned_date
+                    ? new Date().toISOString().slice(0, 10)
+                    : form.amendments_actioned_date,
+                })
+              }
+              onDate={(v) => setForm({ ...form, amendments_actioned_date: v })}
+            />
+            <StageRow
+              label="Final sign-off (line manager)"
               checked={form.final_signoff_done}
               date={form.final_signoff_date}
+              asanaDue={asanaDues?.final_signoff ?? null}
               onCheck={(v) =>
                 setForm({
                   ...form,
@@ -292,6 +316,7 @@ export function WebsiteTaskFormDialog({
               onDate={(v) => setForm({ ...form, final_signoff_date: v })}
             />
           </div>
+
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
