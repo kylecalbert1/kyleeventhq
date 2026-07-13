@@ -318,8 +318,14 @@ export function BulkEmailDialog({
             </div>
           ) : (
             <div className="flex items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-xs text-indigo-900">
-              <span className="font-semibold">{sendable.length}</span>
-              recipient{sendable.length === 1 ? "" : "s"} will receive this email
+              <span className="font-semibold tabular-nums">{activeRecipients.length}</span>
+              of {sendable.length} recipient{sendable.length === 1 ? "" : "s"} will receive this email
+              {optedOutCount > 0 && (
+                <span className="text-slate-600">
+                  {" "}
+                  · {optedOutCount} unticked
+                </span>
+              )}
               {missingEmail > 0 && (
                 <span className="text-amber-800">
                   {" "}
