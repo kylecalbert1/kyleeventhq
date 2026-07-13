@@ -52,6 +52,7 @@ type Item = {
   speaker_ids: string[];
   speaker_extra: string | null;
   av_requirements: string | null;
+  track: string | null;
 };
 
 function newClientId() {
@@ -102,6 +103,7 @@ function skeletonFor(
     speaker_ids: [],
     speaker_extra: null,
     av_requirements: null,
+    track: null,
   });
 
   if (template === "csc_in_person") {
@@ -187,6 +189,7 @@ export function AgendaBuilder({
           speaker_ids: r.speaker_ids ?? [],
           speaker_extra: r.speaker_extra,
           av_requirements: r.av_requirements,
+          track: r.track ?? null,
         })),
       );
     }
@@ -243,6 +246,7 @@ export function AgendaBuilder({
         speaker_ids: r.speaker_ids,
         speaker_extra: r.speaker_extra,
         av_requirements: r.av_requirements,
+        track: r.track,
       }));
       return replaceFn({ data: { event_id: eventId, items: payload } });
     },
@@ -292,6 +296,7 @@ export function AgendaBuilder({
         speaker_ids: [],
         speaker_extra: null,
         av_requirements: null,
+        track: null,
       },
     ]);
   }
@@ -431,12 +436,13 @@ export function AgendaBuilder({
       )}
 
       <Card className="rounded-2xl border-slate-200/70 overflow-hidden">
-        <div className="grid grid-cols-[70px_70px_60px_150px_1fr_180px_150px_100px] gap-2 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b">
+        <div className="grid grid-cols-[70px_70px_60px_140px_1fr_130px_160px_130px_90px] gap-2 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b">
           <div>Start</div>
           <div>End</div>
           <div>Mins</div>
           <div>Type</div>
           <div>Title</div>
+          <div>Track</div>
           <div>Speakers</div>
           <div>AV</div>
           <div className="text-right">Actions</div>
@@ -453,7 +459,7 @@ export function AgendaBuilder({
             <div
               key={r.id}
               className={
-                "grid grid-cols-[70px_70px_60px_150px_1fr_180px_150px_100px] gap-2 px-3 py-2 border-b border-slate-100 items-center " +
+                "grid grid-cols-[70px_70px_60px_140px_1fr_130px_160px_130px_90px] gap-2 px-3 py-2 border-b border-slate-100 items-center " +
                 (flagged ? "bg-amber-50/50" : "")
               }
             >
@@ -508,6 +514,12 @@ export function AgendaBuilder({
                 value={r.title ?? ""}
                 onChange={(e) => updateRow(i, { title: e.target.value })}
                 placeholder="Session title…"
+                className="h-8 text-xs"
+              />
+              <Input
+                value={r.track ?? ""}
+                onChange={(e) => updateRow(i, { track: e.target.value || null })}
+                placeholder="Track (opt.)"
                 className="h-8 text-xs"
               />
               <SpeakerPicker
