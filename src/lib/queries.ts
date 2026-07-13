@@ -11,6 +11,8 @@ import { listMilestones } from "@/lib/milestones.functions";
 import { listWeeklyPriorities } from "@/lib/weekly-priorities.functions";
 import { listOutreachAccounts, listTeamChecklist } from "@/lib/outreach.functions";
 import { listEmailSends } from "@/lib/email-sends.functions";
+import { getEventOutreach } from "@/lib/outreach-hub.functions";
+import { listAgendaItems, listAgendaTemplates } from "@/lib/agenda.functions";
 
 export const qk = {
   eventSummaries: () => ["eventSummaries"] as const,
@@ -24,7 +26,25 @@ export const qk = {
   outreachAccounts: (week: string) => ["outreachAccounts", week] as const,
   teamChecklist: (week: string) => ["teamChecklist", week] as const,
   emailSends: (eventId?: string) => ["emailSends", eventId ?? "all"] as const,
+  eventOutreach: (eventId: string) => ["eventOutreach", eventId] as const,
+  agendaItems: (eventId: string) => ["agendaItems", eventId] as const,
+  agendaTemplates: () => ["agendaTemplates"] as const,
 };
+
+export const eventOutreachQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: qk.eventOutreach(eventId),
+    queryFn: () => getEventOutreach({ data: { event_id: eventId } }),
+  });
+export const agendaItemsQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: qk.agendaItems(eventId),
+    queryFn: () => listAgendaItems({ data: { event_id: eventId } }),
+  });
+export const agendaTemplatesQuery = queryOptions({
+  queryKey: qk.agendaTemplates(),
+  queryFn: () => listAgendaTemplates(),
+});
 
 export const emailSendsQuery = (eventId?: string) =>
   queryOptions({
