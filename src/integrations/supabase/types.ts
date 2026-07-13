@@ -14,6 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_items: {
+        Row: {
+          av_requirements: string | null
+          created_at: string
+          duration_min: number
+          event_id: string
+          id: string
+          position: number
+          session_type: string
+          speaker_extra: string | null
+          speaker_ids: string[]
+          start_time: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          av_requirements?: string | null
+          created_at?: string
+          duration_min?: number
+          event_id: string
+          id?: string
+          position?: number
+          session_type?: string
+          speaker_extra?: string | null
+          speaker_ids?: string[]
+          start_time?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          av_requirements?: string | null
+          created_at?: string
+          duration_min?: number
+          event_id?: string
+          id?: string
+          position?: number
+          session_type?: string
+          speaker_extra?: string | null
+          speaker_ids?: string[]
+          start_time?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_templates: {
+        Row: {
+          created_at: string
+          id: string
+          minutes: number
+          position: number
+          session_type: string
+          template_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          minutes: number
+          position?: number
+          session_type: string
+          template_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          minutes?: number
+          position?: number
+          session_type?: string
+          template_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_recipients: {
         Row: {
           created_at: string
@@ -140,6 +223,88 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "event_milestones_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_outreach: {
+        Row: {
+          colleague_linkedin: string | null
+          colleague_slack: string | null
+          connect_message: string | null
+          created_at: string
+          event_id: string
+          id: string
+          inmail_message: string | null
+          inmail_subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          colleague_linkedin?: string | null
+          colleague_slack?: string | null
+          connect_message?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          inmail_message?: string | null
+          inmail_subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          colleague_linkedin?: string | null
+          colleague_slack?: string | null
+          connect_message?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          inmail_message?: string | null
+          inmail_subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_outreach_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_saved_searches: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          label: string
+          position: number
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          label: string
+          position?: number
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          label?: string
+          position?: number
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_saved_searches_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
