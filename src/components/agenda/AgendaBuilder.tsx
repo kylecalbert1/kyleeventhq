@@ -516,6 +516,12 @@ export function AgendaBuilder({
                 placeholder="Session title…"
                 className="h-8 text-xs"
               />
+              <Input
+                value={r.track ?? ""}
+                onChange={(e) => updateRow(i, { track: e.target.value || null })}
+                placeholder="Track (opt.)"
+                className="h-8 text-xs"
+              />
               <SpeakerPicker
                 options={speakerOptions}
                 selectedIds={r.speaker_ids}
