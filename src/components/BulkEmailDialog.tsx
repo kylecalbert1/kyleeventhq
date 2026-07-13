@@ -347,6 +347,7 @@ export function BulkEmailDialog({
             <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
               {rows.map((r) => {
                 const st = status[r.id] ?? "idle";
+                const isOptedIn = !!r.email && !!optedIn[r.id];
                 const borderCls =
                   st === "sent"
                     ? "border-emerald-300 bg-emerald-50/50"
@@ -354,32 +355,43 @@ export function BulkEmailDialog({
                       ? "border-red-300 bg-red-50/50"
                       : st === "sending"
                         ? "border-primary/50 bg-primary/5"
-                        : "border-border bg-card hover:border-primary/40";
+                        : !isOptedIn && r.email
+                          ? "border-slate-200 bg-slate-50/60 opacity-60"
+                          : "border-border bg-card hover:border-primary/40";
                 return (
                   <div
                     key={r.id}
                     className={`rounded-lg border p-3 transition-colors ${borderCls}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="pt-0.5 shrink-0">
+                        <Checkbox
+                          checked={isOptedIn}
+                          disabled={!r.email || st === "sending"}
+                          onCheckedChange={(v) =>
+                            setOptedIn((prev) => ({ ...prev, [r.id]: !!v }))
+                          }
+                          aria-label={`Include ${r.name} in send-all`}
+                        />
+                      </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold truncate">
-                          {r.name}
-                        </div>
+                        <div className="text-sm font-semibold truncate">{r.name}</div>
                         <div className="text-xs text-muted-foreground truncate">
                           {r.email ?? (
                             <span className="text-amber-700">No email on file</span>
                           )}
+                          {r.email && !isOptedIn && (
+                            <span className="ml-2 text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+                              Excluded
+                            </span>
+                          )}
                         </div>
-                        <div className="mt-2 text-xs font-medium truncate">
-                          {r.rSubject}
-                        </div>
+                        <div className="mt-2 text-xs font-medium truncate">{r.rSubject}</div>
                         <div className="mt-1 text-xs text-muted-foreground whitespace-pre-line line-clamp-3">
                           {r.rBody}
                         </div>
                         {st === "failed" && errors[r.id] && (
-                          <div className="mt-2 text-xs text-red-700">
-                            {errors[r.id]}
-                          </div>
+                          <div className="mt-2 text-xs text-red-700">{errors[r.id]}</div>
                         )}
                       </div>
                       <div className="shrink-0 flex flex-col items-end gap-1">
