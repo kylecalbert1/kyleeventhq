@@ -250,6 +250,7 @@ export function AgendaBuilder({
         speaker_extra: r.speaker_extra,
         av_requirements: r.av_requirements,
         track: r.track,
+        description: r.description,
       }));
       return replaceFn({ data: { event_id: eventId, items: payload } });
     },
