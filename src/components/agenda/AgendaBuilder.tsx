@@ -192,6 +192,7 @@ export function AgendaBuilder({
           speaker_extra: r.speaker_extra,
           av_requirements: r.av_requirements,
           track: r.track ?? null,
+          description: r.description ?? null,
         })),
       );
     }
