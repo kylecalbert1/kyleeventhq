@@ -459,7 +459,7 @@ export function AgendaBuilder({
             <div
               key={r.id}
               className={
-                "grid grid-cols-[70px_70px_60px_150px_1fr_180px_150px_100px] gap-2 px-3 py-2 border-b border-slate-100 items-center " +
+                "grid grid-cols-[70px_70px_60px_140px_1fr_130px_160px_130px_90px] gap-2 px-3 py-2 border-b border-slate-100 items-center " +
                 (flagged ? "bg-amber-50/50" : "")
               }
             >
