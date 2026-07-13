@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SpeakerListCard } from "@/components/speakers/SpeakerListCard";
+
 import { StatusPill } from "@/components/StatusPill";
 import {
   eventQuery,
@@ -182,85 +184,41 @@ function EventDetail() {
           <EmailSection eventId={eventId} speakers={speakers.data ?? []} />
         </TabsContent>
 
-        <TabsContent value="speakers" className="mt-4">
+        <TabsContent value="speakers" className="mt-4 space-y-3">
           <SectionHeader
             title={`Speakers (${(speakers.data ?? []).length})`}
             onAdd={() => setSpeakerEdit({ open: true })}
           />
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Session</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Banner</TableHead>
-                  <TableHead>Bio</TableHead>
-                  <TableHead>Headshot</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(speakers.data ?? []).map((s: any) => (
-                  <TableRow
-                    key={s.id}
-                    className="cursor-pointer hover:bg-muted/40 transition-colors"
-                    onClick={() => setDetailSpeaker(s)}
-                  >
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-1.5 text-primary group">
-                        <span className="hover:underline">{s.name}</span>
-                        <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      <div className="text-xs text-muted-foreground font-normal">{s.title}</div>
-                    </TableCell>
-                    <TableCell>{s.company}</TableCell>
-                    <TableCell>
-                      {s.session_title}
-                      {s.session_format && (
-                        <div className="text-xs text-muted-foreground">
-                          {labels.sessionFormat[s.session_format as never]}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <StatusPill className={pillClass.speaker[s.status as never]}>
-                        {labels.speaker[s.status as never]}
-                      </StatusPill>
-                    </TableCell>
-                    <TableCell>
-                      <StatusPill className={pillClass.banner[s.banner_status as never]}>
-                        {labels.banner[s.banner_status as never]}
-                      </StatusPill>
-                    </TableCell>
-                    <TableCell>{s.bio_received ? "✓" : "—"}</TableCell>
-                    <TableCell>{s.headshot_received ? "✓" : "—"}</TableCell>
-                    <TableCell onClick={(evt) => evt.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSpeakerEdit({ open: true, speaker: s })}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(speakers.data ?? []).length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">
-                      No speakers yet.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Card>
-          <p className="text-xs text-muted-foreground mt-2">
-            Click a row to view the full speaker profile.
-          </p>
+          {(speakers.data ?? []).length === 0 ? (
+            <Card className="p-8 text-center text-sm text-muted-foreground">No speakers yet.</Card>
+          ) : (
+            <div className="space-y-3">
+              {(speakers.data ?? []).map((s: any) => (
+                <SpeakerListCard
+                  key={s.id}
+                  s={s}
+                  ev={e}
+                  showEventChip={false}
+                  onOpenDetail={() => setDetailSpeaker(s)}
+                  onEmail={() => {
+                    if (!s.email) return toast.error("No email on file");
+                    toast.info("Use the Speakers page to send email — this event tab is view-only for now.");
+                  }}
+                  onCopyLink={async () => {
+                    const url = s.dropbox_link || s.linkedin_url;
+                    if (!url) return toast.error("No link stored for this speaker");
+                    try {
+                      await navigator.clipboard.writeText(url);
+                      toast.success("Link copied");
+                    } catch { toast.error("Couldn't copy link"); }
+                  }}
+                  onEdit={() => setSpeakerEdit({ open: true, speaker: s })}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
+
 
         <TabsContent value="banners" className="mt-4 space-y-6">
           <EventBannerGroup
@@ -320,52 +278,79 @@ function EventDetail() {
           </div>
         </TabsContent>
 
-        <TabsContent value="website" className="mt-4">
+        <TabsContent value="website" className="mt-4 space-y-3">
           <SectionHeader title="Website tasks" onAdd={() => setTaskEdit({ open: true })} />
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead></TableHead>
-                  <TableHead>Task</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Due</TableHead>
-                  <TableHead>Assignee</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(tasks.data ?? []).map((t: any) => (
-                  <TableRow key={t.id}>
-                    <TableCell>{t.protected && <Lock className="h-3.5 w-3.5 text-amber-600" />}</TableCell>
-                    <TableCell className="font-medium">
-                      {labels.websiteTaskType[t.task_type as never]}
-                    </TableCell>
-                    <TableCell>
-                      <StatusPill className={pillClass.website[t.status as never]}>
-                        {labels.website[t.status as never]}
-                      </StatusPill>
-                    </TableCell>
-                    <TableCell>{t.due_date ? new Date(t.due_date).toLocaleDateString() : "—"}</TableCell>
-                    <TableCell>{t.assignee ?? "—"}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => setTaskEdit({ open: true, task: t })}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(tasks.data ?? []).length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
-                      No website tasks.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Card>
+          {(tasks.data ?? []).length === 0 ? (
+            <Card className="p-8 text-center text-sm text-muted-foreground">
+              No website tasks yet.
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {(tasks.data ?? []).map((t: any) => {
+                const stages = [
+                  { label: "Buddy proof", done: t.buddy_proof_done, date: t.buddy_proof_date },
+                  { label: "Marketer proof", done: t.marketer_proof_done, date: t.marketer_proof_date },
+                  { label: "Final sign-off", done: t.final_signoff_done, date: t.final_signoff_date },
+                ];
+                return (
+                  <Card
+                    key={t.id}
+                    className="p-4 hover:shadow-sm transition-shadow cursor-pointer bg-white rounded-2xl border-slate-200/70"
+                    onClick={() => setTaskEdit({ open: true, task: t })}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {t.protected && <Lock className="h-3.5 w-3.5 text-amber-600" />}
+                          <div className="font-semibold text-sm truncate">
+                            {t.title || "Website task"}
+                          </div>
+                          <StatusPill className={pillClass.website[t.status as never]}>
+                            {labels.website[t.status as never]}
+                          </StatusPill>
+                          {t.due_date && (
+                            <span className="text-[11px] text-muted-foreground">
+                              Due {new Date(t.due_date).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          {stages.map((st) => (
+                            <span
+                              key={st.label}
+                              className={
+                                "text-[11px] px-2 py-0.5 rounded-full ring-1 " +
+                                (st.done
+                                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                                  : "bg-slate-50 text-slate-500 ring-slate-200")
+                              }
+                            >
+                              {st.done ? "✓ " : "○ "}
+                              {st.label}
+                              {st.done && st.date ? ` · ${new Date(st.date).toLocaleDateString()}` : ""}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      {t.markup_url && (
+                        <a
+                          href={t.markup_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(evt) => evt.stopPropagation()}
+                          className="shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-sky-50 text-sky-700 ring-1 ring-sky-200 hover:bg-sky-100"
+                        >
+                          Markup <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
+
 
         <TabsContent value="milestones" className="mt-4 space-y-4">
           <div className="flex justify-between items-center">

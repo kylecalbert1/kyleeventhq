@@ -514,36 +514,57 @@ export type Database = {
       }
       website_tasks: {
         Row: {
-          assignee: string | null
+          buddy_proof_date: string | null
+          buddy_proof_done: boolean
           created_at: string
           due_date: string | null
           event_id: string
+          final_signoff_date: string | null
+          final_signoff_done: boolean
           id: string
+          marketer_proof_date: string | null
+          marketer_proof_done: boolean
+          markup_url: string | null
           protected: boolean
           status: Database["public"]["Enums"]["website_stage"]
-          task_type: Database["public"]["Enums"]["website_task_type"]
+          task_type: Database["public"]["Enums"]["website_task_type"] | null
+          title: string | null
           updated_at: string
         }
         Insert: {
-          assignee?: string | null
+          buddy_proof_date?: string | null
+          buddy_proof_done?: boolean
           created_at?: string
           due_date?: string | null
           event_id: string
+          final_signoff_date?: string | null
+          final_signoff_done?: boolean
           id?: string
+          marketer_proof_date?: string | null
+          marketer_proof_done?: boolean
+          markup_url?: string | null
           protected?: boolean
           status?: Database["public"]["Enums"]["website_stage"]
-          task_type: Database["public"]["Enums"]["website_task_type"]
+          task_type?: Database["public"]["Enums"]["website_task_type"] | null
+          title?: string | null
           updated_at?: string
         }
         Update: {
-          assignee?: string | null
+          buddy_proof_date?: string | null
+          buddy_proof_done?: boolean
           created_at?: string
           due_date?: string | null
           event_id?: string
+          final_signoff_date?: string | null
+          final_signoff_done?: boolean
           id?: string
+          marketer_proof_date?: string | null
+          marketer_proof_done?: boolean
+          markup_url?: string | null
           protected?: boolean
           status?: Database["public"]["Enums"]["website_stage"]
-          task_type?: Database["public"]["Enums"]["website_task_type"]
+          task_type?: Database["public"]["Enums"]["website_task_type"] | null
+          title?: string | null
           updated_at?: string
         }
         Relationships: [
