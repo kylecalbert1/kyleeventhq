@@ -143,6 +143,7 @@ function rowsFromMatrix(matrix: any[][]): ParsedRow[] {
       speaker_extra: null,
       av_requirements: av || null,
       track: track || null,
+      description: null,
       raw_speakers: spk || undefined,
     });
   }
