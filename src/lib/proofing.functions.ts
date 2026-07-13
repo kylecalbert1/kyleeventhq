@@ -182,13 +182,13 @@ export const moveProofingStage = createServerFn({ method: "POST" })
       .single();
     if (exErr) throw new Error(exErr.message);
 
-    const patch: Record<string, any> = {};
+    const patch: Record<string, unknown> = {};
     stages.forEach((s, i) => {
       const doneKey = `${s}_done`;
       const dateKey = `${s}_date`;
       if (i < targetIdx) {
         patch[doneKey] = true;
-        if (!existing[dateKey]) patch[dateKey] = today;
+        if (!(existing as Record<string, unknown>)[dateKey]) patch[dateKey] = today;
       } else {
         patch[doneKey] = false;
       }
@@ -202,7 +202,7 @@ export const moveProofingStage = createServerFn({ method: "POST" })
 
     const { data: row, error } = await context.supabase
       .from("website_tasks")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.task_id)
       .select()
       .single();
