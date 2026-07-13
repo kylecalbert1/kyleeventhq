@@ -1,26 +1,62 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ExternalLink, Link2, CheckCircle2, Circle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { createWebsiteTask, updateWebsiteTask, deleteWebsiteTask } from "@/lib/website-tasks.functions";
-import { WEBSITE_STAGES, WEBSITE_TASK_TYPES, labels } from "@/lib/status";
+import {
+  createWebsiteTask,
+  updateWebsiteTask,
+  deleteWebsiteTask,
+} from "@/lib/website-tasks.functions";
 import { eventsQuery } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 
 type WebsiteTask = {
   id: string;
   event_id: string;
-  task_type: "proof_1" | "proof_2" | "final_signoff" | "launch" | "audit" | "refresh";
+  title: string | null;
+  markup_url: string | null;
   status: "draft" | "proof_1" | "proof_2" | "signed_off" | "live";
   due_date: string | null;
-  assignee: string | null;
+  buddy_proof_done: boolean;
+  buddy_proof_date: string | null;
+  marketer_proof_done: boolean;
+  marketer_proof_date: string | null;
+  final_signoff_done: boolean;
+  final_signoff_date: string | null;
   protected: boolean;
 };
+
+function deriveStatus(f: {
+  buddy_proof_done: boolean;
+  marketer_proof_done: boolean;
+  final_signoff_done: boolean;
+  status: WebsiteTask["status"];
+}): WebsiteTask["status"] {
+  if (f.status === "live") return "live";
+  if (f.final_signoff_done) return "signed_off";
+  if (f.marketer_proof_done) return "proof_2";
+  if (f.buddy_proof_done) return "proof_1";
+  return "draft";
+}
 
 export function WebsiteTaskFormDialog({
   open,
@@ -41,10 +77,16 @@ export function WebsiteTaskFormDialog({
 
   const [form, setForm] = useState({
     event_id: defaultEventId ?? "",
-    task_type: "proof_1" as WebsiteTask["task_type"],
+    title: "",
+    markup_url: "",
     status: "draft" as WebsiteTask["status"],
     due_date: "",
-    assignee: "",
+    buddy_proof_done: false,
+    buddy_proof_date: "",
+    marketer_proof_done: false,
+    marketer_proof_date: "",
+    final_signoff_done: false,
+    final_signoff_date: "",
     protected: false,
   });
 
@@ -52,25 +94,53 @@ export function WebsiteTaskFormDialog({
     if (task) {
       setForm({
         event_id: task.event_id,
-        task_type: task.task_type,
+        title: task.title ?? "",
+        markup_url: task.markup_url ?? "",
         status: task.status,
         due_date: task.due_date ?? "",
-        assignee: task.assignee ?? "",
+        buddy_proof_done: task.buddy_proof_done ?? false,
+        buddy_proof_date: task.buddy_proof_date ?? "",
+        marketer_proof_done: task.marketer_proof_done ?? false,
+        marketer_proof_date: task.marketer_proof_date ?? "",
+        final_signoff_done: task.final_signoff_done ?? false,
+        final_signoff_date: task.final_signoff_date ?? "",
         protected: task.protected,
       });
     } else {
-      setForm((f) => ({ ...f, event_id: defaultEventId ?? f.event_id, due_date: "", assignee: "", protected: false }));
+      setForm((f) => ({
+        ...f,
+        event_id: defaultEventId ?? f.event_id,
+        title: "",
+        markup_url: "",
+        status: "draft",
+        due_date: "",
+        buddy_proof_done: false,
+        buddy_proof_date: "",
+        marketer_proof_done: false,
+        marketer_proof_date: "",
+        final_signoff_done: false,
+        final_signoff_date: "",
+        protected: false,
+      }));
     }
   }, [task, open, defaultEventId]);
+
+  const derivedStatus = useMemo(() => deriveStatus(form), [form]);
 
   const save = useMutation({
     mutationFn: async () => {
       const payload = {
         event_id: form.event_id,
-        task_type: form.task_type,
-        status: form.status,
+        title: form.title.trim() || null,
+        markup_url: form.markup_url.trim() || null,
+        status: derivedStatus,
         due_date: form.due_date || null,
-        assignee: form.assignee || null,
+        buddy_proof_done: form.buddy_proof_done,
+        buddy_proof_date: form.buddy_proof_done ? form.buddy_proof_date || null : null,
+        marketer_proof_done: form.marketer_proof_done,
+        marketer_proof_date: form.marketer_proof_done ? form.marketer_proof_date || null : null,
+        final_signoff_done: form.final_signoff_done,
+        final_signoff_date: form.final_signoff_done ? form.final_signoff_date || null : null,
         protected: form.protected,
       };
       if (task) return update({ data: { id: task.id, patch: payload } });
@@ -85,7 +155,7 @@ export function WebsiteTaskFormDialog({
   });
 
   const remove = useMutation({
-    mutationFn: async () => task ? del({ data: { id: task.id } }) : undefined,
+    mutationFn: async () => (task ? del({ data: { id: task.id } }) : undefined),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["websiteTasks"] });
       toast.success("Task deleted");
@@ -93,51 +163,218 @@ export function WebsiteTaskFormDialog({
     },
   });
 
+  const hasMarkup = form.markup_url.trim().length > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>{task ? "Edit website task" : "New website task"}</DialogTitle></DialogHeader>
-        <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="space-y-4">
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{task ? "Edit website task" : "New website task"}</DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            save.mutate();
+          }}
+          className="space-y-5"
+        >
           <div className="space-y-1.5">
-            <Label className="text-xs">Event</Label>
-            <Select value={form.event_id} onValueChange={(v) => setForm({ ...form, event_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Select event" /></SelectTrigger>
+            <Label className="text-xs uppercase tracking-wide text-slate-500">Event</Label>
+            <Select
+              value={form.event_id}
+              onValueChange={(v) => setForm({ ...form, event_id: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select event" />
+              </SelectTrigger>
               <SelectContent>
-                {(events.data ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{e.code} — {e.name}</SelectItem>)}
+                {(events.data ?? []).map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.code} — {e.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-wide text-slate-500">Title (optional)</Label>
+            <Input
+              placeholder="e.g. Homepage refresh, Speaker page copy"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
+              <Link2 className="h-3.5 w-3.5" /> Markup.io link
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="https://app.markup.io/w/thealliance/…"
+                value={form.markup_url}
+                onChange={(e) => setForm({ ...form, markup_url: e.target.value })}
+              />
+              {hasMarkup && (
+                <a
+                  href={form.markup_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Open <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Reuse the same link through every proofing round.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wide text-slate-500">Proofing stages</Label>
+            <StageRow
+              label="Buddy proof complete"
+              checked={form.buddy_proof_done}
+              date={form.buddy_proof_date}
+              onCheck={(v) =>
+                setForm({
+                  ...form,
+                  buddy_proof_done: v,
+                  buddy_proof_date: v && !form.buddy_proof_date
+                    ? new Date().toISOString().slice(0, 10)
+                    : form.buddy_proof_date,
+                })
+              }
+              onDate={(v) => setForm({ ...form, buddy_proof_date: v })}
+            />
+            <StageRow
+              label="Marketer proof complete"
+              checked={form.marketer_proof_done}
+              date={form.marketer_proof_date}
+              onCheck={(v) =>
+                setForm({
+                  ...form,
+                  marketer_proof_done: v,
+                  marketer_proof_date: v && !form.marketer_proof_date
+                    ? new Date().toISOString().slice(0, 10)
+                    : form.marketer_proof_date,
+                })
+              }
+              onDate={(v) => setForm({ ...form, marketer_proof_date: v })}
+            />
+            <StageRow
+              label="Final sign-off complete"
+              checked={form.final_signoff_done}
+              date={form.final_signoff_date}
+              onCheck={(v) =>
+                setForm({
+                  ...form,
+                  final_signoff_done: v,
+                  final_signoff_date: v && !form.final_signoff_date
+                    ? new Date().toISOString().slice(0, 10)
+                    : form.final_signoff_date,
+                })
+              }
+              onDate={(v) => setForm({ ...form, final_signoff_date: v })}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs">Task type</Label>
-              <Select value={form.task_type} onValueChange={(v) => setForm({ ...form, task_type: v as never })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{WEBSITE_TASK_TYPES.map((t) => <SelectItem key={t} value={t}>{labels.websiteTaskType[t]}</SelectItem>)}</SelectContent>
-              </Select>
+              <Label className="text-xs uppercase tracking-wide text-slate-500">Due date</Label>
+              <Input
+                type="date"
+                value={form.due_date}
+                onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+              />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Status</Label>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as never })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{WEBSITE_STAGES.map((s) => <SelectItem key={s} value={s}>{labels.website[s]}</SelectItem>)}</SelectContent>
-              </Select>
+              <Label className="text-xs uppercase tracking-wide text-slate-500">Live?</Label>
+              <label className="flex items-center gap-2 h-10 text-sm">
+                <Checkbox
+                  checked={form.status === "live"}
+                  onCheckedChange={(v) =>
+                    setForm({ ...form, status: v ? "live" : derivedStatus })
+                  }
+                />
+                Page is live on site
+              </label>
             </div>
-            <div className="space-y-1.5"><Label className="text-xs">Due date</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
-            <div className="space-y-1.5"><Label className="text-xs">Assignee</Label><Input value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })} /></div>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={form.protected} onCheckedChange={(v) => setForm({ ...form, protected: !!v })} />
-            Protected (blocks bulk moves without confirmation)
+
+          <label className="flex items-center gap-2 text-xs text-slate-600">
+            <Checkbox
+              checked={form.protected}
+              onCheckedChange={(v) => setForm({ ...form, protected: !!v })}
+            />
+            Protected (require confirmation before moving between stages)
           </label>
+
           <DialogFooter className="sm:justify-between">
-            <div>{task && <Button type="button" variant="destructive" onClick={() => remove.mutate()}>Delete</Button>}</div>
+            <div>
+              {task && (
+                <Button type="button" variant="destructive" onClick={() => remove.mutate()}>
+                  Delete
+                </Button>
+              )}
+            </div>
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit" disabled={save.isPending || !form.event_id}>Save</Button>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={save.isPending || !form.event_id}>
+                Save
+              </Button>
             </div>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function StageRow({
+  label,
+  checked,
+  date,
+  onCheck,
+  onDate,
+}: {
+  label: string;
+  checked: boolean;
+  date: string | null;
+  onCheck: (v: boolean) => void;
+  onDate: (v: string) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors",
+        checked ? "border-emerald-200 bg-emerald-50/50" : "border-slate-200 bg-white",
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => onCheck(!checked)}
+        className="shrink-0"
+        aria-label={label}
+      >
+        {checked ? (
+          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+        ) : (
+          <Circle className="h-5 w-5 text-slate-300" />
+        )}
+      </button>
+      <div className="flex-1 text-sm font-medium text-slate-700">{label}</div>
+      <Input
+        type="date"
+        value={date ?? ""}
+        onChange={(e) => onDate(e.target.value)}
+        disabled={!checked}
+        className="h-8 w-36 text-xs"
+      />
+    </div>
   );
 }

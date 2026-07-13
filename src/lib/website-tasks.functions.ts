@@ -4,10 +4,20 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const WebsiteTaskInput = z.object({
   event_id: z.string().uuid(),
-  task_type: z.enum(["proof_1", "proof_2", "final_signoff", "launch", "audit", "refresh"]),
+  title: z.string().nullable().optional(),
+  markup_url: z.string().nullable().optional(),
+  task_type: z
+    .enum(["proof_1", "proof_2", "final_signoff", "launch", "audit", "refresh"])
+    .nullable()
+    .optional(),
   status: z.enum(["draft", "proof_1", "proof_2", "signed_off", "live"]),
   due_date: z.string().nullable().optional(),
-  assignee: z.string().nullable().optional(),
+  buddy_proof_done: z.boolean().optional(),
+  buddy_proof_date: z.string().nullable().optional(),
+  marketer_proof_done: z.boolean().optional(),
+  marketer_proof_date: z.string().nullable().optional(),
+  final_signoff_done: z.boolean().optional(),
+  final_signoff_date: z.string().nullable().optional(),
   protected: z.boolean(),
 });
 
