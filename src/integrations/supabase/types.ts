@@ -685,6 +685,8 @@ export type Database = {
       }
       website_tasks: {
         Row: {
+          amendments_actioned_date: string | null
+          amendments_actioned_done: boolean
           buddy_proof_date: string | null
           buddy_proof_done: boolean
           created_at: string
@@ -703,6 +705,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          amendments_actioned_date?: string | null
+          amendments_actioned_done?: boolean
           buddy_proof_date?: string | null
           buddy_proof_done?: boolean
           created_at?: string
@@ -721,6 +725,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          amendments_actioned_date?: string | null
+          amendments_actioned_done?: boolean
           buddy_proof_date?: string | null
           buddy_proof_done?: boolean
           created_at?: string
@@ -811,7 +817,13 @@ export type Database = {
       self_status: "on_track" | "needs_attention" | "off_track"
       session_format: "keynote" | "panel" | "workshop" | "fireside"
       speaker_status: "contacted" | "responded" | "confirmed" | "declined"
-      website_stage: "draft" | "proof_1" | "proof_2" | "signed_off" | "live"
+      website_stage:
+        | "draft"
+        | "proof_1"
+        | "proof_2"
+        | "amendments"
+        | "signed_off"
+        | "live"
       website_task_type:
         | "proof_1"
         | "proof_2"
@@ -963,7 +975,14 @@ export const Constants = {
       self_status: ["on_track", "needs_attention", "off_track"],
       session_format: ["keynote", "panel", "workshop", "fireside"],
       speaker_status: ["contacted", "responded", "confirmed", "declined"],
-      website_stage: ["draft", "proof_1", "proof_2", "signed_off", "live"],
+      website_stage: [
+        "draft",
+        "proof_1",
+        "proof_2",
+        "amendments",
+        "signed_off",
+        "live",
+      ],
       website_task_type: [
         "proof_1",
         "proof_2",
