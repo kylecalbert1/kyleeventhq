@@ -31,6 +31,7 @@ import {
 } from "@/components/ConfirmSendEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { sendGmailEmail } from "@/lib/email.functions";
+import { markSpeakerReplied } from "@/lib/speakers.functions";
 import { firstNameOf, initialsOf, gmailThreadUrl, openGmailThread } from "@/lib/gmail";
 import { daysBetween, pillClass, labels, type SpeakerStatus } from "@/lib/status";
 import { outreachAlert, avatarGradient, columnFor } from "@/components/speakers/SpeakerListCard";
