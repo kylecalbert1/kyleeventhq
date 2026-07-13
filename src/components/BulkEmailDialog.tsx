@@ -101,6 +101,7 @@ export function BulkEmailDialog({
   const [confirmAllOpen, setConfirmAllOpen] = useState(false);
   const [status, setStatus] = useState<Record<string, SendStatus>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [optedIn, setOptedIn] = useState<Record<string, boolean>>({});
   const [sendingAll, setSendingAll] = useState(false);
   const logSend = useServerFn(logEmailSend);
   const qcInvalidate = useQueryClient();
@@ -112,6 +113,20 @@ export function BulkEmailDialog({
       setBody(TEMPLATES[initialTemplate].body);
     }
   }, [open, initialTemplate]);
+
+  // Every time the recipient list changes (dialog reopens with a new selection),
+  // default every recipient with an email to opted-in.
+  useEffect(() => {
+    if (!open) return;
+    setOptedIn((prev) => {
+      const next: Record<string, boolean> = {};
+      for (const s of speakers) {
+        if (!s.email) continue;
+        next[s.id] = prev[s.id] ?? true;
+      }
+      return next;
+    });
+  }, [open, speakers]);
 
 
   function applyTemplate(k: TemplateKey) {
@@ -143,6 +158,8 @@ export function BulkEmailDialog({
 
   const missingEmail = rows.filter((r) => !r.email).length;
   const sendable = rows.filter((r) => r.email);
+  const activeRecipients = sendable.filter((r) => optedIn[r.id]);
+  const optedOutCount = sendable.length - activeRecipients.length;
 
   async function performSend(
     r: (typeof rows)[number],
