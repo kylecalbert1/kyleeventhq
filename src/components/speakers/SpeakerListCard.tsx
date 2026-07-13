@@ -20,6 +20,7 @@ import {
   type OutreachChannel,
 } from "@/lib/status";
 import { cn } from "@/lib/utils";
+import { openGmailThread, gmailThreadUrl } from "@/lib/gmail";
 
 /* ---------------- shared helpers reused across app ---------------- */
 
