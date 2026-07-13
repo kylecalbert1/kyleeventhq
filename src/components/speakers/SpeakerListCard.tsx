@@ -20,6 +20,7 @@ import {
   type OutreachChannel,
 } from "@/lib/status";
 import { cn } from "@/lib/utils";
+import { openGmailThread, gmailThreadUrl } from "@/lib/gmail";
 
 /* ---------------- shared helpers reused across app ---------------- */
 
@@ -230,10 +231,14 @@ export function SpeakerListCard({
             )}
             {s.gmail_thread_id && (
               <a
-                href={`https://mail.google.com/mail/u/0/#all/${s.gmail_thread_id}`}
+                href={gmailThreadUrl(s.gmail_thread_id)}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openGmailThread(s.gmail_thread_id);
+                }}
                 className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-700 ring-1 ring-rose-200 text-[11px] font-medium transition-colors"
               >
                 <MessageSquare className="h-3 w-3" />

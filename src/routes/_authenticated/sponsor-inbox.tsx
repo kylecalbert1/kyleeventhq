@@ -13,6 +13,7 @@ import {
   setSponsorMentionActioned,
 } from "@/lib/sponsor-inbox.functions";
 import { eventsQuery } from "@/lib/queries";
+import { openGmailThread, gmailThreadUrl } from "@/lib/gmail";
 
 const mentionsQuery = queryOptions({
   queryKey: ["sponsorMentions"],
@@ -153,9 +154,14 @@ function SponsorInboxPage() {
                   <div className="flex flex-col gap-2 shrink-0">
                     {m.gmail_thread_id && (
                       <a
-                        href={`https://mail.google.com/mail/u/0/#all/${m.gmail_thread_id}`}
+                        href={gmailThreadUrl(m.gmail_thread_id)}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openGmailThread(m.gmail_thread_id);
+                        }}
                         className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 ring-1 ring-rose-200 transition-colors"
                       >
                         <MessageSquare className="h-3.5 w-3.5" />
