@@ -512,8 +512,15 @@ function EventDetail() {
           if (s) setSpeakerEdit({ open: true, speaker: s });
         }}
         onEmail={() => {
-          toast.info("Open the Email tab to compose — bulk send with pre-filled templates lives there.");
+          const s = detailSpeaker;
+          if (s) emailOne(s, e);
         }}
+      />
+      <ConfirmSendEmailDialog
+        open={!!confirmEmail}
+        onOpenChange={(o) => !o && setConfirmEmail(null)}
+        draft={confirmEmail}
+        onConfirm={performSendConfirmed}
       />
       {sponsorEdit && (
         <SponsorFormDialog
