@@ -70,11 +70,16 @@ function WebsiteBoard() {
                     <div className="min-w-0 flex-1">
                       <div className="font-mono text-[10px] text-muted-foreground">{t.events?.code ?? "—"}</div>
                       <div className="font-medium text-sm truncate">{t.events?.name}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{labels.websiteTaskType[t.task_type as never]}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5 truncate">{t.title || "Website task"}</div>
                       <div className="flex justify-between text-[11px] text-muted-foreground mt-2">
                         <span>{t.due_date ? new Date(t.due_date).toLocaleDateString() : "No due"}</span>
-                        <span>{t.assignee ?? ""}</span>
+                        <span className="flex gap-1">
+                          {t.buddy_proof_done && <span title="Buddy proof">B</span>}
+                          {t.marketer_proof_done && <span title="Marketer proof">M</span>}
+                          {t.final_signoff_done && <span title="Final sign-off">F</span>}
+                        </span>
                       </div>
+
                       <div className="mt-2" onClick={(e) => e.stopPropagation()}>
                         <Select value={t.status} onValueChange={(v) => requestMove(t, v)}>
                           <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
