@@ -329,7 +329,7 @@ export function AgendaBuilder({
     URL.revokeObjectURL(url);
   }
 
-  const startTime = items?.[0]?.start_time ?? "09:00";
+  const startTime = isVirtual ? VIRTUAL_DAY_START : (items?.[0]?.start_time ?? "09:00");
 
   return (
     <div className="space-y-4">
@@ -353,11 +353,12 @@ export function AgendaBuilder({
         </div>
         <div className="space-y-1">
           <div className="text-[11px] font-medium text-slate-600 uppercase tracking-wide">
-            Day start
+            Day start {isVirtual && <span className="text-slate-400">(fixed)</span>}
           </div>
           <Input
             type="time"
             value={startTime}
+            disabled={isVirtual}
             onChange={(e) =>
               setItems((prev) =>
                 prev && prev.length > 0
@@ -368,7 +369,7 @@ export function AgendaBuilder({
             className="w-32"
           />
         </div>
-        {template === "virtual" && (
+        {isVirtual && (
           <div className="space-y-1">
             <div className="text-[11px] font-medium text-slate-600 uppercase tracking-wide">
               Buffer (min)
@@ -408,6 +409,19 @@ export function AgendaBuilder({
         </div>
       </Card>
 
+      {isVirtual && (
+        <div className="flex items-center justify-between gap-2 text-xs px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800">
+          <span className="font-medium">
+            Virtual event day: fixed {VIRTUAL_DAY_START}–{VIRTUAL_DAY_END} · All times EDT
+          </span>
+          {virtualOverrun > 0 && (
+            <span className="inline-flex items-center gap-1 font-semibold text-rose-700">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Sessions overrun the day by {virtualOverrun} min — trim to fit inside {VIRTUAL_DAY_END}.
+            </span>
+          )}
+        </div>
+      )}
 
       {sponsorBackToBack.size > 0 && (
         <div className="flex items-center gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2">
