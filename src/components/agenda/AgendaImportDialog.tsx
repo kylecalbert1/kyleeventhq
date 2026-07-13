@@ -17,6 +17,7 @@ import {
   SESSION_TYPES,
   bulkReplaceAgenda,
   importAgendaFromUrl,
+  generateAgendaDescriptions,
 } from "@/lib/agenda.functions";
 
 type ParsedRow = {
@@ -28,6 +29,7 @@ type ParsedRow = {
   speaker_extra: string | null;
   av_requirements: string | null;
   track: string | null;
+  description: string | null;
   raw_speakers?: string;
 };
 
