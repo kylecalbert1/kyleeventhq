@@ -52,6 +52,7 @@ type Item = {
   speaker_ids: string[];
   speaker_extra: string | null;
   av_requirements: string | null;
+  track: string | null;
 };
 
 function newClientId() {
