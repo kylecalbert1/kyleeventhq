@@ -366,6 +366,15 @@ function ReplyNeededPage() {
                       </Button>
                       <Button
                         size="sm"
+                        onClick={() => markMutation.mutate(s.id)}
+                        disabled={markMutation.isPending}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        <Check className="h-3.5 w-3.5 mr-1.5" />
+                        Mark replied
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="ghost"
                         onClick={() => setDetailSpeaker(s)}
                       >
