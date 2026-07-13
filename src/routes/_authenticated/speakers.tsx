@@ -7,15 +7,11 @@ import {
   Plus,
   Send,
   Mail,
-  Link2,
   Linkedin,
   Eye,
   Sparkles,
-  Reply,
-  Clock,
   Search,
   X,
-  AlertTriangle,
   LayoutGrid,
   Rows3,
 } from "lucide-react";
@@ -42,8 +38,6 @@ import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { bulkMarkBannerSent, updateSpeaker } from "@/lib/speakers.functions";
 import {
   labels,
-  pillClass,
-  daysBetween,
   OUTREACH_CHANNELS,
   type OutreachChannel,
 } from "@/lib/status";
@@ -51,6 +45,16 @@ import { firstNameOf, initialsOf } from "@/lib/gmail";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  SpeakerListCard,
+  softCard,
+  columnFor,
+  stagePill,
+  avatarGradient,
+  eventChipCls,
+  outreachAlert,
+  type ColKey,
+} from "@/components/speakers/SpeakerListCard";
 
 const searchSchema = z.object({
   attention: z.enum(["reply", "follow_up", "any"]).optional(),
@@ -74,15 +78,7 @@ const COLUMNS = [
   { key: "bio_headshot_in", title: "Bio/Headshot In", accent: "border-t-teal-500", dot: "bg-teal-500" },
 ] as const;
 
-type ColKey = (typeof COLUMNS)[number]["key"];
-
-function columnFor(s: any): ColKey {
-  if (s.bio_received && s.headshot_received) return "bio_headshot_in";
-  if (s.banner_status === "sent" || s.banner_status === "confirmed_live") return "banner_sent";
-  if (s.status === "confirmed") return "confirmed";
-  if (s.status === "responded") return "responded";
-  return "contacted";
-}
+type StageFilter = "all" | ColKey;
 
 function patchForColumn(target: ColKey): Record<string, any> {
   switch (target) {
@@ -99,72 +95,9 @@ function patchForColumn(target: ColKey): Record<string, any> {
   }
 }
 
-// Distinct color per stage — solid pills, like the reference.
-const stagePill: Record<ColKey, { label: string; cls: string }> = {
-  contacted: { label: "Contacted", cls: "bg-sky-100 text-sky-800 ring-sky-200" },
-  responded: { label: "Responded", cls: "bg-violet-100 text-violet-800 ring-violet-200" },
-  confirmed: { label: "Confirmed", cls: "bg-emerald-100 text-emerald-800 ring-emerald-200" },
-  banner_sent: { label: "Banner Sent", cls: "bg-amber-100 text-amber-900 ring-amber-200" },
-  bio_headshot_in: { label: "Bio/Headshot In", cls: "bg-teal-100 text-teal-800 ring-teal-200" },
-};
-
-const avatarGradient: Record<ColKey, string> = {
-  contacted: "from-sky-500 to-sky-600",
-  responded: "from-violet-500 to-violet-600",
-  confirmed: "from-emerald-500 to-emerald-600",
-  banner_sent: "from-amber-500 to-amber-600",
-  bio_headshot_in: "from-teal-500 to-teal-600",
-};
-
-// Event code pill — subtle indigo so it reads like a tag in the reference.
-const eventChipCls = "bg-indigo-50 text-indigo-700 ring-indigo-200";
-const missingChipCls =
-  "border border-orange-300 text-orange-800 bg-orange-50 ring-0";
-
-type OutreachAlertT =
-  | { type: "reply"; label: "Reply needed"; cls: string; icon: typeof Reply }
-  | { type: "follow_up"; label: "Follow up"; cls: string; icon: typeof Clock }
-  | { type: "no_contact"; label: "No contact logged"; cls: string; icon: null }
-  | null;
-
-function outreachAlert(s: any): OutreachAlertT {
-  const status = s.status as string;
-  if (status !== "contacted" && status !== "responded") return null;
-  const lastAt: string | null = s.last_message_at ?? null;
-  const direction: string | null = s.last_message_direction ?? null;
-  if (!lastAt) {
-    return {
-      type: "no_contact",
-      label: "No contact logged",
-      cls: "bg-slate-100 text-slate-600 ring-slate-200",
-      icon: null,
-    };
-  }
-  const days = daysBetween(new Date(lastAt), new Date());
-  if (days === null) return null;
-  if (direction === "inbound" && days > 2) {
-    return { type: "reply", label: "Reply needed", cls: "bg-rose-100 text-rose-700 ring-rose-200", icon: Reply };
-  }
-  if (direction === "outbound" && days > 7) {
-    return { type: "follow_up", label: "Follow up", cls: "bg-amber-100 text-amber-800 ring-amber-200", icon: Clock };
-  }
-  return null;
-}
-
 type SortKey = "stalest" | "name" | "event" | "status";
 type ViewMode = "list" | "board";
-type StageFilter = "all" | ColKey;
 
-function fmtShort(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-}
-
-// Shared soft-card style — reused on Events and Banners for consistency.
-export const softCard =
-  "bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.05)] hover:shadow-[0_2px_4px_rgba(15,23,42,0.06),0_10px_28px_rgba(15,23,42,0.08)] transition-all duration-200";
 
 function SpeakerBoard() {
   const qc = useQueryClient();
