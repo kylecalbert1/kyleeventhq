@@ -70,6 +70,17 @@ function ReplyNeededPage() {
   const speakers = useQuery(speakersQuery());
   const events = useQuery(eventsQuery);
   const sendEmail = useServerFn(sendGmailEmail);
+  const markReplied = useServerFn(markSpeakerReplied);
+  const qc = useQueryClient();
+  const markMutation = useMutation({
+    mutationFn: (id: string) => markReplied({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["speakers"] });
+      qc.invalidateQueries({ queryKey: ["eventSummaries"] });
+      toast.success("Marked as replied");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
 
   const [filter, setFilter] = useState<"reply" | "follow_up" | "both">(
     search.filter ?? "both",
