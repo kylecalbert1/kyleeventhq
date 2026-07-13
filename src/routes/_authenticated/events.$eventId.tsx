@@ -182,85 +182,41 @@ function EventDetail() {
           <EmailSection eventId={eventId} speakers={speakers.data ?? []} />
         </TabsContent>
 
-        <TabsContent value="speakers" className="mt-4">
+        <TabsContent value="speakers" className="mt-4 space-y-3">
           <SectionHeader
             title={`Speakers (${(speakers.data ?? []).length})`}
             onAdd={() => setSpeakerEdit({ open: true })}
           />
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Session</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Banner</TableHead>
-                  <TableHead>Bio</TableHead>
-                  <TableHead>Headshot</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(speakers.data ?? []).map((s: any) => (
-                  <TableRow
-                    key={s.id}
-                    className="cursor-pointer hover:bg-muted/40 transition-colors"
-                    onClick={() => setDetailSpeaker(s)}
-                  >
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-1.5 text-primary group">
-                        <span className="hover:underline">{s.name}</span>
-                        <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      <div className="text-xs text-muted-foreground font-normal">{s.title}</div>
-                    </TableCell>
-                    <TableCell>{s.company}</TableCell>
-                    <TableCell>
-                      {s.session_title}
-                      {s.session_format && (
-                        <div className="text-xs text-muted-foreground">
-                          {labels.sessionFormat[s.session_format as never]}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <StatusPill className={pillClass.speaker[s.status as never]}>
-                        {labels.speaker[s.status as never]}
-                      </StatusPill>
-                    </TableCell>
-                    <TableCell>
-                      <StatusPill className={pillClass.banner[s.banner_status as never]}>
-                        {labels.banner[s.banner_status as never]}
-                      </StatusPill>
-                    </TableCell>
-                    <TableCell>{s.bio_received ? "✓" : "—"}</TableCell>
-                    <TableCell>{s.headshot_received ? "✓" : "—"}</TableCell>
-                    <TableCell onClick={(evt) => evt.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSpeakerEdit({ open: true, speaker: s })}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(speakers.data ?? []).length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">
-                      No speakers yet.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Card>
-          <p className="text-xs text-muted-foreground mt-2">
-            Click a row to view the full speaker profile.
-          </p>
+          {(speakers.data ?? []).length === 0 ? (
+            <Card className="p-8 text-center text-sm text-muted-foreground">No speakers yet.</Card>
+          ) : (
+            <div className="space-y-3">
+              {(speakers.data ?? []).map((s: any) => (
+                <SpeakerListCard
+                  key={s.id}
+                  s={s}
+                  ev={e}
+                  showEventChip={false}
+                  onOpenDetail={() => setDetailSpeaker(s)}
+                  onEmail={() => {
+                    if (!s.email) return toast.error("No email on file");
+                    toast.info("Use the Speakers page to send email — this event tab is view-only for now.");
+                  }}
+                  onCopyLink={async () => {
+                    const url = s.dropbox_link || s.linkedin_url;
+                    if (!url) return toast.error("No link stored for this speaker");
+                    try {
+                      await navigator.clipboard.writeText(url);
+                      toast.success("Link copied");
+                    } catch { toast.error("Couldn't copy link"); }
+                  }}
+                  onEdit={() => setSpeakerEdit({ open: true, speaker: s })}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
+
 
         <TabsContent value="banners" className="mt-4 space-y-6">
           <EventBannerGroup
