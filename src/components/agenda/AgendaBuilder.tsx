@@ -105,6 +105,7 @@ function skeletonFor(
     speaker_extra: null,
     av_requirements: null,
     track: null,
+    description: null,
   });
 
   if (template === "csc_in_person") {
