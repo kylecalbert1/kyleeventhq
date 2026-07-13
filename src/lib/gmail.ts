@@ -25,6 +25,28 @@ export function openGmailCompose(opts: Parameters<typeof gmailComposeUrl>[0]) {
   a.click();
 }
 
+export function gmailThreadUrl(threadId: string) {
+  return `https://mail.google.com/mail/u/0/#all/${threadId}`;
+}
+
+// Force a genuine top-level new tab (breaks out of Lovable preview iframe).
+export function openGmailThread(threadId: string) {
+  const url = gmailThreadUrl(threadId);
+  const win = window.open(url, "_blank", "noopener,noreferrer");
+  if (win) {
+    try { (win as Window).opener = null; } catch {}
+    return;
+  }
+  // Popup blocked — fall back to top-level navigation via a synthetic anchor.
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 export function renderTemplate(template: string, vars: Record<string, string>) {
   return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, k) => vars[k] ?? "");
 }
