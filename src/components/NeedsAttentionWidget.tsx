@@ -42,8 +42,8 @@ export function NeedsAttentionWidget() {
       ) : (
         <div className="grid grid-cols-2 gap-2">
           <Link
-            to="/speakers"
-            search={{ attention: "reply" as const }}
+            to="/reply-needed"
+            search={{ filter: "reply" as const }}
             className="group"
           >
             <div className="rounded-lg bg-rose-50 ring-1 ring-rose-200 px-3 py-3 transition-all hover:shadow-md hover:-translate-y-0.5 hover:ring-rose-300">
@@ -59,8 +59,8 @@ export function NeedsAttentionWidget() {
             </div>
           </Link>
           <Link
-            to="/speakers"
-            search={{ attention: "follow_up" as const }}
+            to="/reply-needed"
+            search={{ filter: "follow_up" as const }}
             className="group"
           >
             <div className="rounded-lg bg-amber-50 ring-1 ring-amber-200 px-3 py-3 transition-all hover:shadow-md hover:-translate-y-0.5 hover:ring-amber-300">
