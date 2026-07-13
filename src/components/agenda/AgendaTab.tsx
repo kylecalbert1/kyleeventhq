@@ -214,6 +214,9 @@ function AgendaRunningOrder({
         {spNames.length > 0 && (
           <div className="mt-1 text-xs text-slate-700">{spNames.join(", ")}</div>
         )}
+        {r.description && (
+          <div className="mt-1 text-[11px] text-slate-500 leading-snug">{r.description}</div>
+        )}
         {r.av_requirements && (
           <div className="mt-1 text-[11px] text-slate-500 italic">AV: {r.av_requirements}</div>
         )}

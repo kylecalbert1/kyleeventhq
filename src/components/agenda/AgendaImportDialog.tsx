@@ -17,6 +17,7 @@ import {
   SESSION_TYPES,
   bulkReplaceAgenda,
   importAgendaFromUrl,
+  generateAgendaDescriptions,
 } from "@/lib/agenda.functions";
 
 type ParsedRow = {
@@ -28,6 +29,7 @@ type ParsedRow = {
   speaker_extra: string | null;
   av_requirements: string | null;
   track: string | null;
+  description: string | null;
   raw_speakers?: string;
 };
 
@@ -141,6 +143,7 @@ function rowsFromMatrix(matrix: any[][]): ParsedRow[] {
       speaker_extra: null,
       av_requirements: av || null,
       track: track || null,
+      description: null,
       raw_speakers: spk || undefined,
     });
   }
@@ -194,11 +197,40 @@ export function AgendaImportDialog({
   const qc = useQueryClient();
   const replaceFn = useServerFn(bulkReplaceAgenda);
   const importUrlFn = useServerFn(importAgendaFromUrl);
+  const genDescFn = useServerFn(generateAgendaDescriptions);
   const [rows, setRows] = useState<ParsedRow[] | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
   const [urlValue, setUrlValue] = useState("");
   const [urlLoading, setUrlLoading] = useState(false);
+  const [describing, setDescribing] = useState(false);
+
+  async function generateDescriptionsFor(parsed: ParsedRow[]) {
+    if (parsed.length === 0) return parsed;
+    setDescribing(true);
+    try {
+      const speakerNameById = new Map(speakers.map((s) => [s.id, s.name]));
+      const req = parsed.map((r) => ({
+        title: r.title,
+        session_type: r.session_type,
+        track: r.track,
+        speakers: [
+          ...r.speaker_ids.map((id) => speakerNameById.get(id) ?? "").filter(Boolean),
+          r.speaker_extra ?? "",
+          r.raw_speakers ?? "",
+        ]
+          .filter(Boolean)
+          .join(", ") || null,
+      }));
+      const { descriptions } = await genDescFn({ data: { rows: req } });
+      return parsed.map((r, i) => ({ ...r, description: descriptions[i] ?? r.description }));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't generate descriptions");
+      return parsed;
+    } finally {
+      setDescribing(false);
+    }
+  }
 
   async function handleFile(file: File) {
     setParsing(true);
@@ -241,8 +273,12 @@ export function AgendaImportDialog({
       const parsed = matchSpeakers(rowsFromMatrix(matrix), speakers);
       if (parsed.length === 0) {
         toast.error("Couldn't find any agenda rows in that file.");
+        setRows(parsed);
+      } else {
+        setRows(parsed);
+        const withDesc = await generateDescriptionsFor(parsed);
+        setRows(withDesc);
       }
-      setRows(parsed);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to parse file");
     } finally {
@@ -266,12 +302,19 @@ export function AgendaImportDialog({
           speaker_extra: null,
           av_requirements: null,
           track: r.track,
+          description: null,
           raw_speakers: r.raw_speakers ?? undefined,
         })),
         speakers,
       );
-      if (parsed.length === 0) toast.error("Couldn't find any agenda rows on that page.");
-      setRows(parsed);
+      if (parsed.length === 0) {
+        toast.error("Couldn't find any agenda rows on that page.");
+        setRows(parsed);
+      } else {
+        setRows(parsed);
+        const withDesc = await generateDescriptionsFor(parsed);
+        setRows(withDesc);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to fetch URL");
     } finally {
@@ -292,6 +335,7 @@ export function AgendaImportDialog({
         speaker_extra: r.speaker_extra,
         av_requirements: r.av_requirements,
         track: r.track,
+        description: r.description,
       }));
       return replaceFn({ data: { event_id: eventId, items } });
     },
@@ -366,8 +410,13 @@ export function AgendaImportDialog({
 
           {rows && rows.length > 0 && (
             <div>
-              <div className="text-xs font-semibold text-slate-700 mb-2">
+              <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-2">
                 Preview — {rows.length} rows
+                {describing && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-normal text-indigo-700">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Generating descriptions…
+                  </span>
+                )}
               </div>
               <div className="border border-slate-200 rounded-lg overflow-hidden">
                 <div className="grid grid-cols-[60px_60px_50px_110px_1fr_140px_120px] gap-2 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b">
@@ -390,9 +439,9 @@ export function AgendaImportDialog({
                           })()
                         : "";
                     return (
+                      <div key={i} className="border-b border-slate-100">
                       <div
-                        key={i}
-                        className="grid grid-cols-[60px_60px_50px_110px_1fr_140px_120px] gap-2 px-3 py-1.5 text-xs border-b border-slate-100 items-center"
+                        className="grid grid-cols-[60px_60px_50px_110px_1fr_140px_120px] gap-2 px-3 py-1.5 text-xs items-center"
                       >
                         <div className="tabular-nums">{r.start_time ?? "—"}</div>
                         <div className="tabular-nums">{end}</div>
@@ -411,6 +460,12 @@ export function AgendaImportDialog({
                             </span>
                           )}
                         </div>
+                      </div>
+                      {r.description && (
+                        <div className="px-3 pb-2 text-[11px] italic text-slate-500">
+                          {r.description}
+                        </div>
+                      )}
                       </div>
                     );
                   })}

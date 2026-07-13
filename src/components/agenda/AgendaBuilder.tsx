@@ -53,6 +53,7 @@ type Item = {
   speaker_extra: string | null;
   av_requirements: string | null;
   track: string | null;
+  description: string | null;
 };
 
 function newClientId() {
@@ -104,6 +105,7 @@ function skeletonFor(
     speaker_extra: null,
     av_requirements: null,
     track: null,
+    description: null,
   });
 
   if (template === "csc_in_person") {
@@ -190,6 +192,7 @@ export function AgendaBuilder({
           speaker_extra: r.speaker_extra,
           av_requirements: r.av_requirements,
           track: r.track ?? null,
+          description: r.description ?? null,
         })),
       );
     }
@@ -247,6 +250,7 @@ export function AgendaBuilder({
         speaker_extra: r.speaker_extra,
         av_requirements: r.av_requirements,
         track: r.track,
+        description: r.description,
       }));
       return replaceFn({ data: { event_id: eventId, items: payload } });
     },
@@ -297,6 +301,7 @@ export function AgendaBuilder({
         speaker_extra: null,
         av_requirements: null,
         track: null,
+        description: null,
       },
     ]);
   }
@@ -456,12 +461,9 @@ export function AgendaBuilder({
           const end = r.start_time ? addMinutes(r.start_time, r.duration_min) : "";
           const flagged = sponsorBackToBack.has(i);
           return (
+            <div key={r.id} className={"border-b border-slate-100 " + (flagged ? "bg-amber-50/50" : "")}>
             <div
-              key={r.id}
-              className={
-                "grid grid-cols-[70px_70px_60px_140px_1fr_130px_160px_130px_90px] gap-2 px-3 py-2 border-b border-slate-100 items-center " +
-                (flagged ? "bg-amber-50/50" : "")
-              }
+              className="grid grid-cols-[70px_70px_60px_140px_1fr_130px_160px_130px_90px] gap-2 px-3 py-2 items-center"
             >
               <Input
                 value={r.start_time ?? ""}
@@ -550,6 +552,16 @@ export function AgendaBuilder({
                   <Trash2 className="h-3 w-3 text-red-500" />
                 </Button>
               </div>
+            </div>
+            <div className="px-3 pb-2 -mt-1">
+              <Textarea
+                value={r.description ?? ""}
+                onChange={(e) => updateRow(i, { description: e.target.value || null })}
+                placeholder="Short description (auto-generated on import; edit or clear as you like)"
+                className="text-xs min-h-[36px] resize-y"
+                rows={1}
+              />
+            </div>
             </div>
           );
         })}

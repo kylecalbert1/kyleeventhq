@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           av_requirements: string | null
           created_at: string
+          description: string | null
           duration_min: number
           event_id: string
           id: string
@@ -33,6 +34,7 @@ export type Database = {
         Insert: {
           av_requirements?: string | null
           created_at?: string
+          description?: string | null
           duration_min?: number
           event_id: string
           id?: string
@@ -48,6 +50,7 @@ export type Database = {
         Update: {
           av_requirements?: string | null
           created_at?: string
+          description?: string | null
           duration_min?: number
           event_id?: string
           id?: string
