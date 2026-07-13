@@ -49,6 +49,7 @@ import {
   SpeakerListCard,
   softCard,
   columnFor,
+  bioHeadshotDone,
   stagePill,
   avatarGradient,
   eventChipCls,
@@ -91,7 +92,7 @@ function patchForColumn(target: ColKey): Record<string, any> {
     case "banner_sent":
       return { status: "confirmed", banner_status: "sent" };
     case "bio_headshot_in":
-      return { bio_received: true, headshot_received: true };
+      return { bio_and_headshot_received: true, bio_received: true, headshot_received: true };
   }
 }
 
@@ -113,8 +114,7 @@ function SpeakerBoard() {
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [lineFilter, setLineFilter] = useState<string>("all");
   const [channelFilter, setChannelFilter] = useState<string>("all");
-  const [missingBio, setMissingBio] = useState(false);
-  const [missingHeadshot, setMissingHeadshot] = useState(false);
+  const [missingBH, setMissingBH] = useState(false);
   const [attentionFilter, setAttentionFilter] = useState<"all" | "reply" | "follow_up" | "any">(
     search.attention ?? "all",
   );
@@ -146,8 +146,7 @@ function SpeakerBoard() {
           if (s.outreach_channel) return false;
         } else if (s.outreach_channel !== channelFilter) return false;
       }
-      if (missingBio && s.bio_received) return false;
-      if (missingHeadshot && s.headshot_received) return false;
+      if (missingBH && bioHeadshotDone(s)) return false;
       if (attentionFilter !== "all") {
         const a = outreachAlert(s);
         if (!a) return false;
@@ -161,7 +160,7 @@ function SpeakerBoard() {
       }
       return true;
     });
-  }, [speakers.data, eventFilter, lineFilter, channelFilter, missingBio, missingHeadshot, attentionFilter, q, eventById]);
+  }, [speakers.data, eventFilter, lineFilter, channelFilter, missingBH, attentionFilter, q, eventById]);
 
   // Stage counts (pre-stage-filter, so the dropdown shows real totals).
   const stageCounts = useMemo(() => {
@@ -286,8 +285,7 @@ function SpeakerBoard() {
     eventFilter !== "all" ||
     lineFilter !== "all" ||
     channelFilter !== "all" ||
-    missingBio ||
-    missingHeadshot ||
+    missingBH ||
     attentionFilter !== "all" ||
     q.trim() !== "";
 
@@ -296,8 +294,7 @@ function SpeakerBoard() {
     setEventFilter("all");
     setLineFilter("all");
     setChannelFilter("all");
-    setMissingBio(false);
-    setMissingHeadshot(false);
+    setMissingBH(false);
     setAttentionFilter("all");
     setQ("");
     navigate({ to: "/speakers", search: {} });
@@ -437,10 +434,7 @@ function SpeakerBoard() {
             </SelectContent>
           </Select>
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
-            <Checkbox checked={missingBio} onCheckedChange={(v) => setMissingBio(!!v)} /> Missing bio
-          </label>
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
-            <Checkbox checked={missingHeadshot} onCheckedChange={(v) => setMissingHeadshot(!!v)} /> Missing headshot
+            <Checkbox checked={missingBH} onCheckedChange={(v) => setMissingBH(!!v)} /> Bio &amp; headshot missing
           </label>
           {hasFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8">

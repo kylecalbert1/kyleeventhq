@@ -26,6 +26,8 @@ import {
   Wand2,
   AlertTriangle,
   Save,
+  Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { agendaItemsQuery, agendaTemplatesQuery, speakersQuery } from "@/lib/queries";
@@ -131,7 +133,19 @@ function skeletonFor(
   return [mk("keynote"), mk("panel"), mk("keynote"), mk("panel")];
 }
 
-export function AgendaBuilder({ eventId, eventFormat }: { eventId: string; eventFormat: string }) {
+export function AgendaBuilder({
+  eventId,
+  eventFormat,
+  onImport,
+  onSaved,
+  onCancel,
+}: {
+  eventId: string;
+  eventFormat: string;
+  onImport?: () => void;
+  onSaved?: () => void;
+  onCancel?: () => void;
+}) {
   const qc = useQueryClient();
   const itemsQ = useQuery(agendaItemsQuery(eventId));
   const templatesQ = useQuery(agendaTemplatesQuery);
@@ -206,6 +220,7 @@ export function AgendaBuilder({ eventId, eventFormat }: { eventId: string; event
     onSuccess: () => {
       toast.success("Agenda saved");
       qc.invalidateQueries({ queryKey: ["agendaItems", eventId] });
+      onSaved?.();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
@@ -341,18 +356,29 @@ export function AgendaBuilder({ eventId, eventFormat }: { eventId: string; event
         <div className="flex-1" />
         <div className="flex flex-wrap gap-2">
           <TemplateSettings templateKey={template} />
+          {onImport && (
+            <Button variant="outline" size="sm" onClick={onImport}>
+              <Upload className="h-3.5 w-3.5 mr-1.5" /> Import
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={draftSkeleton}>
             <Wand2 className="h-3.5 w-3.5 mr-1.5" /> Draft skeleton
           </Button>
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={rows.length === 0}>
             <Download className="h-3.5 w-3.5 mr-1.5" /> Export CSV
           </Button>
+          {onCancel && (
+            <Button variant="ghost" size="sm" onClick={onCancel}>
+              <X className="h-3.5 w-3.5 mr-1.5" /> Cancel
+            </Button>
+          )}
           <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
             <Save className="h-3.5 w-3.5 mr-1.5" />
             {save.isPending ? "Saving…" : "Save agenda"}
           </Button>
         </div>
       </Card>
+
 
       {sponsorBackToBack.size > 0 && (
         <div className="flex items-center gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2">

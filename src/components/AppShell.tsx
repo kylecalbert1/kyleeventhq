@@ -2,7 +2,6 @@ import { Link, Outlet, useRouter } from "@tanstack/react-router";
 import {
   LayoutGrid,
   Users,
-  Image as ImageIcon,
   Globe,
   CalendarDays,
   LogOut,
@@ -16,7 +15,6 @@ type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boo
 const NAV_PRIMARY: NavItem[] = [
   { to: "/", label: "Events", icon: LayoutGrid, exact: true },
   { to: "/speakers", label: "Speakers", icon: Users },
-  { to: "/banners", label: "Banners", icon: ImageIcon },
   { to: "/website", label: "Website", icon: Globe },
 ];
 

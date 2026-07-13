@@ -9,10 +9,10 @@ import {
   X,
   CalendarDays,
   Users,
-  ImageIcon,
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  Target as TargetIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -77,7 +77,7 @@ function ReadinessBadge({
   );
 }
 
-type SortKey = "launch" | "health" | "confirmed_pct" | "banners_pct";
+type SortKey = "launch" | "health" | "confirmed_pct";
 type StatusFilter = "all" | "on_track" | "needs_attention";
 type LineFilter = "all" | BusinessLine;
 
@@ -205,27 +205,20 @@ function EventsGrid() {
       if (!ev.launch_date) return true;
       return new Date(ev.launch_date) >= now;
     });
-    let speakers = 0,
+    let target = 0,
       confirmed = 0,
-      banners = 0,
-      bannersSent = 0,
       attention = 0;
     for (const s of active) {
-      speakers += s.speakerCount;
+      target += (s.event as any).speaker_target ?? 15;
       confirmed += s.confirmedCount;
-      banners += s.bannerTotal;
-      bannersSent += s.bannersSent;
       const self = (s.event as any).self_status ?? "on_track";
       if (self !== "on_track") attention++;
     }
     return {
       activeCount: active.length,
-      speakers,
+      target,
       confirmed,
-      speakersOpen: Math.max(0, speakers - confirmed),
-      banners,
-      bannersSent,
-      bannersPending: Math.max(0, banners - bannersSent),
+      speakersOpen: Math.max(0, target - confirmed),
       attention,
     };
   }, [summaries]);
@@ -262,13 +255,10 @@ function EventsGrid() {
           healthRank[(eb.self_status ?? "on_track") as SelfStatus]
         );
       }
-      if (sortKey === "confirmed_pct") {
-        const pa = a.speakerCount ? a.confirmedCount / a.speakerCount : -1;
-        const pb = b.speakerCount ? b.confirmedCount / b.speakerCount : -1;
-        return pb - pa;
-      }
-      const pa = a.bannerTotal ? a.bannersSent / a.bannerTotal : -1;
-      const pb = b.bannerTotal ? b.bannersSent / b.bannerTotal : -1;
+      const targetA = (a.event as any).speaker_target ?? 15;
+      const targetB = (b.event as any).speaker_target ?? 15;
+      const pa = targetA ? a.confirmedCount / targetA : -1;
+      const pb = targetB ? b.confirmedCount / targetB : -1;
       return pb - pa;
     });
     return arr;
@@ -297,7 +287,7 @@ function EventsGrid() {
 
       {/* Section: KPIs */}
       <section>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <KpiBox
             tone="violet"
             icon={CalendarDays}
@@ -307,27 +297,15 @@ function EventsGrid() {
           />
           <KpiBox
             tone="emerald"
-            icon={Users}
+            icon={TargetIcon}
             label="Speakers confirmed"
             value={
               <>
                 {kpi.confirmed}
-                <span className="text-muted-foreground/70 text-lg">/{kpi.speakers}</span>
+                <span className="text-muted-foreground/70 text-lg">/{kpi.target}</span>
               </>
             }
-            sub={`${kpi.speakersOpen} still open`}
-          />
-          <KpiBox
-            tone="sky"
-            icon={ImageIcon}
-            label="Banners sent"
-            value={
-              <>
-                {kpi.bannersSent}
-                <span className="text-muted-foreground/70 text-lg">/{kpi.banners}</span>
-              </>
-            }
-            sub={`${kpi.bannersPending} pending`}
+            sub={`${kpi.speakersOpen} still to confirm (target)`}
           />
           <KpiBox
             tone="amber"
@@ -405,7 +383,7 @@ function EventsGrid() {
                 <SelectItem value="launch">Soonest to launch</SelectItem>
                 <SelectItem value="health">Health (needs attention first)</SelectItem>
                 <SelectItem value="confirmed_pct">Speakers confirmed %</SelectItem>
-                <SelectItem value="banners_pct">Banners sent %</SelectItem>
+                
               </SelectContent>
             </Select>
             <Select
@@ -594,18 +572,12 @@ function EventsGrid() {
                           <StatusPill
                             className={ratioPillClass(
                               s.confirmedCount,
-                              s.speakerCount,
+                              (ev as any).speaker_target ?? 15,
                               "confirmed",
                             )}
                           >
                             <Users className="h-3 w-3" />
-                            {s.confirmedCount}/{s.speakerCount} confirmed
-                          </StatusPill>
-                          <StatusPill
-                            className={ratioPillClass(s.bannersSent, s.bannerTotal, "banners")}
-                          >
-                            <ImageIcon className="h-3 w-3" />
-                            {s.bannersSent}/{s.bannerTotal} banners
+                            {s.confirmedCount}/{(ev as any).speaker_target ?? 15} confirmed
                           </StatusPill>
                           {s.washupExists && (
                             <StatusPill

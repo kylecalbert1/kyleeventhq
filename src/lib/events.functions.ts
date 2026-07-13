@@ -23,6 +23,7 @@ const EventInput = z.object({
   self_status: z.enum(["on_track", "needs_attention", "off_track"]).optional(),
   banner_dropbox_link: z.string().nullable().optional(),
   asana_project_gid: z.string().nullable().optional(),
+  speaker_target: z.number().int().min(0).optional(),
 });
 
 export const listEvents = createServerFn({ method: "GET" })

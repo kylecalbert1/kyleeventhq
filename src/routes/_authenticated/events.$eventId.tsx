@@ -45,7 +45,7 @@ import {
 } from "@/components/banners/EventBannerGroup";
 import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
 import { OutreachHub } from "@/components/outreach/OutreachHub";
-import { AgendaBuilder } from "@/components/agenda/AgendaBuilder";
+import { AgendaTab } from "@/components/agenda/AgendaTab";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
@@ -189,7 +189,7 @@ function EventDetail() {
         </TabsContent>
 
         <TabsContent value="agenda" className="mt-4">
-          <AgendaBuilder eventId={eventId} eventFormat={e.format} />
+          <AgendaTab eventId={eventId} eventFormat={e.format} />
         </TabsContent>
 
         <TabsContent value="email" className="mt-4 space-y-4">

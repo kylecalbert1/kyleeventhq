@@ -333,6 +333,7 @@ export type Database = {
           proof2_due: string | null
           self_status: Database["public"]["Enums"]["self_status"]
           signoff_done: boolean
+          speaker_target: number
           updated_at: string
           venue: string | null
           washup_date: string | null
@@ -358,6 +359,7 @@ export type Database = {
           proof2_due?: string | null
           self_status?: Database["public"]["Enums"]["self_status"]
           signoff_done?: boolean
+          speaker_target?: number
           updated_at?: string
           venue?: string | null
           washup_date?: string | null
@@ -383,6 +385,7 @@ export type Database = {
           proof2_due?: string | null
           self_status?: Database["public"]["Enums"]["self_status"]
           signoff_done?: boolean
+          speaker_target?: number
           updated_at?: string
           venue?: string | null
           washup_date?: string | null
@@ -490,6 +493,7 @@ export type Database = {
       speakers: {
         Row: {
           banner_status: Database["public"]["Enums"]["banner_status"]
+          bio_and_headshot_received: boolean
           bio_received: boolean
           bio_text: string | null
           company: string | null
@@ -516,6 +520,7 @@ export type Database = {
         }
         Insert: {
           banner_status?: Database["public"]["Enums"]["banner_status"]
+          bio_and_headshot_received?: boolean
           bio_received?: boolean
           bio_text?: string | null
           company?: string | null
@@ -542,6 +547,7 @@ export type Database = {
         }
         Update: {
           banner_status?: Database["public"]["Enums"]["banner_status"]
+          bio_and_headshot_received?: boolean
           bio_received?: boolean
           bio_text?: string | null
           company?: string | null
