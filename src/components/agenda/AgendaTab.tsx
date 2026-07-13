@@ -104,6 +104,8 @@ export function AgendaTab({ eventId, eventFormat }: { eventId: string; eventForm
     );
   }
 
+  const isVirtual = eventFormat === "virtual";
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
@@ -125,6 +127,12 @@ export function AgendaTab({ eventId, eventFormat }: { eventId: string; eventForm
           </Button>
         </div>
       </div>
+
+      {isVirtual && (
+        <div className="text-xs px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 font-medium">
+          Virtual event day: 09:00–17:00 · All times EDT
+        </div>
+      )}
 
       {items.length === 0 ? (
         <Card className="p-10 text-center text-sm text-slate-500 rounded-2xl border-slate-200/70">
