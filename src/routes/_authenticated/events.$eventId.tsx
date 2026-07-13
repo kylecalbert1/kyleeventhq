@@ -300,9 +300,10 @@ function EventDetail() {
             <div className="space-y-2">
               {(tasks.data ?? []).map((t: any) => {
                 const stages = [
-                  { label: "Buddy proof", done: t.buddy_proof_done, date: t.buddy_proof_date },
-                  { label: "Marketer proof", done: t.marketer_proof_done, date: t.marketer_proof_date },
-                  { label: "Final sign-off", done: t.final_signoff_done, date: t.final_signoff_date },
+                  { key: "buddy_proof" as const, label: "1st proof (buddy)", done: t.buddy_proof_done, date: t.buddy_proof_date },
+                  { key: "marketer_proof" as const, label: "2nd proof (marketing)", done: t.marketer_proof_done, date: t.marketer_proof_date },
+                  { key: "amendments_actioned" as const, label: "Amendments actioned", done: t.amendments_actioned_done, date: t.amendments_actioned_date },
+                  { key: "final_signoff" as const, label: "Final sign-off", done: t.final_signoff_done, date: t.final_signoff_date },
                 ];
                 return (
                   <Card
@@ -327,21 +328,25 @@ function EventDetail() {
                           )}
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                          {stages.map((st) => (
-                            <span
-                              key={st.label}
-                              className={
-                                "text-[11px] px-2 py-0.5 rounded-full ring-1 " +
-                                (st.done
-                                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                                  : "bg-slate-50 text-slate-500 ring-slate-200")
-                              }
-                            >
-                              {st.done ? "✓ " : "○ "}
-                              {st.label}
-                              {st.done && st.date ? ` · ${new Date(st.date).toLocaleDateString()}` : ""}
-                            </span>
-                          ))}
+                          {stages.map((st) => {
+                            const asanaDue = asanaDues?.[st.key] ?? null;
+                            return (
+                              <span
+                                key={st.label}
+                                className={
+                                  "text-[11px] px-2 py-0.5 rounded-full ring-1 " +
+                                  (st.done
+                                    ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                                    : "bg-slate-50 text-slate-500 ring-slate-200")
+                                }
+                              >
+                                {st.done ? "✓ " : "○ "}
+                                {st.label}
+                                {st.done && st.date ? ` · ${new Date(st.date).toLocaleDateString()}` : ""}
+                                {asanaDue ? ` · Asana ${new Date(asanaDue).toLocaleDateString()}` : ""}
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
                       {t.markup_url && (
