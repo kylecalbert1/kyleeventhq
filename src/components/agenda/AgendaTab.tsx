@@ -147,54 +147,7 @@ export function AgendaTab({ eventId, eventFormat }: { eventId: string; eventForm
           </div>
         </Card>
       ) : (
-        <Card className="p-0 rounded-2xl border-slate-200/70 overflow-hidden">
-          <ol className="divide-y divide-slate-100">
-            {items.map((r: any) => {
-              const end = r.start_time ? addMinutes(r.start_time, r.duration_min) : "";
-              const accent = TYPE_ACCENT[r.session_type] ?? TYPE_ACCENT.other;
-              const spNames = [
-                ...(r.speaker_ids ?? [])
-                  .map((id: string) => speakerNameById.get(id))
-                  .filter(Boolean),
-                r.speaker_extra,
-              ].filter(Boolean);
-              const breakLike = isBreakLike(r.session_type);
-              return (
-                <li key={r.id} className={`flex gap-4 px-5 py-4 border-l-4 ${accent}`}>
-                  <div className="w-28 shrink-0 pt-0.5">
-                    <div className="text-sm font-semibold text-slate-900 tabular-nums">
-                      {r.start_time ?? "—"}
-                      {end ? ` – ${end}` : ""}
-                    </div>
-                    <div className="text-[11px] text-slate-500 tabular-nums">{r.duration_min} min</div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 bg-white ring-1 ring-slate-200 rounded-full px-2 py-0.5">
-                        {SESSION_LABELS[r.session_type] ?? r.session_type}
-                      </span>
-                      {r.title && (
-                        <span className={`font-semibold ${breakLike ? "text-slate-600" : "text-slate-900"}`}>
-                          {r.title}
-                        </span>
-                      )}
-                    </div>
-                    {spNames.length > 0 && (
-                      <div className="mt-1 text-sm text-slate-700">
-                        {spNames.join(", ")}
-                      </div>
-                    )}
-                    {r.av_requirements && (
-                      <div className="mt-1 text-xs text-slate-500 italic">
-                        AV: {r.av_requirements}
-                      </div>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </Card>
+        <AgendaRunningOrder items={items} speakerNameById={speakerNameById} />
       )}
 
       <AgendaImportDialog
