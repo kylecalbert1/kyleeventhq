@@ -262,7 +262,7 @@ function ReplyNeededPage() {
             const ev = eventById[s.event_id];
             const colKey = columnFor(s);
             const statusLabel =
-              labels.speakerStatus[s.status as SpeakerStatus] ?? s.status;
+              labels.speaker[s.status as SpeakerStatus] ?? s.status;
             return (
               <Card key={s.id} className="p-4">
                 <div className="flex items-start gap-4">
