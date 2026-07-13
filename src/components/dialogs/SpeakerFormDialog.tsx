@@ -27,6 +27,7 @@ type Speaker = {
   banner_status: "not_started" | "created" | "sent" | "confirmed_live";
   bio_received: boolean;
   headshot_received: boolean;
+  bio_and_headshot_received?: boolean;
   linkedin_url: string | null;
   notes: string | null;
   dropbox_link: string | null;
@@ -61,8 +62,7 @@ export function SpeakerFormDialog({
     session_title: "",
     session_format: "" as "" | Speaker["session_format"],
     banner_status: "not_started" as Speaker["banner_status"],
-    bio_received: false,
-    headshot_received: false,
+    bio_and_headshot_received: false,
     linkedin_url: "",
     notes: "",
     dropbox_link: "",
@@ -82,8 +82,9 @@ export function SpeakerFormDialog({
         session_title: speaker.session_title ?? "",
         session_format: speaker.session_format ?? "",
         banner_status: speaker.banner_status,
-        bio_received: speaker.bio_received,
-        headshot_received: speaker.headshot_received,
+        bio_and_headshot_received:
+          speaker.bio_and_headshot_received ??
+          !!(speaker.bio_received && speaker.headshot_received),
         linkedin_url: speaker.linkedin_url ?? "",
         notes: speaker.notes ?? "",
         dropbox_link: speaker.dropbox_link ?? "",
@@ -107,8 +108,9 @@ export function SpeakerFormDialog({
         session_title: form.session_title || null,
         session_format: (form.session_format || null) as Speaker["session_format"],
         banner_status: form.banner_status,
-        bio_received: form.bio_received,
-        headshot_received: form.headshot_received,
+        bio_and_headshot_received: form.bio_and_headshot_received,
+        bio_received: form.bio_and_headshot_received,
+        headshot_received: form.bio_and_headshot_received,
         linkedin_url: form.linkedin_url || null,
         notes: form.notes || null,
         dropbox_link: form.dropbox_link || null,
@@ -185,8 +187,7 @@ export function SpeakerFormDialog({
             </Select>
           </F>
           <div className="col-span-2 flex flex-wrap gap-6 pt-1">
-            <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.bio_received} onCheckedChange={(v) => setForm({ ...form, bio_received: !!v })} />Bio received</label>
-            <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.headshot_received} onCheckedChange={(v) => setForm({ ...form, headshot_received: !!v })} />Headshot received</label>
+            <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.bio_and_headshot_received} onCheckedChange={(v) => setForm({ ...form, bio_and_headshot_received: !!v })} />Bio &amp; headshot received</label>
             <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.linkedin_post_confirmed} onCheckedChange={(v) => setForm({ ...form, linkedin_post_confirmed: !!v })} />LinkedIn post confirmed</label>
           </div>
           <F label="Notes" full><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></F>

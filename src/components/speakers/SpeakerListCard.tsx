@@ -35,8 +35,13 @@ export type ColKey =
   | "banner_sent"
   | "bio_headshot_in";
 
+export function bioHeadshotDone(s: any): boolean {
+  if (typeof s?.bio_and_headshot_received === "boolean") return s.bio_and_headshot_received;
+  return !!(s?.bio_received && s?.headshot_received);
+}
+
 export function columnFor(s: any): ColKey {
-  if (s.bio_received && s.headshot_received) return "bio_headshot_in";
+  if (bioHeadshotDone(s)) return "bio_headshot_in";
   if (s.banner_status === "sent" || s.banner_status === "confirmed_live")
     return "banner_sent";
   if (s.status === "confirmed") return "confirmed";
@@ -221,18 +226,11 @@ export function SpeakerListCard({
             )}
           </div>
 
-          {(!s.bio_received || !s.headshot_received) && (
+          {!bioHeadshotDone(s) && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {!s.bio_received && (
-                <StatusPill className={cn(missingChipCls, "text-[11px]")}>
-                  <AlertTriangle className="h-3 w-3" /> Missing bio
-                </StatusPill>
-              )}
-              {!s.headshot_received && (
-                <StatusPill className={cn(missingChipCls, "text-[11px]")}>
-                  <AlertTriangle className="h-3 w-3" /> Missing headshot
-                </StatusPill>
-              )}
+              <StatusPill className={cn(missingChipCls, "text-[11px]")}>
+                <AlertTriangle className="h-3 w-3" /> Bio &amp; headshot missing
+              </StatusPill>
             </div>
           )}
 
