@@ -231,6 +231,14 @@ export function EventFormDialog({
           <Field label="Owner">
             <Input value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} />
           </Field>
+          <Field label="Speaker target">
+            <Input
+              type="number"
+              min={0}
+              value={form.speaker_target}
+              onChange={(e) => setForm({ ...form, speaker_target: Number(e.target.value) })}
+            />
+          </Field>
           <Field label="Self status">
             <Select value={form.self_status} onValueChange={(v) => setForm({ ...form, self_status: v as never })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
