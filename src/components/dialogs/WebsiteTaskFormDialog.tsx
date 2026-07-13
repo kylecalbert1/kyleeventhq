@@ -26,6 +26,7 @@ import {
   updateWebsiteTask,
   deleteWebsiteTask,
 } from "@/lib/website-tasks.functions";
+import { getAsanaProofingDueDates } from "@/lib/asana.functions";
 import { eventsQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -78,6 +79,17 @@ export function WebsiteTaskFormDialog({
   const update = useServerFn(updateWebsiteTask);
   const del = useServerFn(deleteWebsiteTask);
   const events = useQuery(eventsQuery);
+  const fetchAsana = useServerFn(getAsanaProofingDueDates);
+  const currentEventId = task?.event_id ?? defaultEventId;
+  const asanaQuery = useQuery({
+    queryKey: ["asanaProofingDues", currentEventId ?? "none"],
+    queryFn: () => fetchAsana({ data: { event_id: currentEventId! } }),
+    enabled: !!currentEventId && open,
+    staleTime: 0,
+    refetchOnMount: "always",
+    retry: false,
+  });
+  const asanaDues = asanaQuery.data?.dues;
 
   const [form, setForm] = useState({
     event_id: defaultEventId ?? "",
@@ -378,12 +390,14 @@ function StageRow({
   date,
   onCheck,
   onDate,
+  asanaDue,
 }: {
   label: string;
   checked: boolean;
   date: string | null;
   onCheck: (v: boolean) => void;
   onDate: (v: string) => void;
+  asanaDue?: string | null;
 }) {
   return (
     <div
@@ -404,7 +418,14 @@ function StageRow({
           <Circle className="h-5 w-5 text-slate-300" />
         )}
       </button>
-      <div className="flex-1 text-sm font-medium text-slate-700">{label}</div>
+      <div className="flex-1 text-sm font-medium text-slate-700 min-w-0">
+        <div className="truncate">{label}</div>
+        {asanaDue && (
+          <div className="text-[10px] font-normal text-slate-500">
+            Asana due {new Date(asanaDue).toLocaleDateString()}
+          </div>
+        )}
+      </div>
       <Input
         type="date"
         value={date ?? ""}
