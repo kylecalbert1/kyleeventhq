@@ -763,6 +763,123 @@ export function SyncDialog({
               </>
             )}
           </TabsContent>
+
+          {/* BIO TAB */}
+          <TabsContent value="bio" className="flex-1 overflow-y-auto space-y-3 mt-3 pr-1">
+            {gmailStatus.data && !gmailStatus.data.connected ? (
+              <ConnectPrompt
+                title="Connect Gmail"
+                description="Link a Gmail account in Connectors to auto-populate speaker bios from reply threads."
+              />
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs text-muted-foreground">
+                    Scans replies from speakers missing a stored bio. High-confidence hits are
+                    auto-applied with an Undo toast; ambiguous ones land here for review.
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => bioMut.mutate()}
+                    disabled={bioMut.isPending}
+                  >
+                    {bioMut.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-1.5" />
+                    )}
+                    {bioSugs ? "Refresh" : "Scan bios"}
+                  </Button>
+                </div>
+
+                {bioSugs === null ? (
+                  <EmptyHint
+                    icon={<FileText className="h-6 w-6" />}
+                    text="Click Scan bios to look through recent replies from speakers still missing a bio."
+                  />
+                ) : bioSugs.filter((s) => !dismissedBios.has(s.speaker_id)).length === 0 ? (
+                  <EmptyHint icon={<CheckCircle2 className="h-6 w-6" />} text="Nothing to review." />
+                ) : (
+                  bioSugs
+                    .filter((s) => !dismissedBios.has(s.speaker_id))
+                    .map((sug) => (
+                      <Card key={sug.speaker_id + sug.thread_id} className="p-3 transition-all hover:shadow-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge className="bg-teal-600 text-white">Bio detected</Badge>
+                              <Badge variant="outline" className={`text-[10px] ${confidenceCls[sug.confidence]}`}>
+                                {sug.confidence} confidence
+                              </Badge>
+                              <span className="text-xs font-medium">{sug.speaker_name}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1 truncate">
+                              {sug.subject} · {sug.speaker_email}
+                            </div>
+                            <div className="mt-2 rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-800 whitespace-pre-line line-clamp-6">
+                              {sug.bio_text}
+                            </div>
+                            <div className="text-[11px] italic text-muted-foreground mt-1">
+                              AI: {sug.reasoning}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1 shrink-0">
+                            <Button
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  await applyBio({
+                                    data: {
+                                      speaker_id: sug.speaker_id,
+                                      bio_text: sug.bio_text,
+                                    },
+                                  });
+                                  setDismissedBios((s) => new Set(s).add(sug.speaker_id));
+                                  qc.invalidateQueries({ queryKey: ["speakers"] });
+                                  toast.success(`Applied bio for ${sug.speaker_name}`, {
+                                    duration: 15000,
+                                    action: {
+                                      label: "Undo",
+                                      onClick: async () => {
+                                        try {
+                                          await revertBioFn({
+                                            data: {
+                                              speaker_id: sug.speaker_id,
+                                              previous_bio: sug.previous_bio,
+                                            },
+                                          });
+                                          qc.invalidateQueries({ queryKey: ["speakers"] });
+                                          toast.success(`Reverted bio for ${sug.speaker_name}`);
+                                        } catch (e) {
+                                          toast.error(e instanceof Error ? e.message : "Undo failed");
+                                        }
+                                      },
+                                    },
+                                  });
+                                } catch (e) {
+                                  toast.error(e instanceof Error ? e.message : "Failed to apply");
+                                }
+                              }}
+                            >
+                              Apply bio
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                setDismissedBios((s) => new Set(s).add(sug.speaker_id))
+                              }
+                            >
+                              <X className="h-4 w-4 mr-1" /> Dismiss
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))
+                )}
+              </>
+            )}
+          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
