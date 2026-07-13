@@ -26,6 +26,7 @@ import {
   updateWebsiteTask,
   deleteWebsiteTask,
 } from "@/lib/website-tasks.functions";
+import { getAsanaProofingDueDates } from "@/lib/asana.functions";
 import { eventsQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -34,12 +35,14 @@ type WebsiteTask = {
   event_id: string;
   title: string | null;
   markup_url: string | null;
-  status: "draft" | "proof_1" | "proof_2" | "signed_off" | "live";
+  status: "draft" | "proof_1" | "proof_2" | "amendments" | "signed_off" | "live";
   due_date: string | null;
   buddy_proof_done: boolean;
   buddy_proof_date: string | null;
   marketer_proof_done: boolean;
   marketer_proof_date: string | null;
+  amendments_actioned_done: boolean;
+  amendments_actioned_date: string | null;
   final_signoff_done: boolean;
   final_signoff_date: string | null;
   protected: boolean;
@@ -48,11 +51,13 @@ type WebsiteTask = {
 function deriveStatus(f: {
   buddy_proof_done: boolean;
   marketer_proof_done: boolean;
+  amendments_actioned_done: boolean;
   final_signoff_done: boolean;
   status: WebsiteTask["status"];
 }): WebsiteTask["status"] {
   if (f.status === "live") return "live";
   if (f.final_signoff_done) return "signed_off";
+  if (f.amendments_actioned_done) return "amendments";
   if (f.marketer_proof_done) return "proof_2";
   if (f.buddy_proof_done) return "proof_1";
   return "draft";
@@ -74,6 +79,17 @@ export function WebsiteTaskFormDialog({
   const update = useServerFn(updateWebsiteTask);
   const del = useServerFn(deleteWebsiteTask);
   const events = useQuery(eventsQuery);
+  const fetchAsana = useServerFn(getAsanaProofingDueDates);
+  const currentEventId = task?.event_id ?? defaultEventId;
+  const asanaQuery = useQuery({
+    queryKey: ["asanaProofingDues", currentEventId ?? "none"],
+    queryFn: () => fetchAsana({ data: { event_id: currentEventId! } }),
+    enabled: !!currentEventId && open,
+    staleTime: 0,
+    refetchOnMount: "always",
+    retry: false,
+  });
+  const asanaDues = asanaQuery.data?.dues;
 
   const [form, setForm] = useState({
     event_id: defaultEventId ?? "",
@@ -85,6 +101,8 @@ export function WebsiteTaskFormDialog({
     buddy_proof_date: "",
     marketer_proof_done: false,
     marketer_proof_date: "",
+    amendments_actioned_done: false,
+    amendments_actioned_date: "",
     final_signoff_done: false,
     final_signoff_date: "",
     protected: false,
@@ -102,6 +120,8 @@ export function WebsiteTaskFormDialog({
         buddy_proof_date: task.buddy_proof_date ?? "",
         marketer_proof_done: task.marketer_proof_done ?? false,
         marketer_proof_date: task.marketer_proof_date ?? "",
+        amendments_actioned_done: task.amendments_actioned_done ?? false,
+        amendments_actioned_date: task.amendments_actioned_date ?? "",
         final_signoff_done: task.final_signoff_done ?? false,
         final_signoff_date: task.final_signoff_date ?? "",
         protected: task.protected,
@@ -118,6 +138,8 @@ export function WebsiteTaskFormDialog({
         buddy_proof_date: "",
         marketer_proof_done: false,
         marketer_proof_date: "",
+        amendments_actioned_done: false,
+        amendments_actioned_date: "",
         final_signoff_done: false,
         final_signoff_date: "",
         protected: false,
@@ -139,6 +161,8 @@ export function WebsiteTaskFormDialog({
         buddy_proof_date: form.buddy_proof_done ? form.buddy_proof_date || null : null,
         marketer_proof_done: form.marketer_proof_done,
         marketer_proof_date: form.marketer_proof_done ? form.marketer_proof_date || null : null,
+        amendments_actioned_done: form.amendments_actioned_done,
+        amendments_actioned_date: form.amendments_actioned_done ? form.amendments_actioned_date || null : null,
         final_signoff_done: form.final_signoff_done,
         final_signoff_date: form.final_signoff_done ? form.final_signoff_date || null : null,
         protected: form.protected,
@@ -233,11 +257,17 @@ export function WebsiteTaskFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-slate-500">Proofing stages</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs uppercase tracking-wide text-slate-500">Proofing stages</Label>
+              {asanaDues && (
+                <span className="text-[10px] text-slate-500">Dates on right pulled live from Asana</span>
+              )}
+            </div>
             <StageRow
-              label="Buddy proof complete"
+              label="1st website proof (buddy)"
               checked={form.buddy_proof_done}
               date={form.buddy_proof_date}
+              asanaDue={asanaDues?.buddy_proof ?? null}
               onCheck={(v) =>
                 setForm({
                   ...form,
@@ -250,9 +280,10 @@ export function WebsiteTaskFormDialog({
               onDate={(v) => setForm({ ...form, buddy_proof_date: v })}
             />
             <StageRow
-              label="Marketer proof complete"
+              label="2nd website proof (marketing)"
               checked={form.marketer_proof_done}
               date={form.marketer_proof_date}
+              asanaDue={asanaDues?.marketer_proof ?? null}
               onCheck={(v) =>
                 setForm({
                   ...form,
@@ -265,9 +296,26 @@ export function WebsiteTaskFormDialog({
               onDate={(v) => setForm({ ...form, marketer_proof_date: v })}
             />
             <StageRow
-              label="Final sign-off complete"
+              label="Marketing amendments actioned"
+              checked={form.amendments_actioned_done}
+              date={form.amendments_actioned_date}
+              asanaDue={asanaDues?.amendments_actioned ?? null}
+              onCheck={(v) =>
+                setForm({
+                  ...form,
+                  amendments_actioned_done: v,
+                  amendments_actioned_date: v && !form.amendments_actioned_date
+                    ? new Date().toISOString().slice(0, 10)
+                    : form.amendments_actioned_date,
+                })
+              }
+              onDate={(v) => setForm({ ...form, amendments_actioned_date: v })}
+            />
+            <StageRow
+              label="Final sign-off (line manager)"
               checked={form.final_signoff_done}
               date={form.final_signoff_date}
+              asanaDue={asanaDues?.final_signoff ?? null}
               onCheck={(v) =>
                 setForm({
                   ...form,
@@ -280,6 +328,7 @@ export function WebsiteTaskFormDialog({
               onDate={(v) => setForm({ ...form, final_signoff_date: v })}
             />
           </div>
+
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -341,12 +390,14 @@ function StageRow({
   date,
   onCheck,
   onDate,
+  asanaDue,
 }: {
   label: string;
   checked: boolean;
   date: string | null;
   onCheck: (v: boolean) => void;
   onDate: (v: string) => void;
+  asanaDue?: string | null;
 }) {
   return (
     <div
@@ -367,7 +418,14 @@ function StageRow({
           <Circle className="h-5 w-5 text-slate-300" />
         )}
       </button>
-      <div className="flex-1 text-sm font-medium text-slate-700">{label}</div>
+      <div className="flex-1 text-sm font-medium text-slate-700 min-w-0">
+        <div className="truncate">{label}</div>
+        {asanaDue && (
+          <div className="text-[10px] font-normal text-slate-500">
+            Asana due {new Date(asanaDue).toLocaleDateString()}
+          </div>
+        )}
+      </div>
       <Input
         type="date"
         value={date ?? ""}

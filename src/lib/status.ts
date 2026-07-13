@@ -1,7 +1,7 @@
 // Status maps: enum -> human label + semantic color token key.
 // Colors are Tailwind classes referencing tokens in src/styles.css.
 
-export const WEBSITE_STAGES = ["draft", "proof_1", "proof_2", "signed_off", "live"] as const;
+export const WEBSITE_STAGES = ["draft", "proof_1", "proof_2", "amendments", "signed_off", "live"] as const;
 export type WebsiteStage = (typeof WEBSITE_STAGES)[number];
 
 export const SPEAKER_STATUSES = ["contacted", "responded", "confirmed", "declined"] as const;
@@ -52,6 +52,7 @@ export const labels = {
     draft: "Draft",
     proof_1: "1st Proof",
     proof_2: "2nd Proof",
+    amendments: "Amendments Actioned",
     signed_off: "Signed Off",
     live: "Live",
   } satisfies Record<WebsiteStage, string>,
@@ -104,6 +105,7 @@ export const pillClass = {
     draft: "bg-slate-100 text-slate-700 ring-slate-200",
     proof_1: "bg-amber-100 text-amber-800 ring-amber-200",
     proof_2: "bg-orange-100 text-orange-800 ring-orange-200",
+    amendments: "bg-purple-100 text-purple-800 ring-purple-200",
     signed_off: "bg-indigo-100 text-indigo-800 ring-indigo-200",
     live: "bg-emerald-100 text-emerald-800 ring-emerald-200",
   } satisfies Record<WebsiteStage, string>,

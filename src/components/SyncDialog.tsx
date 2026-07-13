@@ -398,6 +398,8 @@ export function SyncDialog({
     try {
       if (gmailStatus.data?.connected) await bioMut.mutateAsync();
     } catch { /* toast already shown */ }
+    // Refresh Asana proofing due dates for all events (queried on demand per event).
+    qc.invalidateQueries({ queryKey: ["asanaProofingDues"] });
   }
 
   return (
