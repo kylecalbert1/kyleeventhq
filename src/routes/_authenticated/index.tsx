@@ -457,7 +457,7 @@ function EventsGrid() {
             </Button>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="space-y-3">
             {sorted.map((s) => {
               const ev = s.event as typeof s.event & {
                 proof1_due?: string | null;
@@ -473,120 +473,153 @@ function EventsGrid() {
                 ev.launch_date ? new Date(ev.launch_date) : null,
               );
               const selfStatus = ev.self_status ?? "on_track";
+              const launchLabel =
+                days === null
+                  ? null
+                  : days < 0
+                    ? `Launched ${Math.abs(days)}d ago`
+                    : days === 0
+                      ? "Launches today"
+                      : `${days}d to launch`;
+              const launchTone =
+                days === null
+                  ? "text-slate-500"
+                  : days < 0
+                    ? "text-emerald-700"
+                    : days <= 7
+                      ? "text-rose-700"
+                      : days <= 21
+                        ? "text-amber-700"
+                        : "text-slate-700";
+
               return (
                 <Link
                   key={ev.id}
                   to="/events/$eventId"
                   params={{ eventId: ev.id }}
-                  className="group"
+                  className="group block"
                 >
-                  <Card className="p-6 h-full bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.05)] transition-all duration-200 ease-out group-hover:shadow-[0_2px_4px_rgba(15,23,42,0.06),0_10px_28px_rgba(15,23,42,0.08)] group-hover:-translate-y-0.5">
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="min-w-0">
-                        <div className="text-xs font-mono text-muted-foreground">{ev.code}</div>
-                        <div className="font-semibold text-base leading-tight mt-0.5 truncate group-hover:text-primary transition-colors">
+                  <Card className="relative overflow-hidden bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.05)] transition-all duration-200 group-hover:shadow-[0_2px_4px_rgba(15,23,42,0.06),0_10px_28px_rgba(15,23,42,0.08)] group-hover:-translate-y-0.5">
+                    {/* Colored left border accent by health */}
+                    <span
+                      className={`absolute left-0 top-0 bottom-0 w-1 ${
+                        selfStatus === "on_track"
+                          ? "bg-emerald-500"
+                          : selfStatus === "needs_attention"
+                            ? "bg-amber-500"
+                            : "bg-rose-500"
+                      }`}
+                    />
+
+                    <div className="p-5 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-5 md:gap-4 items-center">
+                      {/* LEFT: identity */}
+                      <div className="md:col-span-4 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-mono text-[11px] text-muted-foreground">
+                            {ev.code}
+                          </span>
+                          <StatusPill className={pillClass.businessLine[ev.business_line]}>
+                            {ev.business_line}
+                          </StatusPill>
+                          <StatusPill className={pillClass.selfStatus[selfStatus]}>
+                            {labels.selfStatus[selfStatus]}
+                          </StatusPill>
+                        </div>
+                        <div className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors truncate">
                           {ev.name}
                         </div>
-                      </div>
-                      <StatusPill className={pillClass.businessLine[ev.business_line]}>
-                        {ev.business_line}
-                      </StatusPill>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span className="text-foreground font-medium">
-                          {ev.launch_date ? formatDate(ev.launch_date) : "Launch not set"}
-                        </span>
-                        {ev.launch_date && (
-                          <span className="text-muted-foreground">
-                            ·{" "}
-                            {days === null
-                              ? "—"
-                              : days < 0
-                                ? `Launched ${Math.abs(days)}d ago`
-                                : days === 0
-                                  ? "Launches today"
-                                  : `${days}d to launch`}
-                          </span>
-                        )}
-                      </div>
-                      <StatusPill className={pillClass.selfStatus[selfStatus]}>
-                        {labels.selfStatus[selfStatus]}
-                      </StatusPill>
-                    </div>
-
-
-                    <div className="grid grid-cols-3 gap-1.5 mb-3">
-                      <ReadinessBadge n={1} due={ev.proof1_due} done={!!ev.proof1_done} />
-                      <ReadinessBadge n={2} due={ev.proof2_due} done={!!ev.proof2_done} />
-                      <ReadinessBadge
-                        n={3}
-                        due={ev.final_signoff_due}
-                        done={!!ev.signoff_done}
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5 mb-4">
-                      <StatusPill className={pillClass.website[ev.website_status]}>
-                        {labels.website[ev.website_status]}
-                      </StatusPill>
-                    </div>
-
-                    <div className="space-y-1.5 text-xs">
-                      <Row
-                        icon={s.kickoffDone ? "done" : "pending"}
-                        label="Kickoff"
-                        value={
-                          <>
-                            <span className="text-muted-foreground">
-                              {ev.kickoff_date ? formatDate(ev.kickoff_date) : "Not set"}
+                        <div className="mt-1 flex items-center gap-2 flex-wrap">
+                          <StatusPill className={pillClass.website[ev.website_status]}>
+                            {labels.website[ev.website_status]}
+                          </StatusPill>
+                          {ev.owner && (
+                            <span className="text-xs text-muted-foreground">
+                              Owner: {ev.owner}
                             </span>
-                            <span className="mx-1 text-muted-foreground/60">·</span>
-                            <span>
-                              {s.kickoffExists
-                                ? s.kickoffDone
-                                  ? "Done"
-                                  : "Pending"
-                                : "Not scheduled"}
-                            </span>
-                          </>
-                        }
-                      />
-
-                      <Row
-                        icon={s.washupDone ? "done" : "pending"}
-                        label="Washup"
-                        value={
-                          s.washupExists
-                            ? s.washupDone
-                              ? "Done"
-                              : "Pending"
-                            : "Not scheduled"
-                        }
-                      />
-                      <div className="flex items-center justify-between pt-1.5">
-                        <span className="text-muted-foreground">Speakers</span>
-                        <StatusPill
-                          className={ratioPillClass(
-                            s.confirmedCount,
-                            s.speakerCount,
-                            "confirmed",
                           )}
-                        >
-                          <Users className="h-3 w-3" />
-                          {s.confirmedCount}/{s.speakerCount} confirmed
-                        </StatusPill>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Banners</span>
-                        <StatusPill
-                          className={ratioPillClass(s.bannersSent, s.bannerTotal, "banners")}
-                        >
-                          <ImageIcon className="h-3 w-3" />
-                          {s.bannersSent}/{s.bannerTotal} sent
-                        </StatusPill>
+
+                      {/* MIDDLE: Launch (most prominent) + Kickoff */}
+                      <div className="md:col-span-4 grid grid-cols-2 gap-3">
+                        <div className="rounded-xl bg-slate-50 ring-1 ring-slate-100 px-3 py-2.5">
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                            Launch
+                          </div>
+                          <div className="mt-0.5 text-base font-semibold tabular-nums text-slate-900 leading-tight">
+                            {ev.launch_date ? formatDate(ev.launch_date) : "Not set"}
+                          </div>
+                          {launchLabel && (
+                            <div className={`text-xs font-medium mt-0.5 ${launchTone}`}>
+                              {launchLabel}
+                            </div>
+                          )}
+                        </div>
+                        <div className="rounded-xl bg-slate-50 ring-1 ring-slate-100 px-3 py-2.5">
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                            Kickoff
+                          </div>
+                          <div className="mt-0.5 text-base font-semibold tabular-nums text-slate-900 leading-tight">
+                            {ev.kickoff_date ? formatDate(ev.kickoff_date) : "Not set"}
+                          </div>
+                          <div className="text-xs font-medium mt-0.5 flex items-center gap-1">
+                            {s.kickoffDone ? (
+                              <>
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                <span className="text-emerald-700">Done</span>
+                              </>
+                            ) : s.kickoffExists ? (
+                              <>
+                                <Circle className="h-3 w-3 text-slate-400" />
+                                <span className="text-slate-500">Pending</span>
+                              </>
+                            ) : (
+                              <span className="text-slate-400">Not scheduled</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* RIGHT: milestones + stats */}
+                      <div className="md:col-span-4 space-y-2.5">
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <ReadinessBadge n={1} due={ev.proof1_due} done={!!ev.proof1_done} />
+                          <ReadinessBadge n={2} due={ev.proof2_due} done={!!ev.proof2_done} />
+                          <ReadinessBadge
+                            n={3}
+                            due={ev.final_signoff_due}
+                            done={!!ev.signoff_done}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <StatusPill
+                            className={ratioPillClass(
+                              s.confirmedCount,
+                              s.speakerCount,
+                              "confirmed",
+                            )}
+                          >
+                            <Users className="h-3 w-3" />
+                            {s.confirmedCount}/{s.speakerCount} confirmed
+                          </StatusPill>
+                          <StatusPill
+                            className={ratioPillClass(s.bannersSent, s.bannerTotal, "banners")}
+                          >
+                            <ImageIcon className="h-3 w-3" />
+                            {s.bannersSent}/{s.bannerTotal} banners
+                          </StatusPill>
+                          {s.washupExists && (
+                            <StatusPill
+                              className={
+                                s.washupDone
+                                  ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
+                                  : "bg-slate-100 text-slate-600 ring-slate-200"
+                              }
+                            >
+                              Washup {s.washupDone ? "done" : "pending"}
+                            </StatusPill>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </Card>
@@ -601,6 +634,7 @@ function EventsGrid() {
     </div>
   );
 }
+
 
 function Row({
   icon,
