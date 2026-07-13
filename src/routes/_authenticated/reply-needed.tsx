@@ -298,7 +298,7 @@ function ReplyNeededPage() {
                         )}
                         <StatusPill
                           className={cn(
-                            pillClass.speakerStatus[s.status as SpeakerStatus],
+                            pillClass.speaker[s.status as SpeakerStatus],
                             "text-[11px]",
                           )}
                         >
