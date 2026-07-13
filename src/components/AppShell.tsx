@@ -8,6 +8,7 @@ import {
   Target,
   ClipboardCheck,
   Inbox,
+  Reply,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ const NAV_PRIMARY: NavItem[] = [
 const NAV_OPS: NavItem[] = [
   { to: "/milestones", label: "Kickoff & Washup", icon: CalendarDays },
   { to: "/outreach", label: "Weekly Outreach", icon: Target },
+  { to: "/reply-needed", label: "Reply Needed", icon: Reply },
   { to: "/proofing", label: "Proofing", icon: ClipboardCheck },
   { to: "/sponsor-inbox", label: "Sponsor Inbox", icon: Inbox },
 ];
