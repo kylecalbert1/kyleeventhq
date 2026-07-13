@@ -24,6 +24,7 @@ const NAV_OPS: NavItem[] = [
   { to: "/milestones", label: "Kickoff & Washup", icon: CalendarDays },
   { to: "/outreach", label: "Weekly Outreach", icon: Target },
   { to: "/proofing", label: "Proofing", icon: ClipboardCheck },
+  { to: "/sponsor-inbox", label: "Sponsor Inbox", icon: Inbox },
 ];
 
 function NavLink({ item }: { item: NavItem }) {
