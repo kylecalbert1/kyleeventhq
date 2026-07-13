@@ -69,6 +69,15 @@ function EventDetail() {
   const sponsors = useQuery(sponsorsQuery(eventId));
   const tasks = useQuery(websiteTasksQuery(eventId));
   const milestones = useQuery(milestonesQuery(eventId));
+  const fetchAsana = useServerFn(getAsanaProofingDueDates);
+  const asanaQuery = useQuery({
+    queryKey: ["asanaProofingDues", eventId],
+    queryFn: () => fetchAsana({ data: { event_id: eventId } }),
+    staleTime: 0,
+    refetchOnMount: "always",
+    retry: false,
+  });
+  const asanaDues = asanaQuery.data?.dues;
 
   const upSpeaker = useServerFn(updateSpeaker);
   const upSponsor = useServerFn(updateSponsor);
