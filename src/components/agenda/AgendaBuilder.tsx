@@ -133,8 +133,21 @@ function skeletonFor(
       mk("chairperson_remarks", "Chairperson closing"),
     ];
   }
-  // virtual
-  return [mk("keynote"), mk("panel"), mk("keynote"), mk("panel")];
+  // virtual — fixed 9am-5pm EDT (480 min total incl. buffers)
+  return [
+    mk("chairperson_remarks", "Welcome & housekeeping", 15),
+    mk("keynote", "Opening keynote", 40),
+    mk("panel", "Morning panel", 45),
+    mk("break", "Break", 10),
+    mk("sponsored_keynote", "Sponsor keynote", 30),
+    mk("keynote", "Midday keynote", 40),
+    mk("lunch", "Lunch break", 45),
+    mk("panel", "Afternoon panel", 45),
+    mk("keynote", "Afternoon keynote", 40),
+    mk("break", "Break", 10),
+    mk("panel", "Closing panel", 45),
+    mk("chairperson_remarks", "Closing remarks", 15),
+  ];
 }
 
 export function AgendaBuilder({
