@@ -10,12 +10,14 @@ const WebsiteTaskInput = z.object({
     .enum(["proof_1", "proof_2", "final_signoff", "launch", "audit", "refresh"])
     .nullable()
     .optional(),
-  status: z.enum(["draft", "proof_1", "proof_2", "signed_off", "live"]),
+  status: z.enum(["draft", "proof_1", "proof_2", "amendments", "signed_off", "live"]),
   due_date: z.string().nullable().optional(),
   buddy_proof_done: z.boolean().optional(),
   buddy_proof_date: z.string().nullable().optional(),
   marketer_proof_done: z.boolean().optional(),
   marketer_proof_date: z.string().nullable().optional(),
+  amendments_actioned_done: z.boolean().optional(),
+  amendments_actioned_date: z.string().nullable().optional(),
   final_signoff_done: z.boolean().optional(),
   final_signoff_date: z.string().nullable().optional(),
   protected: z.boolean(),
