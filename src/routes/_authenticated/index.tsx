@@ -5,7 +5,6 @@ import {
   Plus,
   CheckCircle2,
   Circle,
-  Calendar,
   Search,
   X,
   CalendarDays,
