@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedWebsiteRouteImport } from './routes/_authenticated/website'
+import { Route as AuthenticatedSponsorInboxRouteImport } from './routes/_authenticated/sponsor-inbox'
 import { Route as AuthenticatedSpeakersRouteImport } from './routes/_authenticated/speakers'
 import { Route as AuthenticatedProofingRouteImport } from './routes/_authenticated/proofing'
 import { Route as AuthenticatedOutreachRouteImport } from './routes/_authenticated/outreach'
@@ -40,6 +41,12 @@ const AuthenticatedWebsiteRoute = AuthenticatedWebsiteRouteImport.update({
   path: '/website',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSponsorInboxRoute =
+  AuthenticatedSponsorInboxRouteImport.update({
+    id: '/sponsor-inbox',
+    path: '/sponsor-inbox',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSpeakersRoute = AuthenticatedSpeakersRouteImport.update({
   id: '/speakers',
   path: '/speakers',
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/outreach': typeof AuthenticatedOutreachRoute
   '/proofing': typeof AuthenticatedProofingRoute
   '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
+  '/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
   '/website': typeof AuthenticatedWebsiteRoute
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
@@ -97,6 +105,7 @@ export interface FileRoutesByTo {
   '/outreach': typeof AuthenticatedOutreachRoute
   '/proofing': typeof AuthenticatedProofingRoute
   '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
+  '/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
   '/website': typeof AuthenticatedWebsiteRoute
   '/': typeof AuthenticatedIndexRoute
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
@@ -111,6 +120,7 @@ export interface FileRoutesById {
   '/_authenticated/outreach': typeof AuthenticatedOutreachRoute
   '/_authenticated/proofing': typeof AuthenticatedProofingRoute
   '/_authenticated/speakers': typeof AuthenticatedSpeakersRouteWithChildren
+  '/_authenticated/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
   '/_authenticated/website': typeof AuthenticatedWebsiteRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/events/$eventId': typeof AuthenticatedEventsEventIdRoute
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/outreach'
     | '/proofing'
     | '/speakers'
+    | '/sponsor-inbox'
     | '/website'
     | '/events/$eventId'
     | '/speakers/$speakerId'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/outreach'
     | '/proofing'
     | '/speakers'
+    | '/sponsor-inbox'
     | '/website'
     | '/'
     | '/events/$eventId'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
     | '/_authenticated/outreach'
     | '/_authenticated/proofing'
     | '/_authenticated/speakers'
+    | '/_authenticated/sponsor-inbox'
     | '/_authenticated/website'
     | '/_authenticated/'
     | '/_authenticated/events/$eventId'
@@ -189,6 +202,13 @@ declare module '@tanstack/react-router' {
       path: '/website'
       fullPath: '/website'
       preLoaderRoute: typeof AuthenticatedWebsiteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sponsor-inbox': {
+      id: '/_authenticated/sponsor-inbox'
+      path: '/sponsor-inbox'
+      fullPath: '/sponsor-inbox'
+      preLoaderRoute: typeof AuthenticatedSponsorInboxRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/speakers': {
@@ -262,6 +282,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOutreachRoute: typeof AuthenticatedOutreachRoute
   AuthenticatedProofingRoute: typeof AuthenticatedProofingRoute
   AuthenticatedSpeakersRoute: typeof AuthenticatedSpeakersRouteWithChildren
+  AuthenticatedSponsorInboxRoute: typeof AuthenticatedSponsorInboxRoute
   AuthenticatedWebsiteRoute: typeof AuthenticatedWebsiteRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedEventsEventIdRoute: typeof AuthenticatedEventsEventIdRoute
@@ -273,6 +294,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOutreachRoute: AuthenticatedOutreachRoute,
   AuthenticatedProofingRoute: AuthenticatedProofingRoute,
   AuthenticatedSpeakersRoute: AuthenticatedSpeakersRouteWithChildren,
+  AuthenticatedSponsorInboxRoute: AuthenticatedSponsorInboxRoute,
   AuthenticatedWebsiteRoute: AuthenticatedWebsiteRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedEventsEventIdRoute: AuthenticatedEventsEventIdRoute,

@@ -6,6 +6,8 @@ import {
   Reply,
   Clock,
   AlertTriangle,
+  MessageSquare,
+  Inbox,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -215,14 +217,28 @@ export function SpeakerListCard({
               </a>
             )}
             {s.outreach_channel && (
-              <StatusPill
+              <span
                 className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border border-dashed",
                   pillClass.outreachChannel[s.outreach_channel as OutreachChannel],
-                  "text-[11px]",
                 )}
+                title="Outreach channel"
               >
-                {labels.outreachChannel[s.outreach_channel as OutreachChannel]}
-              </StatusPill>
+                <Inbox className="h-3 w-3" />
+                via {labels.outreachChannel[s.outreach_channel as OutreachChannel]}
+              </span>
+            )}
+            {s.gmail_thread_id && (
+              <a
+                href={`https://mail.google.com/mail/u/0/#all/${s.gmail_thread_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-700 ring-1 ring-rose-200 text-[11px] font-medium transition-colors"
+              >
+                <MessageSquare className="h-3 w-3" />
+                Open thread
+              </a>
             )}
           </div>
 

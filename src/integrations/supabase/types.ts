@@ -501,6 +501,7 @@ export type Database = {
           dropbox_link: string | null
           email: string | null
           event_id: string
+          gmail_thread_id: string | null
           headshot_received: boolean
           id: string
           last_message_at: string | null
@@ -528,6 +529,7 @@ export type Database = {
           dropbox_link?: string | null
           email?: string | null
           event_id: string
+          gmail_thread_id?: string | null
           headshot_received?: boolean
           id?: string
           last_message_at?: string | null
@@ -555,6 +557,7 @@ export type Database = {
           dropbox_link?: string | null
           email?: string | null
           event_id?: string
+          gmail_thread_id?: string | null
           headshot_received?: boolean
           id?: string
           last_message_at?: string | null
@@ -575,6 +578,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "speakers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sponsor_mentions: {
+        Row: {
+          actioned: boolean
+          created_at: string
+          event_id: string | null
+          gmail_thread_id: string
+          id: string
+          message_date: string | null
+          sender_email: string | null
+          snippet: string | null
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          actioned?: boolean
+          created_at?: string
+          event_id?: string | null
+          gmail_thread_id: string
+          id?: string
+          message_date?: string | null
+          sender_email?: string | null
+          snippet?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actioned?: boolean
+          created_at?: string
+          event_id?: string | null
+          gmail_thread_id?: string
+          id?: string
+          message_date?: string | null
+          sender_email?: string | null
+          snippet?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsor_mentions_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
