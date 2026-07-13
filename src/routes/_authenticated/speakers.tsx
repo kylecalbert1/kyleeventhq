@@ -8,6 +8,7 @@ import {
   Send,
   Mail,
   Link2,
+  Linkedin,
   Eye,
   Sparkles,
   Reply,
