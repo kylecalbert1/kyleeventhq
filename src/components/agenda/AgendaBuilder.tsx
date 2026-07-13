@@ -53,6 +53,7 @@ type Item = {
   speaker_extra: string | null;
   av_requirements: string | null;
   track: string | null;
+  description: string | null;
 };
 
 function newClientId() {
