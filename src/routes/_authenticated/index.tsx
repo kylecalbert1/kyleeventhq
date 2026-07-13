@@ -572,18 +572,12 @@ function EventsGrid() {
                           <StatusPill
                             className={ratioPillClass(
                               s.confirmedCount,
-                              s.speakerCount,
+                              (ev as any).speaker_target ?? 15,
                               "confirmed",
                             )}
                           >
                             <Users className="h-3 w-3" />
-                            {s.confirmedCount}/{s.speakerCount} confirmed
-                          </StatusPill>
-                          <StatusPill
-                            className={ratioPillClass(s.bannersSent, s.bannerTotal, "banners")}
-                          >
-                            <ImageIcon className="h-3 w-3" />
-                            {s.bannersSent}/{s.bannerTotal} banners
+                            {s.confirmedCount}/{(ev as any).speaker_target ?? 15} confirmed
                           </StatusPill>
                           {s.washupExists && (
                             <StatusPill
