@@ -13,6 +13,7 @@ import {
   setSponsorMentionActioned,
 } from "@/lib/sponsor-inbox.functions";
 import { eventsQuery } from "@/lib/queries";
+import { openGmailThread, gmailThreadUrl } from "@/lib/gmail";
 
 const mentionsQuery = queryOptions({
   queryKey: ["sponsorMentions"],
