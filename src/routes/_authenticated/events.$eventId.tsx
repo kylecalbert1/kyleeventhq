@@ -39,6 +39,7 @@ import { SponsorFormDialog } from "@/components/dialogs/SponsorFormDialog";
 import { WebsiteTaskFormDialog } from "@/components/dialogs/WebsiteTaskFormDialog";
 import { MilestoneFormDialog } from "@/components/dialogs/MilestoneFormDialog";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
+import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { SendHistoryPanel } from "@/components/SendHistoryPanel";
 import {
   EventBannerGroup,
@@ -47,6 +48,8 @@ import {
 import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
 import { OutreachHub } from "@/components/outreach/OutreachHub";
 import { AgendaTab } from "@/components/agenda/AgendaTab";
+import { sendGmailEmail } from "@/lib/email.functions";
+import { firstNameOf } from "@/lib/gmail";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
@@ -94,6 +97,36 @@ function EventDetail() {
     milestone?: any;
     type?: "kickoff" | "washup";
   }>(null);
+  const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
+  const sendEmail = useServerFn(sendGmailEmail);
+
+  function emailOne(s: any, ev: any) {
+    if (!s.email) { toast.error("No email on file"); return; }
+    const firstName = firstNameOf(s.name);
+    const code = ev?.code ?? "our upcoming event";
+    setConfirmEmail({
+      to: s.email,
+      recipientName: firstName,
+      subject: `${code} — quick check-in`,
+      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+      templateType: "custom",
+      eventId: s.event_id ?? null,
+      speakerId: s.id,
+    });
+  }
+
+  async function performSendConfirmed(edited: { subject: string; body: string }) {
+    if (!confirmEmail) return;
+    const t = toast.loading(`Sending email to ${confirmEmail.recipientName ?? confirmEmail.to}…`);
+    try {
+      await sendEmail({
+        data: { to: confirmEmail.to, subject: edited.subject, body: edited.body },
+      });
+      toast.success(`Sent to ${confirmEmail.recipientName ?? confirmEmail.to}`, { id: t });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send", { id: t });
+    }
+  }
 
   const bannerRows = useMemo<BannerRow[]>(() => {
     return [
@@ -222,10 +255,7 @@ function EventDetail() {
                   ev={e}
                   showEventChip={false}
                   onOpenDetail={() => setDetailSpeaker(s)}
-                  onEmail={() => {
-                    if (!s.email) return toast.error("No email on file");
-                    toast.info("Use the Speakers page to send email — this event tab is view-only for now.");
-                  }}
+                  onEmail={() => emailOne(s, e)}
                   onCopyLink={async () => {
                     const url = s.dropbox_link || s.linkedin_url;
                     if (!url) return toast.error("No link stored for this speaker");
@@ -482,8 +512,15 @@ function EventDetail() {
           if (s) setSpeakerEdit({ open: true, speaker: s });
         }}
         onEmail={() => {
-          toast.info("Open the Email tab to compose — bulk send with pre-filled templates lives there.");
+          const s = detailSpeaker;
+          if (s) emailOne(s, e);
         }}
+      />
+      <ConfirmSendEmailDialog
+        open={!!confirmEmail}
+        onOpenChange={(o) => !o && setConfirmEmail(null)}
+        draft={confirmEmail}
+        onConfirm={performSendConfirmed}
       />
       {sponsorEdit && (
         <SponsorFormDialog
