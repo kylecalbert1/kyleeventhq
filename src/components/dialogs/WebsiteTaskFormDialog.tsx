@@ -149,6 +149,8 @@ export function WebsiteTaskFormDialog({
         buddy_proof_date: form.buddy_proof_done ? form.buddy_proof_date || null : null,
         marketer_proof_done: form.marketer_proof_done,
         marketer_proof_date: form.marketer_proof_done ? form.marketer_proof_date || null : null,
+        amendments_actioned_done: form.amendments_actioned_done,
+        amendments_actioned_date: form.amendments_actioned_done ? form.amendments_actioned_date || null : null,
         final_signoff_done: form.final_signoff_done,
         final_signoff_date: form.final_signoff_done ? form.final_signoff_date || null : null,
         protected: form.protected,
