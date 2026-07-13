@@ -56,6 +56,7 @@ const AgendaItemInput = z.object({
   speaker_ids: z.array(z.string().uuid()).optional(),
   speaker_extra: z.string().nullable().optional(),
   av_requirements: z.string().nullable().optional(),
+  track: z.string().nullable().optional(),
 });
 
 export const listAgendaItems = createServerFn({ method: "GET" })
