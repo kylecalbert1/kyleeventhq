@@ -101,7 +101,7 @@ export function SyncDialog({
 }) {
   const qc = useQueryClient();
   const events = useQuery(eventsQuery);
-  const [tab, setTab] = useState<"calendar" | "email" | "banner">("calendar");
+  const [tab, setTab] = useState<"calendar" | "email" | "banner" | "bio">("calendar");
   const [eventId, setEventId] = useState<string | undefined>(
     defaultEventId && defaultEventId !== "all" ? defaultEventId : undefined,
   );
@@ -132,6 +132,22 @@ export function SyncDialog({
   const [bannerFlags, setBannerFlags] = useState<BannerFlag[] | null>(null);
   const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
 
+  type BioSuggestion = {
+    speaker_id: string;
+    speaker_name: string;
+    speaker_email: string;
+    thread_id: string;
+    subject: string;
+    from: string;
+    bio_text: string;
+    confidence: "high" | "medium" | "low";
+    reasoning: string;
+    received_at: string;
+    previous_bio: string | null;
+  };
+  const [bioSugs, setBioSugs] = useState<BioSuggestion[] | null>(null);
+  const [dismissedBios, setDismissedBios] = useState<Set<string>>(new Set());
+
   const fetchLeads = useServerFn(fetchLeadSuggestions);
   const fetchEmails = useServerFn(fetchEmailSuggestions);
   const create = useServerFn(createSpeaker);
@@ -139,6 +155,64 @@ export function SyncDialog({
   const revert = useServerFn(setSpeakerStatus);
   const fetchBanners = useServerFn(fetchBannerVerification);
   const revertBanner = useServerFn(revertBannerStatus);
+  const fetchBios = useServerFn(fetchBioSuggestions);
+  const applyBio = useServerFn(applyBioSuggestion);
+  const revertBioFn = useServerFn(revertBio);
+
+  const bioMut = useMutation({
+    mutationFn: () => fetchBios({ data: undefined as any }),
+    onSuccess: async (r) => {
+      if (!r.connected) {
+        toast.error("Gmail not connected");
+        setBioSugs([]);
+        return;
+      }
+
+      // Split: auto-apply high-confidence suggestions with an extracted bio.
+      const auto = r.suggestions.filter((s) => s.confidence === "high");
+      const manual = r.suggestions.filter((s) => s.confidence !== "high");
+      setBioSugs(manual);
+
+      let applied = 0;
+      for (const sug of auto) {
+        try {
+          await applyBio({
+            data: { speaker_id: sug.speaker_id, bio_text: sug.bio_text },
+          });
+          applied++;
+          setDismissedBios((s) => new Set(s).add(sug.speaker_id));
+          const name = sug.speaker_name;
+          const speakerId = sug.speaker_id;
+          const prevBio = sug.previous_bio;
+          toast.success(`Auto-applied bio for ${name}`, {
+            duration: 15000,
+            description: sug.reasoning,
+            action: {
+              label: "Undo",
+              onClick: async () => {
+                try {
+                  await revertBioFn({
+                    data: { speaker_id: speakerId, previous_bio: prevBio },
+                  });
+                  qc.invalidateQueries({ queryKey: ["speakers"] });
+                  toast.success(`Reverted bio for ${name}`);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Undo failed");
+                }
+              },
+            },
+          });
+        } catch (e) {
+          console.error("Auto-apply bio failed", e);
+        }
+      }
+      if (applied > 0) qc.invalidateQueries({ queryKey: ["speakers"] });
+      toast.success(
+        `Scanned ${r.suggestions.length} thread${r.suggestions.length === 1 ? "" : "s"} · ${applied} bios auto-applied · ${manual.length} to review`,
+      );
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Bio scan failed"),
+  });
 
   const bannerMut = useMutation({
     mutationFn: () => fetchBanners({ data: undefined as any }),
