@@ -55,7 +55,7 @@ function WebsiteBoard() {
         <Button onClick={() => setEditing({ open: true })}><Plus className="h-4 w-4 mr-1.5" />Add task</Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
         {WEBSITE_STAGES.map((stage) => (
           <div key={stage} className="min-w-0">
             <div className="flex items-center justify-between px-1 mb-2">
@@ -76,6 +76,7 @@ function WebsiteBoard() {
                         <span className="flex gap-1">
                           {t.buddy_proof_done && <span title="Buddy proof">B</span>}
                           {t.marketer_proof_done && <span title="Marketer proof">M</span>}
+                          {t.amendments_actioned_done && <span title="Amendments actioned">A</span>}
                           {t.final_signoff_done && <span title="Final sign-off">F</span>}
                         </span>
                       </div>
