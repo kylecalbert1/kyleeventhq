@@ -302,12 +302,19 @@ export function AgendaImportDialog({
           speaker_extra: null,
           av_requirements: null,
           track: r.track,
+          description: null,
           raw_speakers: r.raw_speakers ?? undefined,
         })),
         speakers,
       );
-      if (parsed.length === 0) toast.error("Couldn't find any agenda rows on that page.");
-      setRows(parsed);
+      if (parsed.length === 0) {
+        toast.error("Couldn't find any agenda rows on that page.");
+        setRows(parsed);
+      } else {
+        setRows(parsed);
+        const withDesc = await generateDescriptionsFor(parsed);
+        setRows(withDesc);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to fetch URL");
     } finally {
@@ -328,6 +335,7 @@ export function AgendaImportDialog({
         speaker_extra: r.speaker_extra,
         av_requirements: r.av_requirements,
         track: r.track,
+        description: r.description,
       }));
       return replaceFn({ data: { event_id: eventId, items } });
     },
