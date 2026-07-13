@@ -202,21 +202,17 @@ export function BulkEmailDialog({
 
   async function performSendAll() {
     setSendingAll(true);
-    const justSent: Array<{ id: string; name: string; email: string }> = [];
-    for (const r of sendable) {
+    const toSend = activeRecipients;
+    for (const r of toSend) {
       if (status[r.id] === "sent") continue;
       // eslint-disable-next-line no-await-in-loop
       await performSend(r);
-      // Read latest via functional check: we track via local capture instead
-      // since performSend uses setStatus. Re-read from the DOM state isn't
-      // possible here — instead, check if it wasn't marked failed.
-      // We'll simply verify by attempting a lookup after the fact below.
     }
     setSendingAll(false);
-    // After the loop, gather everyone currently marked sent (that had an email)
-    // and log one batch. We use the latest state via a setter callback.
+    // After the loop, gather everyone from this batch currently marked sent
+    // and log one batch.
     setStatus((currentStatus) => {
-      const sentRecipients = sendable
+      const sentRecipients = toSend
         .filter((r) => currentStatus[r.id] === "sent")
         .map((r) => ({ id: r.id, name: r.name, email: r.email! }));
       if (sentRecipients.length > 0) {
@@ -241,8 +237,6 @@ export function BulkEmailDialog({
       }
       return currentStatus;
     });
-    // Silence unused-var to keep the reference above meaningful.
-    void justSent;
   }
 
   const sentCount = Object.values(status).filter((s) => s === "sent").length;
