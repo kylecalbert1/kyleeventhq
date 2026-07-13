@@ -436,12 +436,13 @@ export function AgendaBuilder({
       )}
 
       <Card className="rounded-2xl border-slate-200/70 overflow-hidden">
-        <div className="grid grid-cols-[70px_70px_60px_150px_1fr_180px_150px_100px] gap-2 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b">
+        <div className="grid grid-cols-[70px_70px_60px_140px_1fr_130px_160px_130px_90px] gap-2 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b">
           <div>Start</div>
           <div>End</div>
           <div>Mins</div>
           <div>Type</div>
           <div>Title</div>
+          <div>Track</div>
           <div>Speakers</div>
           <div>AV</div>
           <div className="text-right">Actions</div>
