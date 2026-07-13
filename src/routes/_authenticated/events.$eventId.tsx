@@ -39,6 +39,7 @@ import { SponsorFormDialog } from "@/components/dialogs/SponsorFormDialog";
 import { WebsiteTaskFormDialog } from "@/components/dialogs/WebsiteTaskFormDialog";
 import { MilestoneFormDialog } from "@/components/dialogs/MilestoneFormDialog";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
+import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { SendHistoryPanel } from "@/components/SendHistoryPanel";
 import {
   EventBannerGroup,
@@ -47,6 +48,8 @@ import {
 import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
 import { OutreachHub } from "@/components/outreach/OutreachHub";
 import { AgendaTab } from "@/components/agenda/AgendaTab";
+import { sendGmailEmail } from "@/lib/email.functions";
+import { firstNameOf } from "@/lib/gmail";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
