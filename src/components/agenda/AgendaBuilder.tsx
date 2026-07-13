@@ -461,12 +461,9 @@ export function AgendaBuilder({
           const end = r.start_time ? addMinutes(r.start_time, r.duration_min) : "";
           const flagged = sponsorBackToBack.has(i);
           return (
+            <div key={r.id} className={"border-b border-slate-100 " + (flagged ? "bg-amber-50/50" : "")}>
             <div
-              key={r.id}
-              className={
-                "grid grid-cols-[70px_70px_60px_140px_1fr_130px_160px_130px_90px] gap-2 px-3 py-2 border-b border-slate-100 items-center " +
-                (flagged ? "bg-amber-50/50" : "")
-              }
+              className="grid grid-cols-[70px_70px_60px_140px_1fr_130px_160px_130px_90px] gap-2 px-3 py-2 items-center"
             >
               <Input
                 value={r.start_time ?? ""}
