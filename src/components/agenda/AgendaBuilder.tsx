@@ -72,16 +72,20 @@ function minutesBetween(a: string, b: string): number {
   return bh * 60 + bm - (ah * 60 + am);
 }
 
-function recomputeTimes(items: Item[], virtualBuffer = 0): Item[] {
-  let cur = items[0]?.start_time || "09:00";
+function recomputeTimes(items: Item[], virtualBuffer = 0, forceStart?: string): Item[] {
+  let cur = forceStart ?? items[0]?.start_time ?? "09:00";
   return items.map((it, i) => {
-    const start = i === 0 ? cur : cur;
+    const start = cur;
     const next = addMinutes(start, it.duration_min + (i < items.length - 1 ? virtualBuffer : 0));
     const result = { ...it, start_time: start, position: i + 1 };
     cur = next;
     return result;
   });
 }
+
+const VIRTUAL_DAY_START = "09:00";
+const VIRTUAL_DAY_END = "17:00";
+const VIRTUAL_DAY_MINUTES = 8 * 60; // 480
 
 function skeletonFor(
   template: TemplateKey,
