@@ -635,26 +635,3 @@ function EventsGrid() {
   );
 }
 
-
-function Row({
-  icon,
-  label,
-  value,
-}: {
-  icon: "done" | "pending";
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-2 text-muted-foreground">
-      {icon === "done" ? (
-        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-      ) : (
-        <Circle className="h-3.5 w-3.5" />
-      )}
-      <span className="flex-1">{label}</span>
-      <span className="text-foreground">{value}</span>
-    </div>
-  );
-}
-
