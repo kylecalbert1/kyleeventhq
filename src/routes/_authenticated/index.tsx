@@ -383,7 +383,7 @@ function EventsGrid() {
                 <SelectItem value="launch">Soonest to launch</SelectItem>
                 <SelectItem value="health">Health (needs attention first)</SelectItem>
                 <SelectItem value="confirmed_pct">Speakers confirmed %</SelectItem>
-                <SelectItem value="banners_pct">Banners sent %</SelectItem>
+                
               </SelectContent>
             </Select>
             <Select
