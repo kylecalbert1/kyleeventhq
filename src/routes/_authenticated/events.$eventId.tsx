@@ -255,10 +255,7 @@ function EventDetail() {
                   ev={e}
                   showEventChip={false}
                   onOpenDetail={() => setDetailSpeaker(s)}
-                  onEmail={() => {
-                    if (!s.email) return toast.error("No email on file");
-                    toast.info("Use the Speakers page to send email — this event tab is view-only for now.");
-                  }}
+                  onEmail={() => emailOne(s, e)}
                   onCopyLink={async () => {
                     const url = s.dropbox_link || s.linkedin_url;
                     if (!url) return toast.error("No link stored for this speaker");
