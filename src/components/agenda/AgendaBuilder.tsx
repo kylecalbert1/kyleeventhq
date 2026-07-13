@@ -200,11 +200,23 @@ export function AgendaBuilder({
     return m;
   }, [templatesQ.data, template]);
 
+  const isVirtual = template === "virtual";
+
   const rows = useMemo(() => {
     if (!items) return [];
-    if (template === "virtual") return recomputeTimes(items, virtualBuffer);
+    if (isVirtual) return recomputeTimes(items, virtualBuffer, VIRTUAL_DAY_START);
     return recomputeTimes(items, 0);
-  }, [items, template, virtualBuffer]);
+  }, [items, isVirtual, virtualBuffer]);
+
+  const virtualOverrun = useMemo(() => {
+    if (!isVirtual || rows.length === 0) return 0;
+    const last = rows[rows.length - 1];
+    const endMin =
+      Number(last.start_time!.split(":")[0]) * 60 +
+      Number(last.start_time!.split(":")[1]) +
+      last.duration_min;
+    return endMin - (9 * 60 + VIRTUAL_DAY_MINUTES);
+  }, [isVirtual, rows]);
 
   const sponsorBackToBack = useMemo(() => {
     const flags = new Set<number>();
