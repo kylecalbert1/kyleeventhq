@@ -300,6 +300,7 @@ export function AgendaBuilder({
         speaker_extra: null,
         av_requirements: null,
         track: null,
+        description: null,
       },
     ]);
   }
