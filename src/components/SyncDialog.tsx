@@ -32,6 +32,7 @@ import {
   Sparkles,
   Image as ImageIcon,
   Undo2,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -43,6 +44,9 @@ import {
   setSpeakerStatus,
   fetchBannerVerification,
   revertBannerStatus,
+  fetchBioSuggestions,
+  applyBioSuggestion,
+  revertBio,
 } from "@/lib/sync.functions";
 import { createSpeaker } from "@/lib/speakers.functions";
 import { eventsQuery } from "@/lib/queries";
