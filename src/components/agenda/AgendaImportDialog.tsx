@@ -11,8 +11,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Upload, AlertTriangle } from "lucide-react";
-import { SESSION_LABELS, SESSION_TYPES, bulkReplaceAgenda } from "@/lib/agenda.functions";
+import { Upload, AlertTriangle, Link as LinkIcon, Loader2 } from "lucide-react";
+import {
+  SESSION_LABELS,
+  SESSION_TYPES,
+  bulkReplaceAgenda,
+  importAgendaFromUrl,
+} from "@/lib/agenda.functions";
 
 type ParsedRow = {
   start_time: string | null;
@@ -22,6 +27,7 @@ type ParsedRow = {
   speaker_ids: string[];
   speaker_extra: string | null;
   av_requirements: string | null;
+  track: string | null;
   raw_speakers?: string;
 };
 
@@ -57,7 +63,6 @@ function normalizeSessionType(raw: string): string {
 function parseTime(v: any): string | null {
   if (v == null || v === "") return null;
   if (typeof v === "number") {
-    // Excel serial time (fraction of day)
     const totalMin = Math.round(v * 24 * 60);
     const h = Math.floor(totalMin / 60) % 24;
     const m = totalMin % 60;
@@ -95,12 +100,12 @@ function findHeaderIndexes(header: string[]) {
     title: findIdx(["title", "session title", "topic", "session"]),
     speakers: findIdx(["speaker"]),
     av: findIdx(["av", "requirement", "notes"]),
+    track: findIdx(["track", "stream", "stage", "room"]),
   };
 }
 
 function rowsFromMatrix(matrix: any[][]): ParsedRow[] {
   if (matrix.length < 2) return [];
-  // Find the first row that looks like a header
   let headerRow = 0;
   for (let i = 0; i < Math.min(matrix.length, 8); i++) {
     const cells = matrix[i].map((c) => String(c ?? "").toLowerCase());
@@ -126,6 +131,7 @@ function rowsFromMatrix(matrix: any[][]): ParsedRow[] {
     const title = idx.title >= 0 ? String(row[idx.title] ?? "").trim() : "";
     const spk = idx.speakers >= 0 ? String(row[idx.speakers] ?? "").trim() : "";
     const av = idx.av >= 0 ? String(row[idx.av] ?? "").trim() : "";
+    const track = idx.track >= 0 ? String(row[idx.track] ?? "").trim() : "";
     out.push({
       start_time: start,
       duration_min: Math.max(1, Math.round(mins)),
@@ -134,6 +140,7 @@ function rowsFromMatrix(matrix: any[][]): ParsedRow[] {
       speaker_ids: [],
       speaker_extra: null,
       av_requirements: av || null,
+      track: track || null,
       raw_speakers: spk || undefined,
     });
   }
@@ -186,9 +193,12 @@ export function AgendaImportDialog({
 }) {
   const qc = useQueryClient();
   const replaceFn = useServerFn(bulkReplaceAgenda);
+  const importUrlFn = useServerFn(importAgendaFromUrl);
   const [rows, setRows] = useState<ParsedRow[] | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
+  const [urlValue, setUrlValue] = useState("");
+  const [urlLoading, setUrlLoading] = useState(false);
 
   async function handleFile(file: File) {
     setParsing(true);
@@ -240,6 +250,35 @@ export function AgendaImportDialog({
     }
   }
 
+  async function handleUrlImport() {
+    if (!urlValue.trim()) return;
+    setUrlLoading(true);
+    setFileName(urlValue);
+    try {
+      const res = await importUrlFn({ data: { url: urlValue.trim() } });
+      const parsed = matchSpeakers(
+        res.rows.map((r) => ({
+          start_time: r.start_time,
+          duration_min: r.duration_min,
+          session_type: r.session_type,
+          title: r.title,
+          speaker_ids: [],
+          speaker_extra: null,
+          av_requirements: null,
+          track: r.track,
+          raw_speakers: r.raw_speakers ?? undefined,
+        })),
+        speakers,
+      );
+      if (parsed.length === 0) toast.error("Couldn't find any agenda rows on that page.");
+      setRows(parsed);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to fetch URL");
+    } finally {
+      setUrlLoading(false);
+    }
+  }
+
   const commit = useMutation({
     mutationFn: async () => {
       if (!rows) return;
@@ -252,6 +291,7 @@ export function AgendaImportDialog({
         speaker_ids: r.speaker_ids,
         speaker_extra: r.speaker_extra,
         av_requirements: r.av_requirements,
+        track: r.track,
       }));
       return replaceFn({ data: { event_id: eventId, items } });
     },
@@ -262,12 +302,13 @@ export function AgendaImportDialog({
       onOpenChange(false);
       setRows(null);
       setFileName(null);
+      setUrlValue("");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setRows(null); setFileName(null); } }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setRows(null); setFileName(null); setUrlValue(""); } }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Import agenda</DialogTitle>
@@ -275,10 +316,35 @@ export function AgendaImportDialog({
 
         <div className="space-y-4">
           <div>
+            <div className="text-xs font-semibold text-slate-700 mb-1">Import from URL</div>
             <div className="text-xs text-slate-500 mb-2">
-              Upload an existing agenda (.xlsx, .csv, or .docx). Expected columns:
-              Start · End · Mins · Session Type · Session Title · Speaker(s) · AV Requirements.
-              Column order and extras are OK. Importing replaces the current agenda for this event.
+              Paste a public agenda page (e.g. Acara event site). We'll fetch it server-side and parse the running order.
+            </div>
+            <div className="flex gap-2">
+              <Input
+                type="url"
+                placeholder="https://events.customersuccesscollective.com/…/agenda"
+                value={urlValue}
+                onChange={(e) => setUrlValue(e.target.value)}
+                className="flex-1"
+              />
+              <Button onClick={handleUrlImport} disabled={urlLoading || !urlValue.trim()}>
+                {urlLoading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <LinkIcon className="h-3.5 w-3.5 mr-1.5" />}
+                Fetch
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-slate-400">
+            <div className="flex-1 h-px bg-slate-200" />
+            or
+            <div className="flex-1 h-px bg-slate-200" />
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold text-slate-700 mb-1">Upload a file</div>
+            <div className="text-xs text-slate-500 mb-2">
+              .xlsx, .csv, or .docx. Expected columns: Start · End · Mins · Session Type · Session Title · Speaker(s) · Track · AV Requirements. Extras and order don't matter.
             </div>
             <label className="flex items-center gap-2 p-3 rounded-lg border-2 border-dashed border-slate-300 hover:bg-slate-50 cursor-pointer">
               <Upload className="h-4 w-4 text-slate-500" />
@@ -304,14 +370,14 @@ export function AgendaImportDialog({
                 Preview — {rows.length} rows
               </div>
               <div className="border border-slate-200 rounded-lg overflow-hidden">
-                <div className="grid grid-cols-[60px_60px_60px_120px_1fr_180px_120px] gap-2 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b">
+                <div className="grid grid-cols-[60px_60px_50px_110px_1fr_140px_120px] gap-2 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b">
                   <div>Start</div>
                   <div>End</div>
                   <div>Mins</div>
                   <div>Type</div>
                   <div>Title</div>
+                  <div>Track</div>
                   <div>Speakers</div>
-                  <div>AV</div>
                 </div>
                 <div className="max-h-80 overflow-y-auto">
                   {rows.map((r, i) => {
@@ -326,13 +392,14 @@ export function AgendaImportDialog({
                     return (
                       <div
                         key={i}
-                        className="grid grid-cols-[60px_60px_60px_120px_1fr_180px_120px] gap-2 px-3 py-1.5 text-xs border-b border-slate-100 items-center"
+                        className="grid grid-cols-[60px_60px_50px_110px_1fr_140px_120px] gap-2 px-3 py-1.5 text-xs border-b border-slate-100 items-center"
                       >
                         <div className="tabular-nums">{r.start_time ?? "—"}</div>
                         <div className="tabular-nums">{end}</div>
                         <div className="tabular-nums">{r.duration_min}</div>
                         <div className="truncate">{SESSION_LABELS[r.session_type] ?? r.session_type}</div>
                         <div className="truncate">{r.title ?? ""}</div>
+                        <div className="truncate text-slate-600">{r.track ?? ""}</div>
                         <div className="truncate">
                           {r.speaker_ids.length > 0 && (
                             <span className="text-emerald-700">{r.speaker_ids.length} matched</span>
@@ -344,7 +411,6 @@ export function AgendaImportDialog({
                             </span>
                           )}
                         </div>
-                        <div className="truncate text-slate-500">{r.av_requirements ?? ""}</div>
                       </div>
                     );
                   })}
