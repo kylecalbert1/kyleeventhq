@@ -273,8 +273,12 @@ export function AgendaImportDialog({
       const parsed = matchSpeakers(rowsFromMatrix(matrix), speakers);
       if (parsed.length === 0) {
         toast.error("Couldn't find any agenda rows in that file.");
+        setRows(parsed);
+      } else {
+        setRows(parsed);
+        const withDesc = await generateDescriptionsFor(parsed);
+        setRows(withDesc);
       }
-      setRows(parsed);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to parse file");
     } finally {
