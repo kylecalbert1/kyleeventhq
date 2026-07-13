@@ -894,6 +894,7 @@ function SpeakerListCard({
           </div>
         </div>
       </div>
+    </div>
   );
 }
 
