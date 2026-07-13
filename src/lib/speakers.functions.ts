@@ -13,6 +13,7 @@ const SpeakerInput = z.object({
   session_format: z.enum(["keynote", "panel", "workshop", "fireside"]).nullable().optional(),
   banner_status: z.enum(["not_started", "created", "sent", "confirmed_live"]),
   bio_received: z.boolean(),
+  bio_text: z.string().nullable().optional(),
   headshot_received: z.boolean(),
   linkedin_url: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),

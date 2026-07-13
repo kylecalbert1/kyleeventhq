@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -100,6 +101,7 @@ export function BulkEmailDialog({
   const [confirmAllOpen, setConfirmAllOpen] = useState(false);
   const [status, setStatus] = useState<Record<string, SendStatus>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [optedIn, setOptedIn] = useState<Record<string, boolean>>({});
   const [sendingAll, setSendingAll] = useState(false);
   const logSend = useServerFn(logEmailSend);
   const qcInvalidate = useQueryClient();
@@ -111,6 +113,20 @@ export function BulkEmailDialog({
       setBody(TEMPLATES[initialTemplate].body);
     }
   }, [open, initialTemplate]);
+
+  // Every time the recipient list changes (dialog reopens with a new selection),
+  // default every recipient with an email to opted-in.
+  useEffect(() => {
+    if (!open) return;
+    setOptedIn((prev) => {
+      const next: Record<string, boolean> = {};
+      for (const s of speakers) {
+        if (!s.email) continue;
+        next[s.id] = prev[s.id] ?? true;
+      }
+      return next;
+    });
+  }, [open, speakers]);
 
 
   function applyTemplate(k: TemplateKey) {
@@ -142,6 +158,8 @@ export function BulkEmailDialog({
 
   const missingEmail = rows.filter((r) => !r.email).length;
   const sendable = rows.filter((r) => r.email);
+  const activeRecipients = sendable.filter((r) => optedIn[r.id]);
+  const optedOutCount = sendable.length - activeRecipients.length;
 
   async function performSend(
     r: (typeof rows)[number],
@@ -184,21 +202,17 @@ export function BulkEmailDialog({
 
   async function performSendAll() {
     setSendingAll(true);
-    const justSent: Array<{ id: string; name: string; email: string }> = [];
-    for (const r of sendable) {
+    const toSend = activeRecipients;
+    for (const r of toSend) {
       if (status[r.id] === "sent") continue;
       // eslint-disable-next-line no-await-in-loop
       await performSend(r);
-      // Read latest via functional check: we track via local capture instead
-      // since performSend uses setStatus. Re-read from the DOM state isn't
-      // possible here — instead, check if it wasn't marked failed.
-      // We'll simply verify by attempting a lookup after the fact below.
     }
     setSendingAll(false);
-    // After the loop, gather everyone currently marked sent (that had an email)
-    // and log one batch. We use the latest state via a setter callback.
+    // After the loop, gather everyone from this batch currently marked sent
+    // and log one batch.
     setStatus((currentStatus) => {
-      const sentRecipients = sendable
+      const sentRecipients = toSend
         .filter((r) => currentStatus[r.id] === "sent")
         .map((r) => ({ id: r.id, name: r.name, email: r.email! }));
       if (sentRecipients.length > 0) {
@@ -223,8 +237,6 @@ export function BulkEmailDialog({
       }
       return currentStatus;
     });
-    // Silence unused-var to keep the reference above meaningful.
-    void justSent;
   }
 
   const sentCount = Object.values(status).filter((s) => s === "sent").length;
@@ -306,8 +318,14 @@ export function BulkEmailDialog({
             </div>
           ) : (
             <div className="flex items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-xs text-indigo-900">
-              <span className="font-semibold">{sendable.length}</span>
-              recipient{sendable.length === 1 ? "" : "s"} will receive this email
+              <span className="font-semibold tabular-nums">{activeRecipients.length}</span>
+              of {sendable.length} recipient{sendable.length === 1 ? "" : "s"} will receive this email
+              {optedOutCount > 0 && (
+                <span className="text-slate-600">
+                  {" "}
+                  · {optedOutCount} unticked
+                </span>
+              )}
               {missingEmail > 0 && (
                 <span className="text-amber-800">
                   {" "}
@@ -329,6 +347,7 @@ export function BulkEmailDialog({
             <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
               {rows.map((r) => {
                 const st = status[r.id] ?? "idle";
+                const isOptedIn = !!r.email && !!optedIn[r.id];
                 const borderCls =
                   st === "sent"
                     ? "border-emerald-300 bg-emerald-50/50"
@@ -336,32 +355,43 @@ export function BulkEmailDialog({
                       ? "border-red-300 bg-red-50/50"
                       : st === "sending"
                         ? "border-primary/50 bg-primary/5"
-                        : "border-border bg-card hover:border-primary/40";
+                        : !isOptedIn && r.email
+                          ? "border-slate-200 bg-slate-50/60 opacity-60"
+                          : "border-border bg-card hover:border-primary/40";
                 return (
                   <div
                     key={r.id}
                     className={`rounded-lg border p-3 transition-colors ${borderCls}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="pt-0.5 shrink-0">
+                        <Checkbox
+                          checked={isOptedIn}
+                          disabled={!r.email || st === "sending"}
+                          onCheckedChange={(v) =>
+                            setOptedIn((prev) => ({ ...prev, [r.id]: !!v }))
+                          }
+                          aria-label={`Include ${r.name} in send-all`}
+                        />
+                      </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold truncate">
-                          {r.name}
-                        </div>
+                        <div className="text-sm font-semibold truncate">{r.name}</div>
                         <div className="text-xs text-muted-foreground truncate">
                           {r.email ?? (
                             <span className="text-amber-700">No email on file</span>
                           )}
+                          {r.email && !isOptedIn && (
+                            <span className="ml-2 text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+                              Excluded
+                            </span>
+                          )}
                         </div>
-                        <div className="mt-2 text-xs font-medium truncate">
-                          {r.rSubject}
-                        </div>
+                        <div className="mt-2 text-xs font-medium truncate">{r.rSubject}</div>
                         <div className="mt-1 text-xs text-muted-foreground whitespace-pre-line line-clamp-3">
                           {r.rBody}
                         </div>
                         {st === "failed" && errors[r.id] && (
-                          <div className="mt-2 text-xs text-red-700">
-                            {errors[r.id]}
-                          </div>
+                          <div className="mt-2 text-xs text-red-700">{errors[r.id]}</div>
                         )}
                       </div>
                       <div className="shrink-0 flex flex-col items-end gap-1">
@@ -404,7 +434,7 @@ export function BulkEmailDialog({
           </Button>
           <Button
             onClick={() => setConfirmAllOpen(true)}
-            disabled={!connected || sendingAll || sendable.length === 0}
+            disabled={!connected || sendingAll || activeRecipients.length === 0}
           >
             {sendingAll ? (
               <>
@@ -414,7 +444,7 @@ export function BulkEmailDialog({
             ) : (
               <>
                 <Send className="h-4 w-4 mr-1.5" />
-                Review &amp; send all ({sendable.length})
+                Review &amp; send all ({activeRecipients.length})
               </>
             )}
           </Button>
@@ -437,7 +467,7 @@ export function BulkEmailDialog({
       <BulkConfirmSendDialog
         open={confirmAllOpen}
         onOpenChange={setConfirmAllOpen}
-        rows={sendable
+        rows={activeRecipients
           .filter((r) => status[r.id] !== "sent")
           .map((r) => ({
             id: r.id,

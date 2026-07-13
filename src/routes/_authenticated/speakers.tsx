@@ -8,6 +8,7 @@ import {
   Send,
   Mail,
   Link2,
+  Linkedin,
   Eye,
   Sparkles,
   Reply,
@@ -773,10 +774,22 @@ function SpeakerListCard({
             <div className="mt-1 text-sm text-slate-500 truncate">{titleAtCompany}</div>
           )}
 
-          {/* 3. Email + event pill + channel pill */}
+          {/* 3. Email + LinkedIn + event pill + channel pill */}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {s.email && (
               <span className="text-sm text-slate-600 truncate">{s.email}</span>
+            )}
+            {s.linkedin_url && (
+              <a
+                href={s.linkedin_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open LinkedIn profile"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center justify-center rounded-full h-6 w-6 bg-sky-50 hover:bg-sky-100 text-sky-700 ring-1 ring-sky-200 transition-colors"
+              >
+                <Linkedin className="h-3.5 w-3.5" />
+              </a>
             )}
             {ev?.code && (
               <StatusPill className={cn(eventChipCls, "text-[11px]")}>
@@ -961,6 +974,17 @@ function SpeakerBoardCard({
             >
               <Mail className="h-3.5 w-3.5 mr-1" /> Email
             </Button>
+            {s.linkedin_url && (
+              <a
+                href={s.linkedin_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open LinkedIn profile"
+                className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-sky-50 text-sky-700 transition-colors"
+              >
+                <Linkedin className="h-3.5 w-3.5" />
+              </a>
+            )}
             <Button
               size="sm"
               variant="ghost"

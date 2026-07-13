@@ -561,3 +561,211 @@ export const revertBannerStatus = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+// ============ BIO CHECK ============
+
+const BioClassifySchema = z.object({
+  contains_bio: z.boolean(),
+  confidence: z.enum(["high", "medium", "low"]),
+  bio_text: z.string(),
+  reasoning: z.string(),
+});
+
+async function classifyBio(threadText: string, speakerName: string, lovableKey: string) {
+  const prompt = `You are analyzing an email conversation with a conference speaker named "${speakerName}". Determine whether the speaker (or someone on their behalf) has sent over their speaker BIO in this thread.
+
+A bio is a short third-person paragraph (typically 2-6 sentences) describing the speaker's background, current role, and notable achievements. It is NOT a signature block, NOT a scheduling reply, NOT a one-line note, and NOT a headshot.
+
+Return ONLY a compact JSON object matching this schema:
+{"contains_bio":boolean,"confidence":"high"|"medium"|"low","bio_text":"the extracted bio, cleaned of quoted replies/signatures — empty string if contains_bio is false","reasoning":"one short sentence"}
+
+Confidence rules:
+- "high": a clear, standalone bio paragraph is present. Safe to auto-apply.
+- "medium": bio-like text exists but is mixed with other content or partial.
+- "low": weak signal — do not auto-apply.
+
+Extract bio_text as the cleanest single paragraph (or two) that is the actual bio. Trim signatures ("Best,", phone numbers, email links, disclaimers).
+
+Thread (oldest first):
+"""
+${threadText.slice(0, 12000)}
+"""`;
+
+  const res = await fetch(`${AI_GATEWAY}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+    }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    console.error(`AI bio-classify failed [${res.status}]: ${t}`);
+    return {
+      contains_bio: false,
+      confidence: "low" as const,
+      bio_text: "",
+      reasoning: "AI classification unavailable",
+    };
+  }
+  const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  const content = json.choices?.[0]?.message?.content ?? "{}";
+  try {
+    return BioClassifySchema.parse(JSON.parse(content));
+  } catch {
+    return {
+      contains_bio: false,
+      confidence: "low" as const,
+      bio_text: "",
+      reasoning: "Could not parse AI response",
+    };
+  }
+}
+
+export const fetchBioSuggestions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    const gmailKey = process.env.GOOGLE_MAIL_API_KEY;
+    if (!lovableKey || !gmailKey) {
+      return { connected: false as const, suggestions: [] };
+    }
+
+    // Speakers missing a stored bio, with an email, who have replied to us.
+    const { data: speakers, error } = await context.supabase
+      .from("speakers")
+      .select("id, name, email, bio_received, bio_text")
+      .or("bio_received.eq.false,bio_text.is.null");
+    if (error) throw new Error(error.message);
+
+    type BioSuggestion = {
+      speaker_id: string;
+      speaker_name: string;
+      speaker_email: string;
+      thread_id: string;
+      subject: string;
+      from: string;
+      bio_text: string;
+      confidence: "high" | "medium" | "low";
+      reasoning: string;
+      received_at: string;
+      previous_bio: string | null;
+    };
+    const results: BioSuggestion[] = [];
+
+    // Cap the number of speakers we scan per run to keep latency sane.
+    const capped = (speakers ?? []).filter((s) => s.email).slice(0, 25);
+
+    for (const sp of capped) {
+      try {
+        const email = (sp.email as string).toLowerCase().trim();
+        // Look for inbound messages from the speaker that mention "bio".
+        const q = `from:${email} newer_than:180d (bio OR biography OR "here's my" OR "attached")`;
+        const search = await gmailSearch(q, lovableKey, gmailKey, 5);
+        const threadIds = Array.from(
+          new Set((search.messages ?? []).map((m) => m.threadId)),
+        ).slice(0, 3);
+        if (threadIds.length === 0) continue;
+
+        for (const tid of threadIds) {
+          const thread = await gmailGetThread(tid, lovableKey, gmailKey);
+          const messages = thread.messages ?? [];
+          if (!messages.length) continue;
+
+          // Focus on messages actually FROM the speaker.
+          const inbound = messages.filter((m) =>
+            header(m.payload.headers, "From").toLowerCase().includes(email),
+          );
+          if (inbound.length === 0) continue;
+
+          const threadText = inbound
+            .map((m) => {
+              const f = header(m.payload.headers, "From");
+              const d = new Date(Number(m.internalDate))
+                .toISOString()
+                .slice(0, 16)
+                .replace("T", " ");
+              const body = extractText(m.payload).replace(/\r\n/g, "\n").trim();
+              const cleaned = body
+                .split(/\n(?:On .+ wrote:|-----Original Message-----|________________________________)/)[0]
+                .trim();
+              return `--- ${d} UTC — From: ${f} ---\n${cleaned}`;
+            })
+            .filter((chunk) => chunk.length > 0)
+            .join("\n\n");
+          if (!threadText) continue;
+
+          const ai = await classifyBio(threadText, sp.name, lovableKey);
+          if (!ai.contains_bio || !ai.bio_text.trim()) continue;
+
+          const last = inbound[inbound.length - 1];
+          results.push({
+            speaker_id: sp.id,
+            speaker_name: sp.name,
+            speaker_email: sp.email as string,
+            thread_id: tid,
+            subject: header(last.payload.headers, "Subject") || "(no subject)",
+            from: header(last.payload.headers, "From"),
+            bio_text: ai.bio_text.trim(),
+            confidence: ai.confidence,
+            reasoning: ai.reasoning,
+            received_at: new Date(Number(last.internalDate)).toISOString(),
+            previous_bio: (sp.bio_text as string | null) ?? null,
+          });
+          break; // one hit per speaker is enough
+        }
+      } catch (e) {
+        console.error(`Bio scan skip ${sp.id}:`, e);
+      }
+    }
+
+    results.sort((a, b) => (a.received_at < b.received_at ? 1 : -1));
+    return { connected: true as const, suggestions: results };
+  });
+
+export const applyBioSuggestion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        speaker_id: z.string().uuid(),
+        bio_text: z.string().min(1),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("speakers")
+      .update({ bio_text: data.bio_text, bio_received: true })
+      .eq("id", data.speaker_id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const revertBio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        speaker_id: z.string().uuid(),
+        previous_bio: z.string().nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("speakers")
+      .update({ bio_text: data.previous_bio, bio_received: !!data.previous_bio })
+      .eq("id", data.speaker_id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
