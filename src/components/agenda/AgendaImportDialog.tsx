@@ -197,11 +197,40 @@ export function AgendaImportDialog({
   const qc = useQueryClient();
   const replaceFn = useServerFn(bulkReplaceAgenda);
   const importUrlFn = useServerFn(importAgendaFromUrl);
+  const genDescFn = useServerFn(generateAgendaDescriptions);
   const [rows, setRows] = useState<ParsedRow[] | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
   const [urlValue, setUrlValue] = useState("");
   const [urlLoading, setUrlLoading] = useState(false);
+  const [describing, setDescribing] = useState(false);
+
+  async function generateDescriptionsFor(parsed: ParsedRow[]) {
+    if (parsed.length === 0) return parsed;
+    setDescribing(true);
+    try {
+      const speakerNameById = new Map(speakers.map((s) => [s.id, s.name]));
+      const req = parsed.map((r) => ({
+        title: r.title,
+        session_type: r.session_type,
+        track: r.track,
+        speakers: [
+          ...r.speaker_ids.map((id) => speakerNameById.get(id) ?? "").filter(Boolean),
+          r.speaker_extra ?? "",
+          r.raw_speakers ?? "",
+        ]
+          .filter(Boolean)
+          .join(", ") || null,
+      }));
+      const { descriptions } = await genDescFn({ data: { rows: req } });
+      return parsed.map((r, i) => ({ ...r, description: descriptions[i] ?? r.description }));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't generate descriptions");
+      return parsed;
+    } finally {
+      setDescribing(false);
+    }
+  }
 
   async function handleFile(file: File) {
     setParsing(true);
