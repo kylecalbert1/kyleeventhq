@@ -382,12 +382,10 @@ export function SyncDialog({
   }
 
   const anyBusy =
-    leadsMut.isPending || emailMut.isPending || bannerMut.isPending;
+    leadsMut.isPending || emailMut.isPending || bannerMut.isPending || bioMut.isPending;
 
   async function runAllScans() {
     // Chained so mutations run sequentially (each shows its own toast).
-    // Bail on connection issues per-tab; individual mutations already handle
-    // their own errors.
     try {
       if (calStatus.data?.connected) await leadsMut.mutateAsync();
     } catch { /* toast already shown */ }
@@ -396,6 +394,9 @@ export function SyncDialog({
     } catch { /* toast already shown */ }
     try {
       if (gmailStatus.data?.connected) await bannerMut.mutateAsync();
+    } catch { /* toast already shown */ }
+    try {
+      if (gmailStatus.data?.connected) await bioMut.mutateAsync();
     } catch { /* toast already shown */ }
   }
 
@@ -415,8 +416,9 @@ export function SyncDialog({
 
         <div className="flex items-center justify-between gap-3 rounded-lg border border-indigo-200 bg-indigo-50/60 px-3 py-2.5">
           <div className="text-xs text-indigo-900">
-            <span className="font-semibold">Sync now</span> runs Calendar leads, Email status and
-            Banner check back-to-back. Scheduled syncs still run automatically in the background.
+            <span className="font-semibold">Sync now</span> runs Calendar leads, Email status,
+            Banner check and Bio check back-to-back. Scheduled syncs still run automatically in
+            the background.
           </div>
           <Button
             size="sm"
@@ -434,15 +436,18 @@ export function SyncDialog({
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid grid-cols-3 w-full">
+          <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="calendar" className="gap-2">
               <CalendarClock className="h-4 w-4" /> Calendar leads
             </TabsTrigger>
             <TabsTrigger value="email" className="gap-2">
-              <Mail className="h-4 w-4" /> Email thread status
+              <Mail className="h-4 w-4" /> Email status
             </TabsTrigger>
             <TabsTrigger value="banner" className="gap-2">
               <ImageIcon className="h-4 w-4" /> Banner check
+            </TabsTrigger>
+            <TabsTrigger value="bio" className="gap-2">
+              <FileText className="h-4 w-4" /> Bio check
             </TabsTrigger>
           </TabsList>
 
