@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SpeakerListCard } from "@/components/speakers/SpeakerListCard";
+
 import { StatusPill } from "@/components/StatusPill";
 import {
   eventQuery,
