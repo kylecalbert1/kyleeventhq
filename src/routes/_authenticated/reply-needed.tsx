@@ -381,6 +381,7 @@ function ReplyNeededPage() {
       />
 
       <ConfirmSendEmailDialog
+        open={!!confirmEmail}
         draft={confirmEmail}
         onOpenChange={(o) => !o && setConfirmEmail(null)}
         onConfirm={performSendConfirmed}
