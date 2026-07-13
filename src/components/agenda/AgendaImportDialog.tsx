@@ -439,9 +439,9 @@ export function AgendaImportDialog({
                           })()
                         : "";
                     return (
+                      <div key={i} className="border-b border-slate-100">
                       <div
-                        key={i}
-                        className="grid grid-cols-[60px_60px_50px_110px_1fr_140px_120px] gap-2 px-3 py-1.5 text-xs border-b border-slate-100 items-center"
+                        className="grid grid-cols-[60px_60px_50px_110px_1fr_140px_120px] gap-2 px-3 py-1.5 text-xs items-center"
                       >
                         <div className="tabular-nums">{r.start_time ?? "—"}</div>
                         <div className="tabular-nums">{end}</div>
@@ -460,6 +460,12 @@ export function AgendaImportDialog({
                             </span>
                           )}
                         </div>
+                      </div>
+                      {r.description && (
+                        <div className="px-3 pb-2 text-[11px] italic text-slate-500">
+                          {r.description}
+                        </div>
+                      )}
                       </div>
                     );
                   })}
