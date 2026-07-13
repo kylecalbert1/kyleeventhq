@@ -31,6 +31,7 @@ import { labels, pillClass } from "@/lib/status";
 import { updateSpeaker } from "@/lib/speakers.functions";
 import { updateSponsor } from "@/lib/sponsors.functions";
 import { updateEvent } from "@/lib/events.functions";
+import { getAsanaProofingDueDates } from "@/lib/asana.functions";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { SpeakerDetailDialog } from "@/components/dialogs/SpeakerDetailDialog";
