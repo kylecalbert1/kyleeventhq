@@ -26,6 +26,8 @@ import {
   Wand2,
   AlertTriangle,
   Save,
+  Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { agendaItemsQuery, agendaTemplatesQuery, speakersQuery } from "@/lib/queries";
@@ -131,7 +133,19 @@ function skeletonFor(
   return [mk("keynote"), mk("panel"), mk("keynote"), mk("panel")];
 }
 
-export function AgendaBuilder({ eventId, eventFormat }: { eventId: string; eventFormat: string }) {
+export function AgendaBuilder({
+  eventId,
+  eventFormat,
+  onImport,
+  onSaved,
+  onCancel,
+}: {
+  eventId: string;
+  eventFormat: string;
+  onImport?: () => void;
+  onSaved?: () => void;
+  onCancel?: () => void;
+}) {
   const qc = useQueryClient();
   const itemsQ = useQuery(agendaItemsQuery(eventId));
   const templatesQ = useQuery(agendaTemplatesQuery);
