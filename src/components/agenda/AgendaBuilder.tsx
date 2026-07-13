@@ -103,6 +103,7 @@ function skeletonFor(
     speaker_ids: [],
     speaker_extra: null,
     av_requirements: null,
+    track: null,
   });
 
   if (template === "csc_in_person") {
