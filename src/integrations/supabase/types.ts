@@ -326,6 +326,7 @@ export type Database = {
         Row: {
           banner_status: Database["public"]["Enums"]["banner_status"]
           bio_received: boolean
+          bio_text: string | null
           company: string | null
           created_at: string
           dropbox_link: string | null
@@ -351,6 +352,7 @@ export type Database = {
         Insert: {
           banner_status?: Database["public"]["Enums"]["banner_status"]
           bio_received?: boolean
+          bio_text?: string | null
           company?: string | null
           created_at?: string
           dropbox_link?: string | null
@@ -376,6 +378,7 @@ export type Database = {
         Update: {
           banner_status?: Database["public"]["Enums"]["banner_status"]
           bio_received?: boolean
+          bio_text?: string | null
           company?: string | null
           created_at?: string
           dropbox_link?: string | null
