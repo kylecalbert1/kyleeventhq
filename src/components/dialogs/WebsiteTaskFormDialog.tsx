@@ -40,6 +40,8 @@ type WebsiteTask = {
   buddy_proof_date: string | null;
   marketer_proof_done: boolean;
   marketer_proof_date: string | null;
+  amendments_actioned_done: boolean;
+  amendments_actioned_date: string | null;
   final_signoff_done: boolean;
   final_signoff_date: string | null;
   protected: boolean;
@@ -48,11 +50,13 @@ type WebsiteTask = {
 function deriveStatus(f: {
   buddy_proof_done: boolean;
   marketer_proof_done: boolean;
+  amendments_actioned_done: boolean;
   final_signoff_done: boolean;
   status: WebsiteTask["status"];
 }): WebsiteTask["status"] {
   if (f.status === "live") return "live";
   if (f.final_signoff_done) return "signed_off";
+  if (f.amendments_actioned_done) return "amendments";
   if (f.marketer_proof_done) return "proof_2";
   if (f.buddy_proof_done) return "proof_1";
   return "draft";
@@ -85,6 +89,8 @@ export function WebsiteTaskFormDialog({
     buddy_proof_date: "",
     marketer_proof_done: false,
     marketer_proof_date: "",
+    amendments_actioned_done: false,
+    amendments_actioned_date: "",
     final_signoff_done: false,
     final_signoff_date: "",
     protected: false,
@@ -102,6 +108,8 @@ export function WebsiteTaskFormDialog({
         buddy_proof_date: task.buddy_proof_date ?? "",
         marketer_proof_done: task.marketer_proof_done ?? false,
         marketer_proof_date: task.marketer_proof_date ?? "",
+        amendments_actioned_done: task.amendments_actioned_done ?? false,
+        amendments_actioned_date: task.amendments_actioned_date ?? "",
         final_signoff_done: task.final_signoff_done ?? false,
         final_signoff_date: task.final_signoff_date ?? "",
         protected: task.protected,
@@ -118,6 +126,8 @@ export function WebsiteTaskFormDialog({
         buddy_proof_date: "",
         marketer_proof_done: false,
         marketer_proof_date: "",
+        amendments_actioned_done: false,
+        amendments_actioned_date: "",
         final_signoff_done: false,
         final_signoff_date: "",
         protected: false,
