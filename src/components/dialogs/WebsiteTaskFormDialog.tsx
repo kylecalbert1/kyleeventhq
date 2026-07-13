@@ -34,7 +34,7 @@ type WebsiteTask = {
   event_id: string;
   title: string | null;
   markup_url: string | null;
-  status: "draft" | "proof_1" | "proof_2" | "signed_off" | "live";
+  status: "draft" | "proof_1" | "proof_2" | "amendments" | "signed_off" | "live";
   due_date: string | null;
   buddy_proof_done: boolean;
   buddy_proof_date: string | null;
