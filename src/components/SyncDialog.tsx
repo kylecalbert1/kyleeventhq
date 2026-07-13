@@ -303,6 +303,24 @@ export function SyncDialog({
     }
   }
 
+  const anyBusy =
+    leadsMut.isPending || emailMut.isPending || bannerMut.isPending;
+
+  async function runAllScans() {
+    // Chained so mutations run sequentially (each shows its own toast).
+    // Bail on connection issues per-tab; individual mutations already handle
+    // their own errors.
+    try {
+      if (calStatus.data?.connected) await leadsMut.mutateAsync();
+    } catch { /* toast already shown */ }
+    try {
+      if (gmailStatus.data?.connected) await emailMut.mutateAsync();
+    } catch { /* toast already shown */ }
+    try {
+      if (gmailStatus.data?.connected) await bannerMut.mutateAsync();
+    } catch { /* toast already shown */ }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
@@ -316,6 +334,26 @@ export function SyncDialog({
             Nothing is created or updated without your click.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-indigo-200 bg-indigo-50/60 px-3 py-2.5">
+          <div className="text-xs text-indigo-900">
+            <span className="font-semibold">Sync now</span> runs Calendar leads, Email status and
+            Banner check back-to-back. Scheduled syncs still run automatically in the background.
+          </div>
+          <Button
+            size="sm"
+            onClick={runAllScans}
+            disabled={anyBusy}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
+          >
+            {anyBusy ? (
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-1.5" />
+            )}
+            Sync now
+          </Button>
+        </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="flex-1 flex flex-col min-h-0">
           <TabsList className="grid grid-cols-3 w-full">
