@@ -35,8 +35,13 @@ export const Route = createFileRoute("/_authenticated/speakers/$speakerId")({
   component: SpeakerProfile,
 });
 
+function bhDone(s: any): boolean {
+  if (typeof s?.bio_and_headshot_received === "boolean") return s.bio_and_headshot_received;
+  return !!(s?.bio_received && s?.headshot_received);
+}
+
 function stageOf(s: any): { label: string; cls: string } {
-  if (s.bio_received && s.headshot_received)
+  if (bhDone(s))
     return { label: "Bio/Headshot In", cls: "bg-teal-600 text-white ring-teal-600" };
   if (s.banner_status === "sent" || s.banner_status === "confirmed_live")
     return { label: "Banner Sent", cls: "bg-amber-500 text-white ring-amber-500" };
@@ -273,8 +278,7 @@ function SpeakerProfile() {
               Assets
             </div>
             <div className="space-y-2">
-              <AssetRow ok={speaker.bio_received} label="Bio" />
-              <AssetRow ok={speaker.headshot_received} label="Headshot" />
+              <AssetRow ok={bhDone(speaker)} label="Bio & headshot" />
               <AssetRow
                 ok={speaker.linkedin_post_confirmed}
                 label="LinkedIn post confirmed"
