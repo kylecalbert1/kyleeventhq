@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { z } from "zod";
@@ -11,6 +11,7 @@ import {
   Eye,
   Inbox as InboxIcon,
   CheckCircle2,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import {
 } from "@/components/ConfirmSendEmailDialog";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { sendGmailEmail } from "@/lib/email.functions";
+import { markSpeakerReplied } from "@/lib/speakers.functions";
 import { firstNameOf, initialsOf, gmailThreadUrl, openGmailThread } from "@/lib/gmail";
 import { daysBetween, pillClass, labels, type SpeakerStatus } from "@/lib/status";
 import { outreachAlert, avatarGradient, columnFor } from "@/components/speakers/SpeakerListCard";
@@ -68,6 +70,17 @@ function ReplyNeededPage() {
   const speakers = useQuery(speakersQuery());
   const events = useQuery(eventsQuery);
   const sendEmail = useServerFn(sendGmailEmail);
+  const markReplied = useServerFn(markSpeakerReplied);
+  const qc = useQueryClient();
+  const markMutation = useMutation({
+    mutationFn: (id: string) => markReplied({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["speakers"] });
+      qc.invalidateQueries({ queryKey: ["eventSummaries"] });
+      toast.success("Marked as replied");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
 
   const [filter, setFilter] = useState<"reply" | "follow_up" | "both">(
     search.filter ?? "both",
@@ -350,6 +363,15 @@ function ReplyNeededPage() {
                       >
                         <Mail className="h-3.5 w-3.5 mr-1.5" />
                         Send email
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => markMutation.mutate(s.id)}
+                        disabled={markMutation.isPending}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        <Check className="h-3.5 w-3.5 mr-1.5" />
+                        Mark replied
                       </Button>
                       <Button
                         size="sm"
