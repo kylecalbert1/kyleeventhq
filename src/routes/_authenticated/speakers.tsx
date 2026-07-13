@@ -974,6 +974,17 @@ function SpeakerBoardCard({
             >
               <Mail className="h-3.5 w-3.5 mr-1" /> Email
             </Button>
+            {s.linkedin_url && (
+              <a
+                href={s.linkedin_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open LinkedIn profile"
+                className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-sky-50 text-sky-700 transition-colors"
+              >
+                <Linkedin className="h-3.5 w-3.5" />
+              </a>
+            )}
             <Button
               size="sm"
               variant="ghost"
