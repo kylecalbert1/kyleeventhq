@@ -434,7 +434,7 @@ export function BulkEmailDialog({
           </Button>
           <Button
             onClick={() => setConfirmAllOpen(true)}
-            disabled={!connected || sendingAll || sendable.length === 0}
+            disabled={!connected || sendingAll || activeRecipients.length === 0}
           >
             {sendingAll ? (
               <>
@@ -444,7 +444,7 @@ export function BulkEmailDialog({
             ) : (
               <>
                 <Send className="h-4 w-4 mr-1.5" />
-                Review &amp; send all ({sendable.length})
+                Review &amp; send all ({activeRecipients.length})
               </>
             )}
           </Button>
@@ -467,7 +467,7 @@ export function BulkEmailDialog({
       <BulkConfirmSendDialog
         open={confirmAllOpen}
         onOpenChange={setConfirmAllOpen}
-        rows={sendable
+        rows={activeRecipients
           .filter((r) => status[r.id] !== "sent")
           .map((r) => ({
             id: r.id,
