@@ -553,6 +553,16 @@ export function AgendaBuilder({
                 </Button>
               </div>
             </div>
+            <div className="px-3 pb-2 -mt-1">
+              <Textarea
+                value={r.description ?? ""}
+                onChange={(e) => updateRow(i, { description: e.target.value || null })}
+                placeholder="Short description (auto-generated on import; edit or clear as you like)"
+                className="text-xs min-h-[36px] resize-y"
+                rows={1}
+              />
+            </div>
+            </div>
           );
         })}
         <div className="p-2">
