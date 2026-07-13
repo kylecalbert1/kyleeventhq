@@ -327,3 +327,96 @@ export const importAgendaFromUrl = createServerFn({ method: "POST" })
     }
     return { rows };
   });
+
+// Batch-generate one-sentence session descriptions via Lovable AI Gateway.
+// Skips break-like sessions (returns null for those slots).
+const BREAK_TYPES = new Set([
+  "coffee_break",
+  "break",
+  "lunch",
+  "happy_hour",
+]);
+
+export const generateAgendaDescriptions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        rows: z.array(
+          z.object({
+            title: z.string().nullable().optional(),
+            session_type: z.string(),
+            track: z.string().nullable().optional(),
+            speakers: z.string().nullable().optional(),
+          }),
+        ),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+
+    // Build indices we actually want a description for
+    const targets: Array<{ idx: number; title: string; session_type: string; track?: string | null; speakers?: string | null }> = [];
+    data.rows.forEach((r, idx) => {
+      if (BREAK_TYPES.has(r.session_type)) return;
+      if (!r.title || !r.title.trim()) return;
+      targets.push({ idx, title: r.title, session_type: r.session_type, track: r.track, speakers: r.speakers });
+    });
+
+    const out: Array<string | null> = data.rows.map(() => null);
+    if (targets.length === 0) return { descriptions: out };
+
+    const listing = targets
+      .map((t, i) => {
+        const parts = [
+          `#${i + 1}`,
+          `type=${SESSION_LABELS[t.session_type] ?? t.session_type}`,
+          `title="${t.title.replace(/"/g, "'")}"`,
+        ];
+        if (t.track) parts.push(`track="${t.track}"`);
+        if (t.speakers) parts.push(`speakers="${t.speakers}"`);
+        return parts.join(" | ");
+      })
+      .join("\n");
+
+    const prompt = `You are helping summarise a conference agenda. For each session below, write ONE short, plain-English sentence (max ~22 words) describing what the session is likely about, based only on its title, session type, track, and speaker/company hints. Do not invent facts, do not restate the title verbatim, and do not add hype words. Return STRICT JSON: {"descriptions":[{"n":1,"text":"..."}, ...]} with one entry per input in the same order.\n\nSessions:\n${listing}`;
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: "You write concise, factual session blurbs for event agendas." },
+          { role: "user", content: prompt },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (res.status === 429) throw new Error("AI rate limit — try again in a moment.");
+    if (res.status === 402) throw new Error("AI credits exhausted — top up in Settings.");
+    if (!res.ok) throw new Error(`AI error: ${res.status} ${res.statusText}`);
+
+    const body = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const content = body.choices?.[0]?.message?.content ?? "{}";
+    let parsed: { descriptions?: Array<{ n?: number; text?: string }> } = {};
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      parsed = {};
+    }
+    for (const d of parsed.descriptions ?? []) {
+      const n = Number(d.n);
+      if (!Number.isFinite(n) || n < 1 || n > targets.length) continue;
+      const t = (d.text ?? "").toString().trim();
+      if (!t) continue;
+      out[targets[n - 1].idx] = t;
+    }
+    return { descriptions: out };
+  });
