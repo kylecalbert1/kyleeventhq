@@ -45,6 +45,7 @@ type EventRow = {
   final_signoff_due?: string | null;
   self_status?: "on_track" | "needs_attention" | "off_track";
   asana_project_gid?: string | null;
+  speaker_target?: number | null;
 };
 
 export function EventFormDialog({
@@ -78,6 +79,7 @@ export function EventFormDialog({
     final_signoff_due: "",
     self_status: "on_track" as "on_track" | "needs_attention" | "off_track",
     asana_link: "",
+    speaker_target: 15,
   });
 
   useEffect(() => {
@@ -99,6 +101,7 @@ export function EventFormDialog({
         final_signoff_due: event.final_signoff_due ?? "",
         self_status: event.self_status ?? "on_track",
         asana_link: event.asana_project_gid ?? "",
+        speaker_target: event.speaker_target ?? 15,
       });
     } else {
       setForm({
@@ -118,6 +121,7 @@ export function EventFormDialog({
         final_signoff_due: "",
         self_status: "on_track",
         asana_link: "",
+        speaker_target: 15,
       });
     }
   }, [event, open]);
@@ -137,6 +141,7 @@ export function EventFormDialog({
         proof2_due: form.proof2_due || null,
         final_signoff_due: form.final_signoff_due || null,
         asana_project_gid: parseAsanaGid(asana_link),
+        speaker_target: Number(form.speaker_target) || 15,
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
