@@ -1,0 +1,1 @@
+ALTER TABLE public.tito_tickets ADD COLUMN IF NOT EXISTS location text;
