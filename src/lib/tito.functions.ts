@@ -239,7 +239,17 @@ export const syncTito = createServerFn({ method: "POST" })
 
     let ticketCount = 0;
     let answerCount = 0;
+    let ticketFetchSkipped = 0;
     for (const ev of dedupedEvents) {
+      const isPast = Boolean(ev.end_date && new Date(ev.end_date) < new Date());
+      const prior = priorBySlug.get(ev.slug);
+      // Skip re-fetching tickets for past events already synced at least once —
+      // their attendee list is frozen. Force overrides this.
+      if (!force && isPast && prior?.last_synced_at) {
+        ticketFetchSkipped++;
+        continue;
+      }
+
       let page = 1;
       while (true) {
         const body = (await titoFetch(`/${ACCOUNT}/${ev.slug}/tickets`, token, {
