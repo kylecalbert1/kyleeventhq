@@ -58,6 +58,8 @@ function TitoEventDetail() {
   const [q, setQ] = useState("");
   const [releaseFilter, setReleaseFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [detailAttendee, setDetailAttendee] = useState<TitoAttendee | null>(null);
+
 
   const event = data?.event;
   const tickets = data?.tickets ?? [];
