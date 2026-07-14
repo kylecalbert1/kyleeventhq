@@ -526,20 +526,68 @@ export const listReleaseTitles = createServerFn({ method: "GET" })
     return Array.from(seen).sort();
   });
 
+export const listTitoEventYears = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("tito_events")
+      .select("start_date")
+      .not("start_date", "is", null);
+    if (error) throw new Error(error.message);
+    const years = new Set<number>();
+    for (const r of data ?? []) {
+      const d = r.start_date ? new Date(r.start_date) : null;
+      if (d && !Number.isNaN(d.getTime())) years.add(d.getUTCFullYear());
+    }
+    return Array.from(years).sort((a, b) => b - a);
+  });
+
+export const suggestTitoTickets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ q: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const term = `%${data.q.trim()}%`;
+    const { data: rows, error } = await context.supabase
+      .from("tito_tickets")
+      .select("id, name, email, company_name, job_title, event_title")
+      .or(
+        [
+          `name.ilike.${term}`,
+          `email.ilike.${term}`,
+          `company_name.ilike.${term}`,
+          `job_title.ilike.${term}`,
+        ].join(","),
+      )
+      .limit(8);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
 export const searchTitoTickets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => Filters.parse(d ?? {}))
   .handler(async ({ data, context }) => {
-    // Resolve event date range → concrete slug list, then intersect with any
-    // explicitly-selected slugs.
+    // Resolve year filter + date range → slug list, intersect with explicit slugs.
     let effectiveSlugs: string[] | undefined = data.event_slugs;
-    if (data.event_date_from || data.event_date_to) {
-      let evQ = context.supabase.from("tito_events").select("slug");
+    const needEventFilter =
+      data.event_date_from || data.event_date_to || (data.years && data.years.length > 0);
+    if (needEventFilter) {
+      let evQ = context.supabase.from("tito_events").select("slug, start_date");
       if (data.event_date_from) evQ = evQ.gte("start_date", data.event_date_from);
       if (data.event_date_to) evQ = evQ.lte("start_date", data.event_date_to);
       const { data: evRows, error: evErr } = await evQ;
       if (evErr) throw new Error(evErr.message);
-      const inRange = new Set((evRows ?? []).map((r) => r.slug));
+      const yearSet = data.years && data.years.length ? new Set(data.years) : null;
+      const inRange = new Set(
+        (evRows ?? [])
+          .filter((r) => {
+            if (!yearSet) return true;
+            if (!r.start_date) return false;
+            const y = new Date(r.start_date).getUTCFullYear();
+            return yearSet.has(y);
+          })
+          .map((r) => r.slug),
+      );
       effectiveSlugs = effectiveSlugs?.length
         ? effectiveSlugs.filter((s) => inRange.has(s))
         : Array.from(inRange);
@@ -552,6 +600,17 @@ export const searchTitoTickets = createServerFn({ method: "POST" })
       .order("event_title", { ascending: true })
       .limit(data.limit ?? 500);
 
+    if (data.q) {
+      const term = `%${data.q}%`;
+      q = q.or(
+        [
+          `name.ilike.${term}`,
+          `email.ilike.${term}`,
+          `company_name.ilike.${term}`,
+          `job_title.ilike.${term}`,
+        ].join(","),
+      );
+    }
     if (data.company) q = q.ilike("company_name", `%${data.company}%`);
     if (data.job_title) q = q.ilike("job_title", `%${data.job_title}%`);
     if (effectiveSlugs?.length) q = q.in("event_slug", effectiveSlugs);
