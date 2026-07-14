@@ -12,7 +12,9 @@ import {
   Send,
   ChevronRight,
   Sparkles,
+  Search,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -101,6 +103,7 @@ function EventDetail() {
   }>(null);
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
+  const [speakerQ, setSpeakerQ] = useState("");
   const sendEmail = useServerFn(sendGmailEmail);
 
   function emailOne(s: any, ev: any) {
