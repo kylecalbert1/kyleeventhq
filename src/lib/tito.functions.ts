@@ -154,7 +154,9 @@ export const titoConnectionStatus = createServerFn({ method: "GET" })
 
 export const syncTito = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d) => z.object({ force: z.boolean().optional() }).parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    const force = Boolean(data.force);
     const token = process.env.TITO_API_TOKEN;
     if (!token) throw new Error("Missing TITO_API_TOKEN — add it in Project Settings → Secrets.");
 
@@ -209,7 +211,17 @@ export const syncTito = createServerFn({ method: "POST" })
     });
     const skipped = allEvents.length - dedupedEvents.length;
 
-    // Upsert events
+    // Load prior sync state so we can skip re-fetching past events whose
+    // ticket data won't change (unless force=true).
+    const { data: priorRows } = await context.supabase
+      .from("tito_events")
+      .select("slug, last_synced_at, is_past");
+    const priorBySlug = new Map(
+      (priorRows ?? []).map((r) => [r.slug, r] as const),
+    );
+
+    // Upsert event metadata every time (cheap) so newly-added events and
+    // events that flipped from upcoming→past get picked up.
     const eventRows = dedupedEvents.map((e) => ({
       slug: e.slug,
       title: e.title ?? e.slug,
@@ -225,7 +237,6 @@ export const syncTito = createServerFn({ method: "POST" })
       if (error) throw new Error(`tito_events upsert: ${error.message}`);
     }
 
-    // 2) For each event, pull tickets (paginated)
     let ticketCount = 0;
     let answerCount = 0;
     for (const ev of dedupedEvents) {
