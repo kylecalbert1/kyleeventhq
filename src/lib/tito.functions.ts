@@ -130,7 +130,31 @@ export const syncTito = createServerFn({ method: "POST" })
       if (!e.slug) continue;
       uniqueEvents.set(e.slug, e); // last occurrence wins (past overrides current)
     }
-    const dedupedEvents = Array.from(uniqueEvents.values());
+    const allEvents = Array.from(uniqueEvents.values());
+
+    // Load manual overrides (include / exclude specific slugs).
+    const { data: filterRows, error: filterErr } = await context.supabase
+      .from("tito_event_filters" as never)
+      .select("event_slug, mode") as unknown as {
+        data: Array<{ event_slug: string; mode: "include" | "exclude" }> | null;
+        error: { message: string } | null;
+      };
+    if (filterErr) throw new Error(`tito_event_filters: ${filterErr.message}`);
+    const manualInclude = new Set(
+      (filterRows ?? []).filter((r) => r.mode === "include").map((r) => r.event_slug),
+    );
+    const manualExclude = new Set(
+      (filterRows ?? []).filter((r) => r.mode === "exclude").map((r) => r.event_slug),
+    );
+
+    // AIAI/CSC brands only — exact-phrase keyword match, plus manual overrides.
+    const dedupedEvents = allEvents.filter((e) => {
+      if (!e.slug) return false;
+      if (manualExclude.has(e.slug)) return false;
+      if (manualInclude.has(e.slug)) return true;
+      return matchesAiaiCsc(e.title);
+    });
+    const skipped = allEvents.length - dedupedEvents.length;
 
     // Upsert events
     const eventRows = dedupedEvents.map((e) => ({
