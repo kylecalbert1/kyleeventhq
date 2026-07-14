@@ -344,15 +344,18 @@ export function SyncDialog({
     [items, dismissed],
   );
 
-  async function addLead(l: Extract<Item, { kind: "lead" }>) {
-    if (!eventId) {
-      toast.error("Pick an event to assign new leads to first");
+  async function addLead(l: Extract<Item, { kind: "lead" }>, overrideEventId?: string) {
+    const targetEventId = overrideEventId ?? eventId;
+    if (!targetEventId) {
+      toast.error(
+        "Pick an event for this lead — use the per-card picker, or set a default at the top.",
+      );
       return;
     }
     try {
       await create({
         data: {
-          event_id: eventId,
+          event_id: targetEventId,
           name: l.name || l.email.split("@")[0],
           email: l.email,
           status: "contacted",
@@ -369,6 +372,7 @@ export function SyncDialog({
       toast.error(e instanceof Error ? e.message : "Failed to add lead");
     }
   }
+
 
   async function applyEmail(it: Extract<Item, { kind: "email" }>) {
     if (!it.matched_speaker) {
@@ -466,14 +470,15 @@ export function SyncDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg border border-indigo-200 bg-indigo-50/60 px-3 py-2.5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-indigo-900 font-semibold">
-              Assign new leads to:
+            <span className="text-xs text-muted-foreground">
+              Default event for new leads
+              <span className="ml-1 text-muted-foreground/70">(optional)</span>
             </span>
-            <Select value={eventId ?? ""} onValueChange={(v) => setEventId(v)}>
+            <Select value={eventId ?? ""} onValueChange={(v) => setEventId(v || undefined)}>
               <SelectTrigger className="w-52 h-8 text-xs">
-                <SelectValue placeholder="Pick an event…" />
+                <SelectValue placeholder="None — pick per lead" />
               </SelectTrigger>
               <SelectContent>
                 {(events.data ?? []).map((e) => (
@@ -483,6 +488,16 @@ export function SyncDialog({
                 ))}
               </SelectContent>
             </Select>
+            {eventId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setEventId(undefined)}
+              >
+                Clear
+              </Button>
+            )}
           </div>
           <Button
             size="sm"
@@ -498,6 +513,7 @@ export function SyncDialog({
             Sync now
           </Button>
         </div>
+
 
         {disconnected && (
           <ConnectPrompt
