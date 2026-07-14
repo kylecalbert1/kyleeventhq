@@ -536,3 +536,198 @@ function DraftButton({ disabled, ticketIds }: { disabled: boolean; ticketIds: st
     </>
   );
 }
+
+function EventFilterPanel() {
+  const qc = useQueryClient();
+  const filters = useQuery({
+    queryKey: ["tito-event-filters"],
+    queryFn: () => listTitoEventFilters(),
+  });
+  const preview = useQuery({
+    queryKey: ["tito-event-preview"],
+    queryFn: () => previewTitoEventClassification(),
+    enabled: false,
+  });
+  const [slug, setSlug] = useState("");
+  const [mode, setMode] = useState<"include" | "exclude">("include");
+  const [notes, setNotes] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
+
+  async function add() {
+    if (!slug.trim()) return;
+    try {
+      await addTitoEventFilter({
+        data: { event_slug: slug.trim(), mode, notes: notes || undefined },
+      });
+      setSlug("");
+      setNotes("");
+      qc.invalidateQueries({ queryKey: ["tito-event-filters"] });
+      qc.invalidateQueries({ queryKey: ["tito-event-preview"] });
+      toast.success(`Added ${mode} rule for ${slug.trim()}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to add filter");
+    }
+  }
+
+  async function remove(id: string) {
+    try {
+      await deleteTitoEventFilter({ data: { id } });
+      qc.invalidateQueries({ queryKey: ["tito-event-filters"] });
+      qc.invalidateQueries({ queryKey: ["tito-event-preview"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to remove");
+    }
+  }
+
+  const rows = filters.data ?? [];
+  const includes = rows.filter((r) => r.mode === "include");
+  const excludes = rows.filter((r) => r.mode === "exclude");
+
+  return (
+    <details className="rounded-lg border bg-background p-4">
+      <summary className="cursor-pointer text-sm font-medium">
+        Tito event filters — AIAI/CSC keyword rule + manual overrides
+      </summary>
+      <div className="mt-3 space-y-3 text-sm">
+        <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
+          Default rule: only sync events whose title contains one of the AIAI/CSC
+          phrases (Generative AI Summit, Agentic AI Summit, Chief AI Officer
+          Summit, Customer Success Summit, Chief Customer Officer Summit,
+          Customer Support Summit, AI for Customer Support Summit). Use the
+          overrides below to force-include or force-exclude specific slugs when
+          the keyword rule misses or wrongly catches an event.
+        </div>
+
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[200px]">
+            <Label>Event slug</Label>
+            <Input
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="e.g. generative-ai-summit-boston-2027"
+            />
+          </div>
+          <div>
+            <Label>Mode</Label>
+            <Select value={mode} onValueChange={(v) => setMode(v as "include" | "exclude")}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="include">Force include</SelectItem>
+                <SelectItem value="exclude">Force exclude</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <Label>Notes (optional)</Label>
+            <Input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="e.g. rebranded, keyword misses it"
+            />
+          </div>
+          <Button onClick={add}>Add rule</Button>
+        </div>
+
+        {(includes.length > 0 || excludes.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1.5">
+                Force include ({includes.length})
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {includes.map((r) => (
+                  <Badge key={r.id} variant="secondary" className="gap-1 bg-emerald-100 text-emerald-800">
+                    {r.event_slug}
+                    <button type="button" onClick={() => remove(r.id)}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                {includes.length === 0 && (
+                  <span className="text-xs text-muted-foreground">None</span>
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-rose-700 mb-1.5">
+                Force exclude ({excludes.length})
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {excludes.map((r) => (
+                  <Badge key={r.id} variant="secondary" className="gap-1 bg-rose-100 text-rose-800">
+                    {r.event_slug}
+                    <button type="button" onClick={() => remove(r.id)}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                {excludes.length === 0 && (
+                  <span className="text-xs text-muted-foreground">None</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setShowPreview(true);
+              preview.refetch();
+            }}
+            disabled={preview.isFetching}
+          >
+            {preview.isFetching && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+            Preview which events will sync
+          </Button>
+        </div>
+
+        {showPreview && preview.data && (
+          <div className="rounded-md border max-h-72 overflow-y-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/50 sticky top-0">
+                <tr>
+                  <th className="p-1.5 text-left">Will sync</th>
+                  <th className="p-1.5 text-left">Title</th>
+                  <th className="p-1.5 text-left">Slug</th>
+                  <th className="p-1.5 text-left">Why</th>
+                </tr>
+              </thead>
+              <tbody>
+                {preview.data.map((e) => (
+                  <tr key={e.slug} className="border-t">
+                    <td className="p-1.5">
+                      {e.will_sync ? (
+                        <Badge className="bg-emerald-600 text-white text-[10px]">Yes</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">No</Badge>
+                      )}
+                    </td>
+                    <td className="p-1.5">{e.title}</td>
+                    <td className="p-1.5 font-mono text-[10px] text-muted-foreground">
+                      {e.slug}
+                    </td>
+                    <td className="p-1.5 text-muted-foreground">
+                      {e.manual_exclude
+                        ? "manual exclude"
+                        : e.manual_include
+                        ? "manual include"
+                        : e.keyword_match
+                        ? "keyword match"
+                        : "not AIAI/CSC"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
