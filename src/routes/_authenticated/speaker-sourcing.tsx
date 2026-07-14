@@ -344,59 +344,25 @@ function SpeakerSourcingPage() {
             />
           </div>
         </div>
-        <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-xs uppercase text-muted-foreground sticky top-0">
-              <tr>
-                <th className="p-2 w-8">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={(v) => {
-                      if (v) setSelected(new Set(results.map((r) => r.id)));
-                      else setSelected(new Set());
-                    }}
-                  />
-                </th>
-                <th className="p-2 text-left">Name</th>
-                <th className="p-2 text-left">Email</th>
-                <th className="p-2 text-left">Company</th>
-                <th className="p-2 text-left">Job title</th>
-                <th className="p-2 text-left">Location</th>
-                <th className="p-2 text-left">Ticket type</th>
-                <th className="p-2 text-left">Event</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="p-3 max-h-[70vh] overflow-y-auto">
+          {results.length === 0 && !search.isPending ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              {search.data === undefined
+                ? `Ready to search ${(titoEvents.data ?? []).length.toLocaleString()} synced events. Type a name / company / job title above and hit Search.`
+                : "No attendees matched these filters. Try broadening your search or clearing year filters."}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {results.map((r) => (
-                <tr key={r.id} className="border-t hover:bg-muted/30">
-                  <td className="p-2">
-                    <Checkbox
-                      checked={selected.has(r.id)}
-                      onCheckedChange={() => toggle(r.id)}
-                    />
-                  </td>
-                  <td className="p-2 font-medium">{r.name ?? "—"}</td>
-                  <td className="p-2 text-muted-foreground">{r.email ?? "—"}</td>
-                  <td className="p-2">{r.company_name ?? "—"}</td>
-                  <td className="p-2">{r.job_title ?? "—"}</td>
-                  <td className="p-2 text-muted-foreground">{r.location ?? "—"}</td>
-                  <td className="p-2">
-                    <Badge variant="outline">{r.release_title ?? "—"}</Badge>
-                  </td>
-                  <td className="p-2 text-muted-foreground">{r.event_title ?? r.event_slug}</td>
-                </tr>
+                <TitoAttendeeCard
+                  key={r.id}
+                  a={r}
+                  selected={selected.has(r.id)}
+                  onToggle={() => toggle(r.id)}
+                />
               ))}
-              {results.length === 0 && !search.isPending && (
-                <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                    {search.data === undefined
-                      ? `Ready to search ${(titoEvents.data ?? []).length.toLocaleString()} synced events. Type a name / company / job title above and hit Search.`
-                      : "No attendees matched these filters. Try broadening your search or clearing year filters."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
       </div>
     </div>
