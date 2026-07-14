@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   syncTito,
   titoConnectionStatus,
   listTitoEvents,
+  listTitoEventYears,
   listReleaseTitles,
   searchTitoTickets,
+  suggestTitoTickets,
   listExcludedCompanies,
   addExcludedCompany,
   deleteExcludedCompany,
@@ -25,7 +27,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Trash2, Sparkles, Copy, X } from "lucide-react";
+import { Loader2, RefreshCw, Trash2, Sparkles, Copy, X, Search, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -51,30 +54,42 @@ function SpeakerSourcingPage() {
   const titoEvents = useQuery({ queryKey: ["tito-events"], queryFn: () => listTitoEvents() });
   const releaseTitles = useQuery({ queryKey: ["tito-releases"], queryFn: () => listReleaseTitles() });
   const excluded = useQuery({ queryKey: ["excluded-companies"], queryFn: () => listExcludedCompanies() });
+  const years = useQuery({ queryKey: ["tito-event-years"], queryFn: () => listTitoEventYears() });
   const upcomingEvents = useQuery({ queryKey: ["events"], queryFn: () => listEvents() });
 
-  const [jobTitle, setJobTitle] = useState("");
-  const [company, setCompany] = useState("");
+  const [q, setQ] = useState("");
+  const [selectedYears, setSelectedYears] = useState<number[]>([]);
   const [selectedEventSlugs, setSelectedEventSlugs] = useState<string[]>([]);
   const [includeReleases, setIncludeReleases] = useState<string[]>([]);
   const [excludeReleases, setExcludeReleases] = useState<string[]>([]);
   const [applyExclude, setApplyExclude] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
   const [forceFullSync, setForceFullSync] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+
+  // Autocomplete suggestions for the unified search box
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [debouncedQ, setDebouncedQ] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q.trim()), 200);
+    return () => clearTimeout(t);
+  }, [q]);
+  const suggestions = useQuery({
+    queryKey: ["tito-suggest", debouncedQ],
+    queryFn: () => suggestTitoTickets({ data: { q: debouncedQ } }),
+    enabled: debouncedQ.length >= 2,
+    staleTime: 30_000,
+  });
 
   const search = useMutation({
     mutationFn: () =>
       searchTitoTickets({
         data: {
-          job_title: jobTitle || undefined,
-          company: company || undefined,
+          q: q.trim() || undefined,
           event_slugs: selectedEventSlugs.length ? selectedEventSlugs : undefined,
           release_titles_include: includeReleases.length ? includeReleases : undefined,
           release_titles_exclude: excludeReleases.length ? excludeReleases : undefined,
-          event_date_from: dateFrom || undefined,
-          event_date_to: dateTo || undefined,
+          years: selectedYears.length ? selectedYears : undefined,
           apply_exclude_list: applyExclude,
           limit: 1000,
         },
@@ -89,10 +104,10 @@ function SpeakerSourcingPage() {
       );
       qc.invalidateQueries({ queryKey: ["tito-events"] });
       qc.invalidateQueries({ queryKey: ["tito-releases"] });
+      qc.invalidateQueries({ queryKey: ["tito-event-years"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
 
   const results = search.data ?? [];
   const allSelected = results.length > 0 && results.every((r) => selected.has(r.id));
@@ -106,8 +121,17 @@ function SpeakerSourcingPage() {
     });
   }
 
+  function toggleYear(y: number) {
+    setSelectedYears((prev) => (prev.includes(y) ? prev.filter((v) => v !== y) : [...prev, y]));
+  }
+
+  function runSearch() {
+    setSuggestOpen(false);
+    search.mutate();
+  }
+
   return (
-    <div className="mx-auto max-w-[1400px] p-6 space-y-6">
+    <div className="mx-auto max-w-[1400px] p-6 space-y-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Speaker sourcing</h1>
@@ -126,12 +150,9 @@ function SpeakerSourcingPage() {
               checked={forceFullSync}
               onCheckedChange={(v) => setForceFullSync(Boolean(v))}
             />
-            Force full re-sync (past events)
+            Force full re-sync
           </label>
-          <Button
-            onClick={() => sync.mutate(forceFullSync)}
-            disabled={sync.isPending || !conn.data?.connected}
-          >
+          <Button onClick={() => sync.mutate(forceFullSync)} disabled={sync.isPending || !conn.data?.connected}>
             {sync.isPending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
@@ -140,7 +161,6 @@ function SpeakerSourcingPage() {
             Sync now
           </Button>
         </div>
-
       </div>
 
       {!conn.data?.connected && (
@@ -149,78 +169,139 @@ function SpeakerSourcingPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="rounded-lg border bg-background p-4 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>Job title contains</Label>
+      {/* Compact filter bar */}
+      <div className="rounded-lg border bg-background p-3 space-y-3">
+        {/* Unified search + autocomplete */}
+        <div className="flex gap-2 items-start">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
-              value={jobTitle}
-              onChange={(e) => setJobTitle(e.target.value)}
-              placeholder="e.g. Head of Customer Success"
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setSuggestOpen(true);
+              }}
+              onFocus={() => setSuggestOpen(true)}
+              onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") runSearch();
+              }}
+              placeholder="Search name, email, company, or job title…"
+              className="pl-9 h-10"
             />
+            {suggestOpen && debouncedQ.length >= 2 && (suggestions.data?.length ?? 0) > 0 && (
+              <div className="absolute z-20 left-0 right-0 top-full mt-1 max-h-80 overflow-y-auto rounded-md border bg-popover shadow-md">
+                {suggestions.data!.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted border-b last:border-b-0"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setQ(s.name ?? s.email ?? s.company_name ?? "");
+                      setSuggestOpen(false);
+                      setTimeout(() => search.mutate(), 0);
+                    }}
+                  >
+                    <div className="font-medium">{s.name ?? s.email ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {[s.job_title, s.company_name].filter(Boolean).join(" · ")}
+                      {s.event_title ? ` — ${s.event_title}` : ""}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <div>
-            <Label>Company contains</Label>
-            <Input
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              placeholder="e.g. Zendesk"
-            />
-          </div>
-        </div>
-
-        <EventTypeahead
-          label="Events (Tito)"
-          options={(titoEvents.data ?? []).map((e) => ({ value: e.slug, label: e.title }))}
-          selected={selectedEventSlugs}
-          onChange={setSelectedEventSlugs}
-          placeholder="Type to search events…"
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>Event date from</Label>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-          </div>
-          <div>
-            <Label>Event date to</Label>
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-          </div>
-        </div>
-
-
-
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <MultiSelect
-            label="Include ticket types"
-            options={(releaseTitles.data ?? []).map((r) => ({ value: r, label: r }))}
-            selected={includeReleases}
-            onChange={setIncludeReleases}
-            placeholder="Any"
-          />
-          <MultiSelect
-            label="Exclude ticket types (e.g. Speaker Pass, Sponsor)"
-            options={(releaseTitles.data ?? []).map((r) => ({ value: r, label: r }))}
-            selected={excludeReleases}
-            onChange={setExcludeReleases}
-            placeholder="None"
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={applyExclude}
-              onCheckedChange={(v) => setApplyExclude(Boolean(v))}
-            />
-            Apply sponsor/competitor exclude list ({excluded.data?.length ?? 0} companies)
-          </label>
-          <Button onClick={() => search.mutate()} disabled={search.isPending}>
+          <Button onClick={runSearch} disabled={search.isPending} className="h-10">
             {search.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Search
           </Button>
+        </div>
+
+        {/* Year chips */}
+        {(years.data?.length ?? 0) > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground mr-1">Year</span>
+            {years.data!.map((y) => {
+              const on = selectedYears.includes(y);
+              return (
+                <button
+                  key={y}
+                  type="button"
+                  onClick={() => toggleYear(y)}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                    on
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background hover:bg-muted text-muted-foreground border-border",
+                  )}
+                >
+                  {y}
+                </button>
+              );
+            })}
+            {selectedYears.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedYears([])}
+                className="text-xs text-muted-foreground hover:text-foreground underline ml-1"
+              >
+                clear
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* More filters (collapsed) */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowMore((v) => !v)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
+            More filters
+            {(selectedEventSlugs.length > 0 || includeReleases.length > 0 || excludeReleases.length > 0 || !applyExclude) && (
+              <span className="ml-1 rounded-full bg-primary/10 text-primary text-[10px] px-1.5 py-0.5">
+                {selectedEventSlugs.length + includeReleases.length + excludeReleases.length + (!applyExclude ? 1 : 0)}
+              </span>
+            )}
+          </button>
+          {showMore && (
+            <div className="mt-3 space-y-3 border-t pt-3">
+              <EventTypeahead
+                label="Events (Tito)"
+                options={(titoEvents.data ?? []).map((e) => ({ value: e.slug, label: e.title }))}
+                selected={selectedEventSlugs}
+                onChange={setSelectedEventSlugs}
+                placeholder="Type to search events…"
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <MultiSelect
+                  label="Include ticket types"
+                  options={(releaseTitles.data ?? []).map((r) => ({ value: r, label: r }))}
+                  selected={includeReleases}
+                  onChange={setIncludeReleases}
+                  placeholder="Any"
+                />
+                <MultiSelect
+                  label="Exclude ticket types (e.g. Speaker Pass, Sponsor)"
+                  options={(releaseTitles.data ?? []).map((r) => ({ value: r, label: r }))}
+                  selected={excludeReleases}
+                  onChange={setExcludeReleases}
+                  placeholder="None"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={applyExclude}
+                  onCheckedChange={(v) => setApplyExclude(Boolean(v))}
+                />
+                Apply sponsor/competitor exclude list ({excluded.data?.length ?? 0} companies)
+              </label>
+            </div>
+          )}
         </div>
       </div>
 
@@ -239,8 +320,6 @@ function SpeakerSourcingPage() {
 
       {/* Event filter overrides */}
       <EventFilterPanel />
-
-
 
       {/* Results */}
       <div className="rounded-lg border bg-background overflow-hidden">
@@ -311,12 +390,11 @@ function SpeakerSourcingPage() {
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     {search.data === undefined
-                      ? `Ready to search ${(titoEvents.data ?? []).length.toLocaleString()} synced events. Set filters and click Search — your synced Tito data is safe in the database; this page just doesn't auto-run a search on load.`
-                      : "No attendees matched these filters. Try broadening the date range, job title, or ticket types."}
+                      ? `Ready to search ${(titoEvents.data ?? []).length.toLocaleString()} synced events. Type a name / company / job title above and hit Search.`
+                      : "No attendees matched these filters. Try broadening your search or clearing year filters."}
                   </td>
                 </tr>
               )}
-
             </tbody>
           </table>
         </div>
@@ -324,6 +402,7 @@ function SpeakerSourcingPage() {
     </div>
   );
 }
+
 
 function MultiSelect({
   label,
