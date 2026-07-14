@@ -178,6 +178,19 @@ function SpeakerSourcingPage() {
           placeholder="Type to search events…"
         />
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>Event date from</Label>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          </div>
+          <div>
+            <Label>Event date to</Label>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          </div>
+        </div>
+
+
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <MultiSelect
