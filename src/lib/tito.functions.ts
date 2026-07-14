@@ -533,6 +533,72 @@ export const listTitoEvents = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+// Classify a tito event title into AIAI vs CSC brand for UI badging.
+export function classifyTitoBrand(title: string | null | undefined): "AIAI" | "CSC" | "Other" {
+  if (!title) return "Other";
+  const t = title.toLowerCase();
+  if (
+    t.includes("generative ai") ||
+    t.includes("agentic ai") ||
+    t.includes("chief ai officer")
+  )
+    return "AIAI";
+  if (
+    t.includes("customer success") ||
+    t.includes("chief customer officer") ||
+    t.includes("customer support")
+  )
+    return "CSC";
+  return "Other";
+}
+
+export const listTitoEventsWithStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: events, error } = await context.supabase
+      .from("tito_events")
+      .select("*")
+      .order("start_date", { ascending: false, nullsFirst: false });
+    if (error) throw new Error(error.message);
+    const { data: tickets, error: tErr } = await context.supabase
+      .from("tito_tickets")
+      .select("event_slug");
+    if (tErr) throw new Error(tErr.message);
+    const counts = new Map<string, number>();
+    for (const t of tickets ?? []) {
+      if (!t.event_slug) continue;
+      counts.set(t.event_slug, (counts.get(t.event_slug) ?? 0) + 1);
+    }
+    return (events ?? []).map((e) => ({
+      ...e,
+      registered_count: counts.get(e.slug) ?? 0,
+      brand: classifyTitoBrand(e.title),
+    }));
+  });
+
+export const getTitoEventDetail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ slug: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: event, error } = await context.supabase
+      .from("tito_events")
+      .select("*")
+      .eq("slug", data.slug)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!event) throw new Error("Tito event not found");
+    const { data: tickets, error: tErr } = await context.supabase
+      .from("tito_tickets")
+      .select("*")
+      .eq("event_slug", data.slug)
+      .order("name", { ascending: true, nullsFirst: false });
+    if (tErr) throw new Error(tErr.message);
+    return {
+      event: { ...event, brand: classifyTitoBrand(event.title) },
+      tickets: tickets ?? [],
+    };
+  });
+
 export const listReleaseTitles = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
