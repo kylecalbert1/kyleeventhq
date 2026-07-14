@@ -70,6 +70,8 @@ function SpeakerSourcingPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [forceFullSync, setForceFullSync] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [detailAttendee, setDetailAttendee] = useState<TitoAttendee | null>(null);
+
 
   // Autocomplete suggestions for the unified search box
   const [suggestOpen, setSuggestOpen] = useState(false);
