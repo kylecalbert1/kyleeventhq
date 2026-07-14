@@ -127,7 +127,7 @@ export const syncTito = createServerFn({ method: "POST" })
     // 2) For each event, pull tickets (paginated)
     let ticketCount = 0;
     let answerCount = 0;
-    for (const ev of events) {
+    for (const ev of dedupedEvents) {
       let page = 1;
       while (true) {
         const body = (await titoFetch(`/${ACCOUNT}/${ev.slug}/tickets`, token, {
