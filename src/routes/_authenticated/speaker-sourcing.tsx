@@ -348,6 +348,95 @@ function MultiSelect({
   );
 }
 
+function EventTypeahead({
+  label,
+  options,
+  selected,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+  placeholder?: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const suggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return options
+      .filter(
+        (o) =>
+          !selected.includes(o.value) &&
+          (o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q)),
+      )
+      .slice(0, 12);
+  }, [options, query, selected]);
+
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="flex flex-wrap gap-1 min-h-9 border rounded-md px-2 py-1.5 bg-background">
+        {selected.map((v) => {
+          const opt = options.find((o) => o.value === v);
+          return (
+            <Badge key={v} variant="secondary" className="gap-1">
+              {opt?.label ?? v}
+              <button
+                type="button"
+                onClick={() => onChange(selected.filter((s) => s !== v))}
+                className="hover:text-destructive"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          );
+        })}
+        <div className="relative flex-1 min-w-[200px]">
+          <Input
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder={selected.length ? "Add another…" : placeholder ?? "Type to search…"}
+            className="border-0 shadow-none h-7 px-1 focus-visible:ring-0"
+          />
+          {open && suggestions.length > 0 && (
+            <div className="absolute z-20 left-0 right-0 top-full mt-1 max-h-64 overflow-y-auto rounded-md border bg-popover shadow-md">
+              {suggestions.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onChange([...selected, o.value]);
+                    setQuery("");
+                  }}
+                >
+                  {o.label}
+                  <div className="text-xs text-muted-foreground font-mono">{o.value}</div>
+                </button>
+              ))}
+            </div>
+          )}
+          {open && query.trim() && suggestions.length === 0 && (
+            <div className="absolute z-20 left-0 right-0 top-full mt-1 rounded-md border bg-popover shadow-md px-3 py-2 text-xs text-muted-foreground">
+              No matches
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function ExcludeListPanel({
   rows,
   onAdd,
