@@ -790,6 +790,30 @@ export type Database = {
           },
         ]
       }
+      tito_event_filters: {
+        Row: {
+          created_at: string
+          event_slug: string
+          id: string
+          mode: string
+          notes: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_slug: string
+          id?: string
+          mode: string
+          notes?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_slug?: string
+          id?: string
+          mode?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
       tito_events: {
         Row: {
           created_at: string

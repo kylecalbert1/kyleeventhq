@@ -117,7 +117,11 @@ export const fetchLeadSuggestions = createServerFn({ method: "POST" })
         const dom = domainOf(email);
         if (ownDomains.has(dom)) continue;
         if (knownEmails.has(email)) continue;
-        if (a.responseStatus === "declined") continue;
+        // NB: RSVP responseStatus (accepted/declined) is intentionally NOT
+        // used as a signal. Whether someone accepts or declines a calendar
+        // invite is unrelated to whether Kyle needs to reply by email.
+        // Reply-needed classification is driven purely by inbound Gmail
+        // (last_message_direction === "inbound") in NeedsAttentionWidget.
         let s = byEmail.get(email);
         if (!s) {
           s = { email, name: a.displayName ?? null, events: [] };

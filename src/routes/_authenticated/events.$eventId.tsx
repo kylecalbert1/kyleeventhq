@@ -11,6 +11,7 @@ import {
   Mail,
   Send,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -50,6 +51,7 @@ import { OutreachHub } from "@/components/outreach/OutreachHub";
 import { AgendaTab } from "@/components/agenda/AgendaTab";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { firstNameOf } from "@/lib/gmail";
+import { SyncDialog } from "@/components/SyncDialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
@@ -98,6 +100,7 @@ function EventDetail() {
     type?: "kickoff" | "washup";
   }>(null);
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
   const sendEmail = useServerFn(sendGmailEmail);
 
   function emailOne(s: any, ev: any) {
@@ -209,6 +212,10 @@ function EventDetail() {
           <StatusPill className={pillClass.website[e.website_status as never]}>
             {labels.website[e.website_status as never]}
           </StatusPill>
+          <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-1.5" />
+            Sync
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setEditingEvent(true)}>
             <Pencil className="h-4 w-4 mr-1.5" />
             Edit
@@ -547,6 +554,7 @@ function EventDetail() {
           defaultType={milestoneEdit.type}
         />
       )}
+      <SyncDialog open={syncOpen} onOpenChange={setSyncOpen} defaultEventId={eventId} />
     </div>
   );
 }
