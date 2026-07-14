@@ -683,9 +683,9 @@ function EventFilterPanel() {
       <div className="mt-3 space-y-3 text-sm">
         <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
           Default rule: only sync events whose title contains one of the AIAI/CSC
-          phrases (Generative AI Summit, Agentic AI Summit, Chief AI Officer
-          Summit, Customer Success Summit, Chief Customer Officer Summit,
-          Customer Support Summit, AI for Customer Support Summit). Use the
+          keywords (case-insensitive substring): "Generative AI Summit",
+          "Agentic AI", "Chief AI Officer Summit", "Customer Success Summit",
+          "Chief Customer Officer Summit", "Customer Support Summit". Use the
           overrides below to force-include or force-exclude specific slugs when
           the keyword rule misses or wrongly catches an event.
         </div>
