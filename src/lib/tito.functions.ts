@@ -528,6 +528,22 @@ export const searchTitoTickets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => Filters.parse(d ?? {}))
   .handler(async ({ data, context }) => {
+    // Resolve event date range → concrete slug list, then intersect with any
+    // explicitly-selected slugs.
+    let effectiveSlugs: string[] | undefined = data.event_slugs;
+    if (data.event_date_from || data.event_date_to) {
+      let evQ = context.supabase.from("tito_events").select("slug");
+      if (data.event_date_from) evQ = evQ.gte("start_date", data.event_date_from);
+      if (data.event_date_to) evQ = evQ.lte("start_date", data.event_date_to);
+      const { data: evRows, error: evErr } = await evQ;
+      if (evErr) throw new Error(evErr.message);
+      const inRange = new Set((evRows ?? []).map((r) => r.slug));
+      effectiveSlugs = effectiveSlugs?.length
+        ? effectiveSlugs.filter((s) => inRange.has(s))
+        : Array.from(inRange);
+      if (effectiveSlugs.length === 0) return [];
+    }
+
     let q = context.supabase
       .from("tito_tickets")
       .select("*")
@@ -536,11 +552,12 @@ export const searchTitoTickets = createServerFn({ method: "POST" })
 
     if (data.company) q = q.ilike("company_name", `%${data.company}%`);
     if (data.job_title) q = q.ilike("job_title", `%${data.job_title}%`);
-    if (data.event_slugs?.length) q = q.in("event_slug", data.event_slugs);
+    if (effectiveSlugs?.length) q = q.in("event_slug", effectiveSlugs);
     if (data.release_titles_include?.length)
       q = q.in("release_title", data.release_titles_include);
 
     const { data: rows, error } = await q;
+
     if (error) throw new Error(error.message);
     let out = rows ?? [];
 
