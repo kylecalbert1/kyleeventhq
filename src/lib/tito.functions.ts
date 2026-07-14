@@ -29,6 +29,14 @@ function matchesAiaiCsc(title: string | undefined | null): boolean {
 }
 
 
+type TitoBillingAddress = {
+  city?: string | null;
+  country?: string | null;
+  country_name?: string | null;
+  region?: string | null;
+  state?: string | null;
+} | null;
+
 type TitoTicket = {
   id?: number | string;
   slug?: string;
@@ -46,13 +54,13 @@ type TitoTicket = {
   release?: { id?: number | string; slug?: string; title?: string };
   registration_id?: number | string;
   registration_slug?: string;
-  billing_address?: {
-    city?: string | null;
-    country?: string | null;
-    country_name?: string | null;
-    region?: string | null;
-    state?: string | null;
+  // In view=extended, billing_address lives on registration, not on the ticket.
+  registration?: {
+    id?: number | string;
+    slug?: string;
+    billing_address?: TitoBillingAddress;
   } | null;
+  billing_address?: TitoBillingAddress;
   metadata?: Record<string, unknown> | null;
   answers?: Array<{
     id?: number | string;
@@ -61,6 +69,7 @@ type TitoTicket = {
     question_title?: string;
     title?: string;
     response?: string | string[];
+    primary_response?: string | null;
     humanized_response?: string;
   }>;
 };
