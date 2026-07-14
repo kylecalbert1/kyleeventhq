@@ -602,6 +602,9 @@ function EventsGrid() {
           </div>
         )}
       </section>
+
+      <EventFormDialog open={creating} onOpenChange={setCreating} />
+    </div>
   );
 }
 
