@@ -142,8 +142,7 @@ export const syncTito = createServerFn({ method: "POST" })
               event_title: ev.title,
               name:
                 t.name ??
-                [t.first_name, t.last_name].filter(Boolean).join(" ").trim() ||
-                null,
+                ([t.first_name, t.last_name].filter(Boolean).join(" ").trim() || null),
               first_name: t.first_name ?? null,
               last_name: t.last_name ?? null,
               email: t.email ?? null,
