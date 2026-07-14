@@ -29,6 +29,14 @@ function matchesAiaiCsc(title: string | undefined | null): boolean {
 }
 
 
+type TitoBillingAddress = {
+  city?: string | null;
+  country?: string | null;
+  country_name?: string | null;
+  region?: string | null;
+  state?: string | null;
+} | null;
+
 type TitoTicket = {
   id?: number | string;
   slug?: string;
@@ -46,13 +54,13 @@ type TitoTicket = {
   release?: { id?: number | string; slug?: string; title?: string };
   registration_id?: number | string;
   registration_slug?: string;
-  billing_address?: {
-    city?: string | null;
-    country?: string | null;
-    country_name?: string | null;
-    region?: string | null;
-    state?: string | null;
+  // In view=extended, billing_address lives on registration, not on the ticket.
+  registration?: {
+    id?: number | string;
+    slug?: string;
+    billing_address?: TitoBillingAddress;
   } | null;
+  billing_address?: TitoBillingAddress;
   metadata?: Record<string, unknown> | null;
   answers?: Array<{
     id?: number | string;
@@ -61,6 +69,7 @@ type TitoTicket = {
     question_title?: string;
     title?: string;
     response?: string | string[];
+    primary_response?: string | null;
     humanized_response?: string;
   }>;
 };
@@ -90,14 +99,13 @@ async function titoFetch(path: string, token: string, params?: Record<string, st
 }
 
 function answerText(a: NonNullable<TitoTicket["answers"]>[number]): string {
-  const r = Array.isArray(a.response) ? a.response.join(", ") : (a.humanized_response ?? a.response);
+  const r = Array.isArray(a.response)
+    ? a.response.join(", ")
+    : (a.humanized_response ?? a.primary_response ?? a.response);
   return r ? String(r).trim() : "";
 }
 
 function normalizeJobTitle(t: TitoTicket): string | null {
-  // Tito exposes job_title as a top-level field on the ticket — this is the
-  // canonical source. Fall back to matching a job-title-style question only
-  // when the top-level field is empty.
   const top = (t.job_title ?? "").toString().trim();
   if (top) return top;
   for (const a of t.answers ?? []) {
@@ -119,30 +127,39 @@ function normalizeJobTitle(t: TitoTicket): string | null {
 }
 
 function normalizeLocation(t: TitoTicket): string | null {
-  // 1) Custom question answers matching location-style prompts
+  // 1) Direct "Location"/"Based in" question wins outright.
+  let city: string | null = null;
+  let country: string | null = null;
+  let region: string | null = null;
   for (const a of t.answers ?? []) {
-    const q = (a.question?.title ?? a.question_title ?? a.title ?? "").toString().toLowerCase();
+    const q = (a.question?.title ?? a.question_title ?? a.title ?? "")
+      .toString()
+      .toLowerCase()
+      .trim();
     if (!q) continue;
-    if (
-      q.includes("location") ||
-      q.includes("city") ||
-      q.includes("country") ||
-      q.includes("based in") ||
-      q.includes("where are you")
-    ) {
-      const v = answerText(a);
-      if (v) return v;
+    const v = answerText(a);
+    if (!v) continue;
+    if (q === "location" || q.includes("based in") || q.includes("where are you")) {
+      return v;
+    }
+    if (q === "city" || q.includes("city")) city ??= v;
+    else if (q === "country" || q.includes("country")) country ??= v;
+    else if (q === "state" || q === "region" || q.includes("state/") || q.includes("province")) {
+      region ??= v;
     }
   }
-  // 2) Billing address fallback
-  const b = t.billing_address ?? null;
+
+  // 2) billing_address is on registration in extended view; keep the
+  //    ticket-level check as a fallback for legacy payloads.
+  const b: TitoBillingAddress = t.registration?.billing_address ?? t.billing_address ?? null;
   if (b) {
-    const parts = [b.city, b.region ?? b.state, b.country_name ?? b.country]
-      .map((x) => (x ?? "").toString().trim())
-      .filter(Boolean);
-    if (parts.length) return parts.join(", ");
+    city ??= (b.city ?? null) as string | null;
+    region ??= (b.region ?? b.state ?? null) as string | null;
+    country ??= (b.country_name ?? b.country ?? null) as string | null;
   }
-  return null;
+
+  const parts = [city, region, country].map((x) => (x ?? "").toString().trim()).filter(Boolean);
+  return parts.length ? Array.from(new Set(parts)).join(", ") : null;
 }
 
 
@@ -252,9 +269,13 @@ export const syncTito = createServerFn({ method: "POST" })
 
       let page = 1;
       while (true) {
+        // view=extended returns billing_address + answers, which the default
+        // short view omits. Slower per page, but the only way to backfill
+        // location and custom-question answers without one call per ticket.
         const body = (await titoFetch(`/${ACCOUNT}/${ev.slug}/tickets`, token, {
           page,
           per_page: 100,
+          view: "extended",
         })) as {
           tickets?: TitoTicket[];
           meta?: { next_page?: number | null };
