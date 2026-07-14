@@ -285,75 +285,7 @@ function EventsGrid() {
         </Button>
       </div>
 
-      {/* Section: KPIs */}
-      <section>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <KpiBox
-            tone="violet"
-            icon={CalendarDays}
-            label="Active events"
-            value={kpi.activeCount}
-            sub={`${summaries.length} total tracked`}
-          />
-          <KpiBox
-            tone="emerald"
-            icon={TargetIcon}
-            label="Speakers confirmed"
-            value={
-              <>
-                {kpi.confirmed}
-                <span className="text-muted-foreground/70 text-lg">/{kpi.target}</span>
-              </>
-            }
-            sub={`${kpi.speakersOpen} still to confirm (target)`}
-          />
-          <KpiBox
-            tone="amber"
-            icon={AlertTriangle}
-            label="Needing attention"
-            value={kpi.attention}
-            sub={
-              kpi.attention === 0
-                ? "All events on track"
-                : `${kpi.attention} of ${kpi.activeCount} active`
-            }
-          />
-        </div>
-      </section>
 
-      {/* Section: Needs attention + Workload */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <NeedsAttentionWidget />
-        <CapacityPanel summaries={summaries} />
-      </section>
-
-      {/* Section: Weekly priorities (secondary, collapsible) */}
-      <section>
-        <button
-          type="button"
-          onClick={() => setPrioritiesOpen((v) => !v)}
-          className="w-full flex items-center justify-between gap-2 rounded-lg border bg-background/60 hover:bg-accent/40 transition-colors px-4 py-2.5 text-sm"
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              This week's 5 priorities
-            </span>
-            <span className="text-xs text-muted-foreground/70">
-              {prioritiesOpen ? "hide" : "show"}
-            </span>
-          </div>
-          {prioritiesOpen ? (
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          )}
-        </button>
-        {prioritiesOpen && (
-          <div className="mt-3 max-w-2xl">
-            <WeeklyPrioritiesWidget />
-          </div>
-        )}
-      </section>
 
       {/* Section: Event list */}
       <section>
@@ -597,6 +529,76 @@ function EventsGrid() {
                 </Link>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      {/* Section: KPIs (demoted below the event list) */}
+      <section>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <KpiBox
+            tone="violet"
+            icon={CalendarDays}
+            label="Active events"
+            value={kpi.activeCount}
+            sub={`${summaries.length} total tracked`}
+          />
+          <KpiBox
+            tone="emerald"
+            icon={TargetIcon}
+            label="Speakers confirmed"
+            value={
+              <>
+                {kpi.confirmed}
+                <span className="text-muted-foreground/70 text-lg">/{kpi.target}</span>
+              </>
+            }
+            sub={`${kpi.speakersOpen} still to confirm (target)`}
+          />
+          <KpiBox
+            tone="amber"
+            icon={AlertTriangle}
+            label="Needing attention"
+            value={kpi.attention}
+            sub={
+              kpi.attention === 0
+                ? "All events on track"
+                : `${kpi.attention} of ${kpi.activeCount} active`
+            }
+          />
+        </div>
+      </section>
+
+      {/* Section: Needs attention + Workload */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <NeedsAttentionWidget />
+        <CapacityPanel summaries={summaries} />
+      </section>
+
+      {/* Section: Weekly priorities (secondary, collapsible) */}
+      <section>
+        <button
+          type="button"
+          onClick={() => setPrioritiesOpen((v) => !v)}
+          className="w-full flex items-center justify-between gap-2 rounded-lg border bg-background/60 hover:bg-accent/40 transition-colors px-4 py-2.5 text-sm"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              This week's 5 priorities
+            </span>
+            <span className="text-xs text-muted-foreground/70">
+              {prioritiesOpen ? "hide" : "show"}
+            </span>
+          </div>
+          {prioritiesOpen ? (
+            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          )}
+        </button>
+        {prioritiesOpen && (
+          <div className="mt-3 max-w-2xl">
+            <WeeklyPrioritiesWidget />
           </div>
         )}
       </section>
