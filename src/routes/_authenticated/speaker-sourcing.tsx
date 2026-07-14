@@ -358,19 +358,31 @@ function SpeakerSourcingPage() {
                 : "No attendees matched these filters. Try broadening your search or clearing year filters."}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-3">
               {results.map((r) => (
                 <TitoAttendeeCard
                   key={r.id}
-                  a={r}
+                  a={r as TitoAttendee}
                   selected={selected.has(r.id)}
                   onToggle={() => toggle(r.id)}
+                  onOpenDetail={() => setDetailAttendee(r as TitoAttendee)}
+                  onEmail={() => {
+                    if (r.email) window.location.href = `mailto:${r.email}`;
+                  }}
+                  onAddNote={() => setDetailAttendee(r as TitoAttendee)}
                 />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      <TitoAttendeeDetailDialog
+        attendee={detailAttendee}
+        open={!!detailAttendee}
+        onOpenChange={(v) => { if (!v) setDetailAttendee(null); }}
+      />
+
     </div>
   );
 }
