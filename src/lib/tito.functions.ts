@@ -154,7 +154,7 @@ export const syncTito = createServerFn({ method: "POST" })
               registration_id:
                 t.registration_id != null ? String(t.registration_id) : null,
               state: t.state ?? null,
-              raw: t as unknown as Record<string, unknown>,
+              raw: t as unknown as import("@/integrations/supabase/types").Json,
             };
           });
 
