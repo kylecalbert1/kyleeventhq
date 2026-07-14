@@ -98,8 +98,18 @@ export const syncTito = createServerFn({ method: "POST" })
       }
     }
 
+    // Dedupe by slug — an event can appear in both /events and /events/past
+    // during the transition window; Postgres rejects two rows with the same
+    // conflict key in one INSERT...ON CONFLICT statement.
+    const uniqueEvents = new Map<string, TitoEvent>();
+    for (const e of events) {
+      if (!e.slug) continue;
+      uniqueEvents.set(e.slug, e); // last occurrence wins (past overrides current)
+    }
+    const dedupedEvents = Array.from(uniqueEvents.values());
+
     // Upsert events
-    const eventRows = events.map((e) => ({
+    const eventRows = dedupedEvents.map((e) => ({
       slug: e.slug,
       title: e.title ?? e.slug,
       start_date: e.start_date ?? null,
@@ -117,7 +127,7 @@ export const syncTito = createServerFn({ method: "POST" })
     // 2) For each event, pull tickets (paginated)
     let ticketCount = 0;
     let answerCount = 0;
-    for (const ev of events) {
+    for (const ev of dedupedEvents) {
       let page = 1;
       while (true) {
         const body = (await titoFetch(`/${ACCOUNT}/${ev.slug}/tickets`, token, {
@@ -158,13 +168,19 @@ export const syncTito = createServerFn({ method: "POST" })
             };
           });
 
-        if (rows.length) {
+        // Dedupe by tito_ticket_id in case pagination overlaps or the API
+        // returns the same ticket twice within one event's fetch.
+        const uniqueRows = new Map<string, (typeof rows)[number]>();
+        for (const r of rows) uniqueRows.set(r.tito_ticket_id, r);
+        const dedupedRows = Array.from(uniqueRows.values());
+
+        if (dedupedRows.length) {
           const { data: upserted, error } = await context.supabase
             .from("tito_tickets")
-            .upsert(rows, { onConflict: "tito_ticket_id" })
+            .upsert(dedupedRows, { onConflict: "tito_ticket_id" })
             .select("id, tito_ticket_id");
           if (error) throw new Error(`tito_tickets upsert: ${error.message}`);
-          ticketCount += rows.length;
+          ticketCount += dedupedRows.length;
 
           // Rebuild answers for these tickets
           const idMap = new Map((upserted ?? []).map((r) => [r.tito_ticket_id, r.id]));
