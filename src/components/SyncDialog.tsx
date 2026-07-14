@@ -827,7 +827,7 @@ function ActionButton({
         title={
           eventPickerReady
             ? "Create speaker record"
-            : "Pick an event above first"
+            : "Pick an event for this lead first"
         }
       >
         <UserPlus className="h-3.5 w-3.5 mr-1" /> Add as lead
