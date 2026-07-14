@@ -115,13 +115,23 @@ function SpeakerSourcingPage() {
             Search past &amp; future Tito attendees to find speaker candidates.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {conn.data && !conn.data.connected ? (
             <Badge variant="destructive">TITO_API_TOKEN missing</Badge>
           ) : (
             <Badge variant="outline">Connected</Badge>
           )}
-          <Button onClick={() => sync.mutate()} disabled={sync.isPending || !conn.data?.connected}>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+            <Checkbox
+              checked={forceFullSync}
+              onCheckedChange={(v) => setForceFullSync(Boolean(v))}
+            />
+            Force full re-sync (past events)
+          </label>
+          <Button
+            onClick={() => sync.mutate(forceFullSync)}
+            disabled={sync.isPending || !conn.data?.connected}
+          >
             {sync.isPending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
@@ -130,6 +140,7 @@ function SpeakerSourcingPage() {
             Sync now
           </Button>
         </div>
+
       </div>
 
       {!conn.data?.connected && (
