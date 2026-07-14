@@ -554,6 +554,7 @@ function EventDetail() {
           defaultType={milestoneEdit.type}
         />
       )}
+      <SyncDialog open={syncOpen} onOpenChange={setSyncOpen} defaultEventId={eventId} />
     </div>
   );
 }
