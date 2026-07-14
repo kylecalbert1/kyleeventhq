@@ -771,8 +771,31 @@ export const searchTitoTickets = createServerFn({ method: "POST" })
       }
     }
 
+    // Attach linkedin_url from tito_answers.
+    const ids = out.map((r) => r.id);
+    if (ids.length) {
+      const { data: ans } = await context.supabase
+        .from("tito_answers")
+        .select("ticket_id, question_title, response")
+        .in("ticket_id", ids)
+        .ilike("question_title", "%linkedin%");
+      const linkedinMap = new Map<string, string>();
+      for (const a of ans ?? []) {
+        const r = (a.response ?? "").trim();
+        if (!r || !a.ticket_id) continue;
+        const url = /^https?:\/\//i.test(r)
+          ? r
+          : r.includes("linkedin.com")
+            ? `https://${r.replace(/^\/+/, "")}`
+            : null;
+        if (url && !linkedinMap.has(a.ticket_id)) linkedinMap.set(a.ticket_id, url);
+      }
+      out = out.map((r) => ({ ...r, linkedin_url: linkedinMap.get(r.id) ?? null }));
+    }
+
     return out;
   });
+
 
 // ============ Exclude list ============
 
