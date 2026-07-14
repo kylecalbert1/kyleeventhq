@@ -12,6 +12,10 @@ import {
   deleteExcludedCompany,
   tagAsSpeakerCandidates,
   generateOutreachDrafts,
+  listTitoEventFilters,
+  addTitoEventFilter,
+  deleteTitoEventFilter,
+  previewTitoEventClassification,
 } from "@/lib/tito.functions";
 import { listEvents } from "@/lib/events.functions";
 import { Button } from "@/components/ui/button";
