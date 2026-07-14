@@ -310,10 +310,13 @@ function SpeakerSourcingPage() {
               {results.length === 0 && !search.isPending && (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                    No results yet — set filters and click Search.
+                    {search.data === undefined
+                      ? `Ready to search ${(titoEvents.data ?? []).length.toLocaleString()} synced events. Set filters and click Search — your synced Tito data is safe in the database; this page just doesn't auto-run a search on load.`
+                      : "No attendees matched these filters. Try broadening the date range, job title, or ticket types."}
                   </td>
                 </tr>
               )}
+
             </tbody>
           </table>
         </div>
