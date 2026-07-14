@@ -168,13 +168,19 @@ export const syncTito = createServerFn({ method: "POST" })
             };
           });
 
-        if (rows.length) {
+        // Dedupe by tito_ticket_id in case pagination overlaps or the API
+        // returns the same ticket twice within one event's fetch.
+        const uniqueRows = new Map<string, (typeof rows)[number]>();
+        for (const r of rows) uniqueRows.set(r.tito_ticket_id, r);
+        const dedupedRows = Array.from(uniqueRows.values());
+
+        if (dedupedRows.length) {
           const { data: upserted, error } = await context.supabase
             .from("tito_tickets")
-            .upsert(rows, { onConflict: "tito_ticket_id" })
+            .upsert(dedupedRows, { onConflict: "tito_ticket_id" })
             .select("id, tito_ticket_id");
           if (error) throw new Error(`tito_tickets upsert: ${error.message}`);
-          ticketCount += rows.length;
+          ticketCount += dedupedRows.length;
 
           // Rebuild answers for these tickets
           const idMap = new Map((upserted ?? []).map((r) => [r.tito_ticket_id, r.id]));
