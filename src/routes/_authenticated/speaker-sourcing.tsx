@@ -206,6 +206,11 @@ function SpeakerSourcingPage() {
         }}
       />
 
+      {/* Event filter overrides */}
+      <EventFilterPanel />
+
+
+
       {/* Results */}
       <div className="rounded-lg border bg-background overflow-hidden">
         <div className="flex items-center justify-between p-3 border-b">
