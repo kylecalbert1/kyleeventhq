@@ -99,14 +99,13 @@ async function titoFetch(path: string, token: string, params?: Record<string, st
 }
 
 function answerText(a: NonNullable<TitoTicket["answers"]>[number]): string {
-  const r = Array.isArray(a.response) ? a.response.join(", ") : (a.humanized_response ?? a.response);
+  const r = Array.isArray(a.response)
+    ? a.response.join(", ")
+    : (a.humanized_response ?? a.primary_response ?? a.response);
   return r ? String(r).trim() : "";
 }
 
 function normalizeJobTitle(t: TitoTicket): string | null {
-  // Tito exposes job_title as a top-level field on the ticket — this is the
-  // canonical source. Fall back to matching a job-title-style question only
-  // when the top-level field is empty.
   const top = (t.job_title ?? "").toString().trim();
   if (top) return top;
   for (const a of t.answers ?? []) {
@@ -128,30 +127,39 @@ function normalizeJobTitle(t: TitoTicket): string | null {
 }
 
 function normalizeLocation(t: TitoTicket): string | null {
-  // 1) Custom question answers matching location-style prompts
+  // 1) Direct "Location"/"Based in" question wins outright.
+  let city: string | null = null;
+  let country: string | null = null;
+  let region: string | null = null;
   for (const a of t.answers ?? []) {
-    const q = (a.question?.title ?? a.question_title ?? a.title ?? "").toString().toLowerCase();
+    const q = (a.question?.title ?? a.question_title ?? a.title ?? "")
+      .toString()
+      .toLowerCase()
+      .trim();
     if (!q) continue;
-    if (
-      q.includes("location") ||
-      q.includes("city") ||
-      q.includes("country") ||
-      q.includes("based in") ||
-      q.includes("where are you")
-    ) {
-      const v = answerText(a);
-      if (v) return v;
+    const v = answerText(a);
+    if (!v) continue;
+    if (q === "location" || q.includes("based in") || q.includes("where are you")) {
+      return v;
+    }
+    if (q === "city" || q.includes("city")) city ??= v;
+    else if (q === "country" || q.includes("country")) country ??= v;
+    else if (q === "state" || q === "region" || q.includes("state/") || q.includes("province")) {
+      region ??= v;
     }
   }
-  // 2) Billing address fallback
-  const b = t.billing_address ?? null;
+
+  // 2) billing_address is on registration in extended view; keep the
+  //    ticket-level check as a fallback for legacy payloads.
+  const b: TitoBillingAddress = t.registration?.billing_address ?? t.billing_address ?? null;
   if (b) {
-    const parts = [b.city, b.region ?? b.state, b.country_name ?? b.country]
-      .map((x) => (x ?? "").toString().trim())
-      .filter(Boolean);
-    if (parts.length) return parts.join(", ");
+    city ??= (b.city ?? null) as string | null;
+    region ??= (b.region ?? b.state ?? null) as string | null;
+    country ??= (b.country_name ?? b.country ?? null) as string | null;
   }
-  return null;
+
+  const parts = [city, region, country].map((x) => (x ?? "").toString().trim()).filter(Boolean);
+  return parts.length ? Array.from(new Set(parts)).join(", ") : null;
 }
 
 
