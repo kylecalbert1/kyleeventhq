@@ -43,7 +43,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TitoAttendeeCard } from "@/components/tito/TitoAttendeeCard";
+import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAttendeeCard";
+import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDialog";
+
 
 
 export const Route = createFileRoute("/_authenticated/speaker-sourcing")({
