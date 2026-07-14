@@ -5,6 +5,30 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const TITO_BASE = "https://api.tito.io/v3";
 const ACCOUNT = "sequel-media";
 
+// Kyle only manages AIAI (AI Accelerator Institute) + CSC (Customer Success
+// Collective) brands. The rest of the Product Marketing Alliance portfolio
+// (Product Marketing, Sales Enablement, RevOps, CFO/FP&A, People, AI for
+// Marketers, AI for GTM, AI for Product Marketing, etc) must NOT sync.
+// Match by exact phrase (case-insensitive substring on the whole phrase), so
+// "AI for Marketers Summit" does NOT match just because it contains "AI".
+const AIAI_CSC_PHRASES = [
+  // AIAI
+  "Generative AI Summit",
+  "Agentic AI Summit",
+  "Chief AI Officer Summit",
+  // CSC
+  "Customer Success Summit",
+  "Chief Customer Officer Summit",
+  "Customer Support Summit",
+  "AI for Customer Support Summit",
+];
+
+function matchesAiaiCsc(title: string | undefined | null): boolean {
+  if (!title) return false;
+  const t = title.toLowerCase();
+  return AIAI_CSC_PHRASES.some((p) => t.includes(p.toLowerCase()));
+}
+
 type TitoTicket = {
   id?: number | string;
   slug?: string;
