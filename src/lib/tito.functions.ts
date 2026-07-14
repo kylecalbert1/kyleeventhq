@@ -286,11 +286,125 @@ export const syncTito = createServerFn({ method: "POST" })
 
     return {
       ok: true,
-      events: events.length,
+      events: dedupedEvents.length,
+      events_total_seen: allEvents.length,
+      events_skipped: skipped,
       tickets: ticketCount,
       answers: answerCount,
     };
   });
+
+// ============ Event filter overrides ============
+
+export const listTitoEventFilters = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await (context.supabase as any)
+      .from("tito_event_filters")
+      .select("*")
+      .order("mode")
+      .order("event_slug");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<{
+      id: string;
+      event_slug: string;
+      mode: "include" | "exclude";
+      notes: string | null;
+      created_at: string;
+    }>;
+  });
+
+export const addTitoEventFilter = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        event_slug: z.string().min(1),
+        mode: z.enum(["include", "exclude"]),
+        notes: z.string().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await (context.supabase as any)
+      .from("tito_event_filters")
+      .upsert(
+        {
+          event_slug: data.event_slug.trim(),
+          mode: data.mode,
+          notes: data.notes ?? null,
+        },
+        { onConflict: "event_slug,mode" },
+      )
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const deleteTitoEventFilter = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await (context.supabase as any)
+      .from("tito_event_filters")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Preview which raw Tito events would match the current AIAI/CSC keyword
+// rules + manual overrides — useful to sanity-check the filter list.
+export const previewTitoEventClassification = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const token = process.env.TITO_API_TOKEN;
+    if (!token) throw new Error("Missing TITO_API_TOKEN.");
+    const events: TitoEvent[] = [];
+    for (const path of [`/${ACCOUNT}/events`, `/${ACCOUNT}/events/past`]) {
+      let page = 1;
+      while (true) {
+        const body = (await titoFetch(path, token, { page, per_page: 100 })) as {
+          events?: TitoEvent[];
+          meta?: { next_page?: number | null };
+        };
+        const batch = body.events ?? [];
+        events.push(...batch);
+        const next = body.meta?.next_page;
+        if (!next || batch.length === 0) break;
+        page = Number(next);
+      }
+    }
+    const uniq = new Map<string, TitoEvent>();
+    for (const e of events) if (e.slug) uniq.set(e.slug, e);
+
+    const { data: filterRows } = (await (context.supabase as any)
+      .from("tito_event_filters")
+      .select("event_slug, mode")) as {
+      data: Array<{ event_slug: string; mode: "include" | "exclude" }> | null;
+    };
+    const manualInc = new Set((filterRows ?? []).filter((r) => r.mode === "include").map((r) => r.event_slug));
+    const manualExc = new Set((filterRows ?? []).filter((r) => r.mode === "exclude").map((r) => r.event_slug));
+
+    return Array.from(uniq.values()).map((e) => {
+      const kw = matchesAiaiCsc(e.title);
+      const excluded = manualExc.has(e.slug!);
+      const included = manualInc.has(e.slug!);
+      const willSync = excluded ? false : included || kw;
+      return {
+        slug: e.slug!,
+        title: e.title ?? e.slug!,
+        start_date: e.start_date ?? null,
+        end_date: e.end_date ?? null,
+        keyword_match: kw,
+        manual_include: included,
+        manual_exclude: excluded,
+        will_sync: willSync,
+      };
+    });
+  });
+
 
 // ============ Sourcing queries ============
 
