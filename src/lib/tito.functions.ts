@@ -433,7 +433,7 @@ export const generateOutreachDrafts = createServerFn({ method: "POST" })
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
     const { data: tickets, error } = await context.supabase
       .from("tito_tickets")
-      .select("id, name, first_name, company_name, job_title, event_title, release_title")
+      .select("id, name, first_name, email, company_name, job_title, event_title, release_title")
       .in("id", data.ticket_ids);
     if (error) throw new Error(error.message);
     if (!tickets?.length) return { drafts: [] };
