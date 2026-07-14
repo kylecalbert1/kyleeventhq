@@ -252,9 +252,13 @@ export const syncTito = createServerFn({ method: "POST" })
 
       let page = 1;
       while (true) {
+        // view=extended returns billing_address + answers, which the default
+        // short view omits. Slower per page, but the only way to backfill
+        // location and custom-question answers without one call per ticket.
         const body = (await titoFetch(`/${ACCOUNT}/${ev.slug}/tickets`, token, {
           page,
           per_page: 100,
+          view: "extended",
         })) as {
           tickets?: TitoTicket[];
           meta?: { next_page?: number | null };
