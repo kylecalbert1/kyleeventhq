@@ -27,7 +27,9 @@ import {
 import { ArrowLeft, Search, X, Users, CalendarDays, Loader2, Sparkles, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { TitoAttendeeCard } from "@/components/tito/TitoAttendeeCard";
+import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAttendeeCard";
+import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDialog";
+
 
 export const Route = createFileRoute("/_authenticated/tito/$slug")({
   component: TitoEventDetail,
