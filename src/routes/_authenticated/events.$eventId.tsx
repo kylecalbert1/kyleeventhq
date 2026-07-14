@@ -100,6 +100,7 @@ function EventDetail() {
     type?: "kickoff" | "washup";
   }>(null);
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
   const sendEmail = useServerFn(sendGmailEmail);
 
   function emailOne(s: any, ev: any) {
