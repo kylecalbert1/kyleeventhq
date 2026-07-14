@@ -60,6 +60,9 @@ function SpeakerSourcingPage() {
   const [excludeReleases, setExcludeReleases] = useState<string[]>([]);
   const [applyExclude, setApplyExclude] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [forceFullSync, setForceFullSync] = useState(false);
 
   const search = useMutation({
     mutationFn: () =>
@@ -70,6 +73,8 @@ function SpeakerSourcingPage() {
           event_slugs: selectedEventSlugs.length ? selectedEventSlugs : undefined,
           release_titles_include: includeReleases.length ? includeReleases : undefined,
           release_titles_exclude: excludeReleases.length ? excludeReleases : undefined,
+          event_date_from: dateFrom || undefined,
+          event_date_to: dateTo || undefined,
           apply_exclude_list: applyExclude,
           limit: 1000,
         },
@@ -77,16 +82,17 @@ function SpeakerSourcingPage() {
   });
 
   const sync = useMutation({
-    mutationFn: () => syncTito(),
+    mutationFn: (force: boolean) => syncTito({ data: { force } }),
     onSuccess: (r) => {
       toast.success(
-        `Synced ${r.events} AIAI/CSC events (skipped ${r.events_skipped} other-brand), ${r.tickets} tickets, ${r.answers} answers`,
+        `Synced ${r.events} AIAI/CSC events (skipped ${r.events_skipped} other-brand${r.events_ticket_fetch_skipped ? `, ${r.events_ticket_fetch_skipped} past events unchanged` : ""}), ${r.tickets} tickets, ${r.answers} answers${r.forced ? " · full re-sync" : ""}`,
       );
       qc.invalidateQueries({ queryKey: ["tito-events"] });
       qc.invalidateQueries({ queryKey: ["tito-releases"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const results = search.data ?? [];
   const allSelected = results.length > 0 && results.every((r) => selected.has(r.id));
