@@ -259,6 +259,7 @@ export const syncTito = createServerFn({ method: "POST" })
               email: t.email ?? null,
               company_name: t.company_name ?? null,
               job_title: normalizeJobTitle(t),
+              location: normalizeLocation(t),
               release_id: releaseId ? String(releaseId) : null,
               release_slug: releaseSlug,
               release_title: releaseTitle,
