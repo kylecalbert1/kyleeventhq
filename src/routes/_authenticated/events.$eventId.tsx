@@ -212,6 +212,10 @@ function EventDetail() {
           <StatusPill className={pillClass.website[e.website_status as never]}>
             {labels.website[e.website_status as never]}
           </StatusPill>
+          <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-1.5" />
+            Sync
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setEditingEvent(true)}>
             <Pencil className="h-4 w-4 mr-1.5" />
             Edit
