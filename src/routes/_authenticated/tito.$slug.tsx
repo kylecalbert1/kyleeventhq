@@ -27,7 +27,9 @@ import {
 import { ArrowLeft, Search, X, Users, CalendarDays, Loader2, Sparkles, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { TitoAttendeeCard } from "@/components/tito/TitoAttendeeCard";
+import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAttendeeCard";
+import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDialog";
+
 
 export const Route = createFileRoute("/_authenticated/tito/$slug")({
   component: TitoEventDetail,
@@ -56,6 +58,8 @@ function TitoEventDetail() {
   const [q, setQ] = useState("");
   const [releaseFilter, setReleaseFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [detailAttendee, setDetailAttendee] = useState<TitoAttendee | null>(null);
+
 
   const event = data?.event;
   const tickets = data?.tickets ?? [];
@@ -234,23 +238,35 @@ function TitoEventDetail() {
               No attendees match these filters.
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-3">
               {filtered.map((t) => (
                 <TitoAttendeeCard
                   key={t.id}
-                  a={t}
+                  a={t as TitoAttendee}
                   selected={selected.has(t.id)}
                   onToggle={(v) => toggle(t.id, v)}
+                  onOpenDetail={() => setDetailAttendee(t as TitoAttendee)}
+                  onEmail={() => {
+                    if (t.email) window.location.href = `mailto:${t.email}`;
+                  }}
+                  onAddNote={() => setDetailAttendee(t as TitoAttendee)}
                   showEvent={false}
                 />
               ))}
             </div>
           )}
+
+          <TitoAttendeeDetailDialog
+            attendee={detailAttendee}
+            open={!!detailAttendee}
+            onOpenChange={(v) => { if (!v) setDetailAttendee(null); }}
+          />
         </>
       )}
     </div>
   );
 }
+
 
 function TagButton({
   disabled,

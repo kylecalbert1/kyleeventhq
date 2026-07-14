@@ -43,7 +43,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TitoAttendeeCard } from "@/components/tito/TitoAttendeeCard";
+import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAttendeeCard";
+import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDialog";
+
 
 
 export const Route = createFileRoute("/_authenticated/speaker-sourcing")({
@@ -68,6 +70,8 @@ function SpeakerSourcingPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [forceFullSync, setForceFullSync] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [detailAttendee, setDetailAttendee] = useState<TitoAttendee | null>(null);
+
 
   // Autocomplete suggestions for the unified search box
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -354,19 +358,31 @@ function SpeakerSourcingPage() {
                 : "No attendees matched these filters. Try broadening your search or clearing year filters."}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-3">
               {results.map((r) => (
                 <TitoAttendeeCard
                   key={r.id}
-                  a={r}
+                  a={r as TitoAttendee}
                   selected={selected.has(r.id)}
                   onToggle={() => toggle(r.id)}
+                  onOpenDetail={() => setDetailAttendee(r as TitoAttendee)}
+                  onEmail={() => {
+                    if (r.email) window.location.href = `mailto:${r.email}`;
+                  }}
+                  onAddNote={() => setDetailAttendee(r as TitoAttendee)}
                 />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      <TitoAttendeeDetailDialog
+        attendee={detailAttendee}
+        open={!!detailAttendee}
+        onOpenChange={(v) => { if (!v) setDetailAttendee(null); }}
+      />
+
     </div>
   );
 }
