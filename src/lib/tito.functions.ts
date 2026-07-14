@@ -593,11 +593,38 @@ export const getTitoEventDetail = createServerFn({ method: "POST" })
       .eq("event_slug", data.slug)
       .order("name", { ascending: true, nullsFirst: false });
     if (tErr) throw new Error(tErr.message);
+
+    // Attach linkedin_url from tito_answers (question titles that mention "linkedin").
+    const ids = (tickets ?? []).map((t) => t.id);
+    const linkedinMap = new Map<string, string>();
+    if (ids.length) {
+      const { data: ans } = await context.supabase
+        .from("tito_answers")
+        .select("ticket_id, question_title, response")
+        .in("ticket_id", ids)
+        .ilike("question_title", "%linkedin%");
+      for (const a of ans ?? []) {
+        const r = (a.response ?? "").trim();
+        if (!r || !a.ticket_id) continue;
+        const url = /^https?:\/\//i.test(r)
+          ? r
+          : r.includes("linkedin.com")
+            ? `https://${r.replace(/^\/+/, "")}`
+            : null;
+        if (url && !linkedinMap.has(a.ticket_id)) linkedinMap.set(a.ticket_id, url);
+      }
+    }
+    const enriched = (tickets ?? []).map((t) => ({
+      ...t,
+      linkedin_url: linkedinMap.get(t.id) ?? null,
+    }));
+
     return {
       event: { ...event, brand: classifyTitoBrand(event.title) },
-      tickets: tickets ?? [],
+      tickets: enriched,
     };
   });
+
 
 export const listReleaseTitles = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
