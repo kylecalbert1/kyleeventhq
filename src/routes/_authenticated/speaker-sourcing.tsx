@@ -153,13 +153,14 @@ function SpeakerSourcingPage() {
           </div>
         </div>
 
-        <MultiSelect
+        <EventTypeahead
           label="Events (Tito)"
           options={(titoEvents.data ?? []).map((e) => ({ value: e.slug, label: e.title }))}
           selected={selectedEventSlugs}
           onChange={setSelectedEventSlugs}
-          placeholder="All events"
+          placeholder="Type to search events…"
         />
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <MultiSelect
@@ -251,6 +252,7 @@ function SpeakerSourcingPage() {
                 <th className="p-2 text-left">Email</th>
                 <th className="p-2 text-left">Company</th>
                 <th className="p-2 text-left">Job title</th>
+                <th className="p-2 text-left">Location</th>
                 <th className="p-2 text-left">Ticket type</th>
                 <th className="p-2 text-left">Event</th>
               </tr>
@@ -268,6 +270,7 @@ function SpeakerSourcingPage() {
                   <td className="p-2 text-muted-foreground">{r.email ?? "—"}</td>
                   <td className="p-2">{r.company_name ?? "—"}</td>
                   <td className="p-2">{r.job_title ?? "—"}</td>
+                  <td className="p-2 text-muted-foreground">{r.location ?? "—"}</td>
                   <td className="p-2">
                     <Badge variant="outline">{r.release_title ?? "—"}</Badge>
                   </td>
@@ -276,7 +279,7 @@ function SpeakerSourcingPage() {
               ))}
               {results.length === 0 && !search.isPending && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     No results yet — set filters and click Search.
                   </td>
                 </tr>
