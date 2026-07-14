@@ -238,23 +238,35 @@ function TitoEventDetail() {
               No attendees match these filters.
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-3">
               {filtered.map((t) => (
                 <TitoAttendeeCard
                   key={t.id}
-                  a={t}
+                  a={t as TitoAttendee}
                   selected={selected.has(t.id)}
                   onToggle={(v) => toggle(t.id, v)}
+                  onOpenDetail={() => setDetailAttendee(t as TitoAttendee)}
+                  onEmail={() => {
+                    if (t.email) window.location.href = `mailto:${t.email}`;
+                  }}
+                  onAddNote={() => setDetailAttendee(t as TitoAttendee)}
                   showEvent={false}
                 />
               ))}
             </div>
           )}
+
+          <TitoAttendeeDetailDialog
+            attendee={detailAttendee}
+            open={!!detailAttendee}
+            onOpenChange={(v) => { if (!v) setDetailAttendee(null); }}
+          />
         </>
       )}
     </div>
   );
 }
+
 
 function TagButton({
   disabled,
