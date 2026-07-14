@@ -60,6 +60,9 @@ function SpeakerSourcingPage() {
   const [excludeReleases, setExcludeReleases] = useState<string[]>([]);
   const [applyExclude, setApplyExclude] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [forceFullSync, setForceFullSync] = useState(false);
 
   const search = useMutation({
     mutationFn: () =>
@@ -70,6 +73,8 @@ function SpeakerSourcingPage() {
           event_slugs: selectedEventSlugs.length ? selectedEventSlugs : undefined,
           release_titles_include: includeReleases.length ? includeReleases : undefined,
           release_titles_exclude: excludeReleases.length ? excludeReleases : undefined,
+          event_date_from: dateFrom || undefined,
+          event_date_to: dateTo || undefined,
           apply_exclude_list: applyExclude,
           limit: 1000,
         },
@@ -77,16 +82,17 @@ function SpeakerSourcingPage() {
   });
 
   const sync = useMutation({
-    mutationFn: () => syncTito(),
+    mutationFn: (force: boolean) => syncTito({ data: { force } }),
     onSuccess: (r) => {
       toast.success(
-        `Synced ${r.events} AIAI/CSC events (skipped ${r.events_skipped} other-brand), ${r.tickets} tickets, ${r.answers} answers`,
+        `Synced ${r.events} AIAI/CSC events (skipped ${r.events_skipped} other-brand${r.events_ticket_fetch_skipped ? `, ${r.events_ticket_fetch_skipped} past events unchanged` : ""}), ${r.tickets} tickets, ${r.answers} answers${r.forced ? " · full re-sync" : ""}`,
       );
       qc.invalidateQueries({ queryKey: ["tito-events"] });
       qc.invalidateQueries({ queryKey: ["tito-releases"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const results = search.data ?? [];
   const allSelected = results.length > 0 && results.every((r) => selected.has(r.id));
@@ -109,13 +115,23 @@ function SpeakerSourcingPage() {
             Search past &amp; future Tito attendees to find speaker candidates.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {conn.data && !conn.data.connected ? (
             <Badge variant="destructive">TITO_API_TOKEN missing</Badge>
           ) : (
             <Badge variant="outline">Connected</Badge>
           )}
-          <Button onClick={() => sync.mutate()} disabled={sync.isPending || !conn.data?.connected}>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+            <Checkbox
+              checked={forceFullSync}
+              onCheckedChange={(v) => setForceFullSync(Boolean(v))}
+            />
+            Force full re-sync (past events)
+          </label>
+          <Button
+            onClick={() => sync.mutate(forceFullSync)}
+            disabled={sync.isPending || !conn.data?.connected}
+          >
             {sync.isPending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
@@ -124,6 +140,7 @@ function SpeakerSourcingPage() {
             Sync now
           </Button>
         </div>
+
       </div>
 
       {!conn.data?.connected && (
@@ -160,6 +177,19 @@ function SpeakerSourcingPage() {
           onChange={setSelectedEventSlugs}
           placeholder="Type to search events…"
         />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>Event date from</Label>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          </div>
+          <div>
+            <Label>Event date to</Label>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          </div>
+        </div>
+
+
 
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -280,10 +310,13 @@ function SpeakerSourcingPage() {
               {results.length === 0 && !search.isPending && (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                    No results yet — set filters and click Search.
+                    {search.data === undefined
+                      ? `Ready to search ${(titoEvents.data ?? []).length.toLocaleString()} synced events. Set filters and click Search — your synced Tito data is safe in the database; this page just doesn't auto-run a search on load.`
+                      : "No attendees matched these filters. Try broadening the date range, job title, or ticket types."}
                   </td>
                 </tr>
               )}
+
             </tbody>
           </table>
         </div>

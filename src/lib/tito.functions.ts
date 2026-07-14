@@ -154,7 +154,9 @@ export const titoConnectionStatus = createServerFn({ method: "GET" })
 
 export const syncTito = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d) => z.object({ force: z.boolean().optional() }).parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    const force = Boolean(data.force);
     const token = process.env.TITO_API_TOKEN;
     if (!token) throw new Error("Missing TITO_API_TOKEN — add it in Project Settings → Secrets.");
 
@@ -209,7 +211,17 @@ export const syncTito = createServerFn({ method: "POST" })
     });
     const skipped = allEvents.length - dedupedEvents.length;
 
-    // Upsert events
+    // Load prior sync state so we can skip re-fetching past events whose
+    // ticket data won't change (unless force=true).
+    const { data: priorRows } = await context.supabase
+      .from("tito_events")
+      .select("slug, last_synced_at, is_past");
+    const priorBySlug = new Map(
+      (priorRows ?? []).map((r) => [r.slug, r] as const),
+    );
+
+    // Upsert event metadata every time (cheap) so newly-added events and
+    // events that flipped from upcoming→past get picked up.
     const eventRows = dedupedEvents.map((e) => ({
       slug: e.slug,
       title: e.title ?? e.slug,
@@ -225,10 +237,19 @@ export const syncTito = createServerFn({ method: "POST" })
       if (error) throw new Error(`tito_events upsert: ${error.message}`);
     }
 
-    // 2) For each event, pull tickets (paginated)
     let ticketCount = 0;
     let answerCount = 0;
+    let ticketFetchSkipped = 0;
     for (const ev of dedupedEvents) {
+      const isPast = Boolean(ev.end_date && new Date(ev.end_date) < new Date());
+      const prior = priorBySlug.get(ev.slug);
+      // Skip re-fetching tickets for past events already synced at least once —
+      // their attendee list is frozen. Force overrides this.
+      if (!force && isPast && prior?.last_synced_at) {
+        ticketFetchSkipped++;
+        continue;
+      }
+
       let page = 1;
       while (true) {
         const body = (await titoFetch(`/${ACCOUNT}/${ev.slug}/tickets`, token, {
@@ -343,9 +364,12 @@ export const syncTito = createServerFn({ method: "POST" })
       events: dedupedEvents.length,
       events_total_seen: allEvents.length,
       events_skipped: skipped,
+      events_ticket_fetch_skipped: ticketFetchSkipped,
       tickets: ticketCount,
       answers: answerCount,
+      forced: force,
     };
+
   });
 
 // ============ Event filter overrides ============
@@ -468,9 +492,12 @@ const Filters = z.object({
   release_titles_include: z.array(z.string()).optional(),
   release_titles_exclude: z.array(z.string()).optional(),
   event_slugs: z.array(z.string()).optional(),
+  event_date_from: z.string().optional(), // YYYY-MM-DD, inclusive, on tito_events.start_date
+  event_date_to: z.string().optional(),   // YYYY-MM-DD, inclusive, on tito_events.start_date
   apply_exclude_list: z.boolean().optional(),
   limit: z.number().int().min(1).max(2000).optional(),
 });
+
 
 export const listTitoEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -501,6 +528,22 @@ export const searchTitoTickets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => Filters.parse(d ?? {}))
   .handler(async ({ data, context }) => {
+    // Resolve event date range → concrete slug list, then intersect with any
+    // explicitly-selected slugs.
+    let effectiveSlugs: string[] | undefined = data.event_slugs;
+    if (data.event_date_from || data.event_date_to) {
+      let evQ = context.supabase.from("tito_events").select("slug");
+      if (data.event_date_from) evQ = evQ.gte("start_date", data.event_date_from);
+      if (data.event_date_to) evQ = evQ.lte("start_date", data.event_date_to);
+      const { data: evRows, error: evErr } = await evQ;
+      if (evErr) throw new Error(evErr.message);
+      const inRange = new Set((evRows ?? []).map((r) => r.slug));
+      effectiveSlugs = effectiveSlugs?.length
+        ? effectiveSlugs.filter((s) => inRange.has(s))
+        : Array.from(inRange);
+      if (effectiveSlugs.length === 0) return [];
+    }
+
     let q = context.supabase
       .from("tito_tickets")
       .select("*")
@@ -509,11 +552,12 @@ export const searchTitoTickets = createServerFn({ method: "POST" })
 
     if (data.company) q = q.ilike("company_name", `%${data.company}%`);
     if (data.job_title) q = q.ilike("job_title", `%${data.job_title}%`);
-    if (data.event_slugs?.length) q = q.in("event_slug", data.event_slugs);
+    if (effectiveSlugs?.length) q = q.in("event_slug", effectiveSlugs);
     if (data.release_titles_include?.length)
       q = q.in("release_title", data.release_titles_include);
 
     const { data: rows, error } = await q;
+
     if (error) throw new Error(error.message);
     let out = rows ?? [];
 
