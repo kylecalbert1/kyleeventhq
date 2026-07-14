@@ -487,13 +487,15 @@ export const previewTitoEventClassification = createServerFn({ method: "GET" })
 // ============ Sourcing queries ============
 
 const Filters = z.object({
+  q: z.string().optional(), // unified search: name, email, company, job_title
   job_title: z.string().optional(),
   company: z.string().optional(),
   release_titles_include: z.array(z.string()).optional(),
   release_titles_exclude: z.array(z.string()).optional(),
   event_slugs: z.array(z.string()).optional(),
-  event_date_from: z.string().optional(), // YYYY-MM-DD, inclusive, on tito_events.start_date
-  event_date_to: z.string().optional(),   // YYYY-MM-DD, inclusive, on tito_events.start_date
+  event_date_from: z.string().optional(),
+  event_date_to: z.string().optional(),
+  years: z.array(z.number().int()).optional(),
   apply_exclude_list: z.boolean().optional(),
   limit: z.number().int().min(1).max(2000).optional(),
 });
