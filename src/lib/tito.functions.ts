@@ -98,8 +98,18 @@ export const syncTito = createServerFn({ method: "POST" })
       }
     }
 
+    // Dedupe by slug — an event can appear in both /events and /events/past
+    // during the transition window; Postgres rejects two rows with the same
+    // conflict key in one INSERT...ON CONFLICT statement.
+    const uniqueEvents = new Map<string, TitoEvent>();
+    for (const e of events) {
+      if (!e.slug) continue;
+      uniqueEvents.set(e.slug, e); // last occurrence wins (past overrides current)
+    }
+    const dedupedEvents = Array.from(uniqueEvents.values());
+
     // Upsert events
-    const eventRows = events.map((e) => ({
+    const eventRows = dedupedEvents.map((e) => ({
       slug: e.slug,
       title: e.title ?? e.slug,
       start_date: e.start_date ?? null,
