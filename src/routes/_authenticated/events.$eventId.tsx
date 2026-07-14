@@ -226,6 +226,17 @@ function EventDetail() {
         </div>
       </div>
 
+      {/* Top-level search — filters the Speakers, Outreach, Banners lists below */}
+      <div className="relative max-w-xl">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          className="pl-9 h-10"
+          placeholder="Search speakers by name, company, email…"
+          value={speakerQ}
+          onChange={(ev) => setSpeakerQ(ev.target.value)}
+        />
+      </div>
+
       <Tabs defaultValue="speakers">
         <TabsList>
           <TabsTrigger value="speakers">Speakers</TabsTrigger>
@@ -250,35 +261,59 @@ function EventDetail() {
         </TabsContent>
 
         <TabsContent value="speakers" className="mt-4 space-y-3">
-          <SectionHeader
-            title={`Speakers (${(speakers.data ?? []).length})`}
-            onAdd={() => setSpeakerEdit({ open: true })}
-          />
-          {(speakers.data ?? []).length === 0 ? (
-            <Card className="p-8 text-center text-sm text-muted-foreground">No speakers yet.</Card>
-          ) : (
-            <div className="space-y-3">
-              {(speakers.data ?? []).map((s: any) => (
-                <SpeakerListCard
-                  key={s.id}
-                  s={s}
-                  ev={e}
-                  showEventChip={false}
-                  onOpenDetail={() => setDetailSpeaker(s)}
-                  onEmail={() => emailOne(s, e)}
-                  onCopyLink={async () => {
-                    const url = s.dropbox_link || s.linkedin_url;
-                    if (!url) return toast.error("No link stored for this speaker");
-                    try {
-                      await navigator.clipboard.writeText(url);
-                      toast.success("Link copied");
-                    } catch { toast.error("Couldn't copy link"); }
-                  }}
-                  onEdit={() => setSpeakerEdit({ open: true, speaker: s })}
+          {(() => {
+            const term = speakerQ.trim().toLowerCase();
+            const all = (speakers.data ?? []) as any[];
+            const filtered = term
+              ? all.filter((s) => {
+                  const hay = `${s.name ?? ""} ${s.company ?? ""} ${s.email ?? ""} ${s.title ?? ""}`.toLowerCase();
+                  return hay.includes(term);
+                })
+              : all;
+            return (
+              <>
+                <SectionHeader
+                  title={
+                    term
+                      ? `Speakers (${filtered.length} of ${all.length})`
+                      : `Speakers (${all.length})`
+                  }
+                  onAdd={() => setSpeakerEdit({ open: true })}
                 />
-              ))}
-            </div>
-          )}
+                {all.length === 0 ? (
+                  <Card className="p-8 text-center text-sm text-muted-foreground">
+                    No speakers yet.
+                  </Card>
+                ) : filtered.length === 0 ? (
+                  <Card className="p-8 text-center text-sm text-muted-foreground">
+                    No speakers match "{speakerQ}".
+                  </Card>
+                ) : (
+                  <div className="space-y-3">
+                    {filtered.map((s: any) => (
+                      <SpeakerListCard
+                        key={s.id}
+                        s={s}
+                        ev={e}
+                        showEventChip={false}
+                        onOpenDetail={() => setDetailSpeaker(s)}
+                        onEmail={() => emailOne(s, e)}
+                        onCopyLink={async () => {
+                          const url = s.dropbox_link || s.linkedin_url;
+                          if (!url) return toast.error("No link stored for this speaker");
+                          try {
+                            await navigator.clipboard.writeText(url);
+                            toast.success("Link copied");
+                          } catch { toast.error("Couldn't copy link"); }
+                        }}
+                        onEdit={() => setSpeakerEdit({ open: true, speaker: s })}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </TabsContent>
 
 
