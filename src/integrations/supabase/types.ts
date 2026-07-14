@@ -399,6 +399,30 @@ export type Database = {
         }
         Relationships: []
       }
+      excluded_companies: {
+        Row: {
+          company_name: string
+          created_at: string
+          id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       outreach_accounts: {
         Row: {
           account_name: string
@@ -521,6 +545,8 @@ export type Database = {
             | null
           session_format: Database["public"]["Enums"]["session_format"] | null
           session_title: string | null
+          source: string | null
+          source_ticket_id: string | null
           status: Database["public"]["Enums"]["speaker_status"]
           title: string | null
           updated_at: string
@@ -549,6 +575,8 @@ export type Database = {
             | null
           session_format?: Database["public"]["Enums"]["session_format"] | null
           session_title?: string | null
+          source?: string | null
+          source_ticket_id?: string | null
           status?: Database["public"]["Enums"]["speaker_status"]
           title?: string | null
           updated_at?: string
@@ -577,6 +605,8 @@ export type Database = {
             | null
           session_format?: Database["public"]["Enums"]["session_format"] | null
           session_title?: string | null
+          source?: string | null
+          source_ticket_id?: string | null
           status?: Database["public"]["Enums"]["speaker_status"]
           title?: string | null
           updated_at?: string
@@ -587,6 +617,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speakers_source_ticket_id_fkey"
+            columns: ["source_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tito_tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -715,6 +752,140 @@ export type Database = {
           text?: string
           updated_at?: string
           week_start?: string
+        }
+        Relationships: []
+      }
+      tito_answers: {
+        Row: {
+          created_at: string
+          id: string
+          question_id: string | null
+          question_title: string | null
+          response: string | null
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          question_id?: string | null
+          question_title?: string | null
+          response?: string | null
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          question_id?: string | null
+          question_title?: string | null
+          response?: string | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tito_answers_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tito_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tito_events: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          is_past: boolean
+          last_synced_at: string | null
+          slug: string
+          start_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_past?: boolean
+          last_synced_at?: string | null
+          slug: string
+          start_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_past?: boolean
+          last_synced_at?: string | null
+          slug?: string
+          start_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tito_tickets: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          email: string | null
+          event_slug: string
+          event_title: string | null
+          first_name: string | null
+          id: string
+          job_title: string | null
+          last_name: string | null
+          name: string | null
+          raw: Json | null
+          registration_id: string | null
+          release_id: string | null
+          release_slug: string | null
+          release_title: string | null
+          state: string | null
+          tito_ticket_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          email?: string | null
+          event_slug: string
+          event_title?: string | null
+          first_name?: string | null
+          id?: string
+          job_title?: string | null
+          last_name?: string | null
+          name?: string | null
+          raw?: Json | null
+          registration_id?: string | null
+          release_id?: string | null
+          release_slug?: string | null
+          release_title?: string | null
+          state?: string | null
+          tito_ticket_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          email?: string | null
+          event_slug?: string
+          event_title?: string | null
+          first_name?: string | null
+          id?: string
+          job_title?: string | null
+          last_name?: string | null
+          name?: string | null
+          raw?: Json | null
+          registration_id?: string | null
+          release_id?: string | null
+          release_slug?: string | null
+          release_title?: string | null
+          state?: string | null
+          tito_ticket_id?: string
+          updated_at?: string
         }
         Relationships: []
       }

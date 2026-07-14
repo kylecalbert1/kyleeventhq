@@ -187,6 +187,11 @@ export function SpeakerListCard({
                   {ev.code}
                 </StatusPill>
               )}
+              {(s as { source?: string | null }).source === "tito_candidate" && (
+                <StatusPill className="text-[11px] bg-violet-100 text-violet-700 border-violet-200">
+                  Sourced (Tito)
+                </StatusPill>
+              )}
             </div>
             <Button
               variant="outline"
