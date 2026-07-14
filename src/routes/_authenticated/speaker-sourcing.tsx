@@ -79,7 +79,9 @@ function SpeakerSourcingPage() {
   const sync = useMutation({
     mutationFn: () => syncTito(),
     onSuccess: (r) => {
-      toast.success(`Synced ${r.events} events, ${r.tickets} tickets, ${r.answers} answers`);
+      toast.success(
+        `Synced ${r.events} AIAI/CSC events (skipped ${r.events_skipped} other-brand), ${r.tickets} tickets, ${r.answers} answers`,
+      );
       qc.invalidateQueries({ queryKey: ["tito-events"] });
       qc.invalidateQueries({ queryKey: ["tito-releases"] });
     },
