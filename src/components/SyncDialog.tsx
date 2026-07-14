@@ -574,12 +574,16 @@ export function SyncDialog({
               key={it.key}
               item={it}
               onDismiss={() => setDismissed((s) => new Set(s).add(it.key))}
-              onAction={async () => {
-                if (it.kind === "lead") await addLead(it);
+              onAction={async (overrideEventId?: string) => {
+                if (it.kind === "lead") await addLead(it, overrideEventId);
                 else if (it.kind === "email") await applyEmail(it);
                 else await applyAsset(it);
               }}
-              eventPickerReady={!!eventId}
+              defaultEventId={eventId}
+              eventOptions={(events.data ?? []).map((e) => ({
+                id: e.id,
+                label: e.code,
+              }))}
             />
           ))}
         </div>
@@ -592,13 +596,18 @@ function ReviewRow({
   item,
   onDismiss,
   onAction,
-  eventPickerReady,
+  defaultEventId,
+  eventOptions,
 }: {
   item: Item;
   onDismiss: () => void;
-  onAction: () => void | Promise<void>;
-  eventPickerReady: boolean;
+  onAction: (overrideEventId?: string) => void | Promise<void>;
+  defaultEventId?: string;
+  eventOptions: Array<{ id: string; label: string }>;
 }) {
+  const [rowEventId, setRowEventId] = useState<string | undefined>(defaultEventId);
+  const effectiveEventId = rowEventId ?? defaultEventId;
+  const isLead = item.kind === "lead";
   return (
     <Card className="p-3 transition-all hover:shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -614,12 +623,32 @@ function ReviewRow({
             <RowTitle item={item} />
           </div>
           <RowBody item={item} />
+          {isLead && !defaultEventId && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">Assign to:</span>
+              <Select
+                value={rowEventId ?? ""}
+                onValueChange={(v) => setRowEventId(v || undefined)}
+              >
+                <SelectTrigger className="h-7 text-xs w-48">
+                  <SelectValue placeholder="Pick event…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {eventOptions.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
         <div className="flex flex-col gap-1 shrink-0">
           <ActionButton
             item={item}
-            onAction={onAction}
-            eventPickerReady={eventPickerReady}
+            onAction={() => onAction(effectiveEventId)}
+            eventPickerReady={isLead ? !!effectiveEventId : true}
           />
           <Button size="sm" variant="ghost" onClick={onDismiss}>
             <X className="h-4 w-4 mr-1" /> Dismiss
@@ -629,6 +658,7 @@ function ReviewRow({
     </Card>
   );
 }
+
 
 function KindBadge({ item }: { item: Item }) {
   if (item.kind === "lead") {
