@@ -364,9 +364,12 @@ export const syncTito = createServerFn({ method: "POST" })
       events: dedupedEvents.length,
       events_total_seen: allEvents.length,
       events_skipped: skipped,
+      events_ticket_fetch_skipped: ticketFetchSkipped,
       tickets: ticketCount,
       answers: answerCount,
+      forced: force,
     };
+
   });
 
 // ============ Event filter overrides ============
