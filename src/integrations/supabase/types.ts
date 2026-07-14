@@ -861,6 +861,7 @@ export type Database = {
           id: string
           job_title: string | null
           last_name: string | null
+          location: string | null
           name: string | null
           raw: Json | null
           registration_id: string | null
@@ -881,6 +882,7 @@ export type Database = {
           id?: string
           job_title?: string | null
           last_name?: string | null
+          location?: string | null
           name?: string | null
           raw?: Json | null
           registration_id?: string | null
@@ -901,6 +903,7 @@ export type Database = {
           id?: string
           job_title?: string | null
           last_name?: string | null
+          location?: string | null
           name?: string | null
           raw?: Json | null
           registration_id?: string | null

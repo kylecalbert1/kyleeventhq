@@ -153,13 +153,14 @@ function SpeakerSourcingPage() {
           </div>
         </div>
 
-        <MultiSelect
+        <EventTypeahead
           label="Events (Tito)"
           options={(titoEvents.data ?? []).map((e) => ({ value: e.slug, label: e.title }))}
           selected={selectedEventSlugs}
           onChange={setSelectedEventSlugs}
-          placeholder="All events"
+          placeholder="Type to search events…"
         />
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <MultiSelect
@@ -251,6 +252,7 @@ function SpeakerSourcingPage() {
                 <th className="p-2 text-left">Email</th>
                 <th className="p-2 text-left">Company</th>
                 <th className="p-2 text-left">Job title</th>
+                <th className="p-2 text-left">Location</th>
                 <th className="p-2 text-left">Ticket type</th>
                 <th className="p-2 text-left">Event</th>
               </tr>
@@ -268,6 +270,7 @@ function SpeakerSourcingPage() {
                   <td className="p-2 text-muted-foreground">{r.email ?? "—"}</td>
                   <td className="p-2">{r.company_name ?? "—"}</td>
                   <td className="p-2">{r.job_title ?? "—"}</td>
+                  <td className="p-2 text-muted-foreground">{r.location ?? "—"}</td>
                   <td className="p-2">
                     <Badge variant="outline">{r.release_title ?? "—"}</Badge>
                   </td>
@@ -276,7 +279,7 @@ function SpeakerSourcingPage() {
               ))}
               {results.length === 0 && !search.isPending && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     No results yet — set filters and click Search.
                   </td>
                 </tr>
@@ -344,6 +347,95 @@ function MultiSelect({
     </div>
   );
 }
+
+function EventTypeahead({
+  label,
+  options,
+  selected,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+  placeholder?: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const suggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return options
+      .filter(
+        (o) =>
+          !selected.includes(o.value) &&
+          (o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q)),
+      )
+      .slice(0, 12);
+  }, [options, query, selected]);
+
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="flex flex-wrap gap-1 min-h-9 border rounded-md px-2 py-1.5 bg-background">
+        {selected.map((v) => {
+          const opt = options.find((o) => o.value === v);
+          return (
+            <Badge key={v} variant="secondary" className="gap-1">
+              {opt?.label ?? v}
+              <button
+                type="button"
+                onClick={() => onChange(selected.filter((s) => s !== v))}
+                className="hover:text-destructive"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          );
+        })}
+        <div className="relative flex-1 min-w-[200px]">
+          <Input
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder={selected.length ? "Add another…" : placeholder ?? "Type to search…"}
+            className="border-0 shadow-none h-7 px-1 focus-visible:ring-0"
+          />
+          {open && suggestions.length > 0 && (
+            <div className="absolute z-20 left-0 right-0 top-full mt-1 max-h-64 overflow-y-auto rounded-md border bg-popover shadow-md">
+              {suggestions.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onChange([...selected, o.value]);
+                    setQuery("");
+                  }}
+                >
+                  {o.label}
+                  <div className="text-xs text-muted-foreground font-mono">{o.value}</div>
+                </button>
+              ))}
+            </div>
+          )}
+          {open && query.trim() && suggestions.length === 0 && (
+            <div className="absolute z-20 left-0 right-0 top-full mt-1 rounded-md border bg-popover shadow-md px-3 py-2 text-xs text-muted-foreground">
+              No matches
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function ExcludeListPanel({
   rows,
@@ -591,9 +683,9 @@ function EventFilterPanel() {
       <div className="mt-3 space-y-3 text-sm">
         <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
           Default rule: only sync events whose title contains one of the AIAI/CSC
-          phrases (Generative AI Summit, Agentic AI Summit, Chief AI Officer
-          Summit, Customer Success Summit, Chief Customer Officer Summit,
-          Customer Support Summit, AI for Customer Support Summit). Use the
+          keywords (case-insensitive substring): "Generative AI Summit",
+          "Agentic AI", "Chief AI Officer Summit", "Customer Success Summit",
+          "Chief Customer Officer Summit", "Customer Support Summit". Use the
           overrides below to force-include or force-exclude specific slugs when
           the keyword rule misses or wrongly catches an event.
         </div>

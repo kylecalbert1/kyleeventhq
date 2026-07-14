@@ -6,28 +6,28 @@ const TITO_BASE = "https://api.tito.io/v3";
 const ACCOUNT = "sequel-media";
 
 // Kyle only manages AIAI (AI Accelerator Institute) + CSC (Customer Success
-// Collective) brands. The rest of the Product Marketing Alliance portfolio
-// (Product Marketing, Sales Enablement, RevOps, CFO/FP&A, People, AI for
-// Marketers, AI for GTM, AI for Product Marketing, etc) must NOT sync.
-// Match by exact phrase (case-insensitive substring on the whole phrase), so
-// "AI for Marketers Summit" does NOT match just because it contains "AI".
-const AIAI_CSC_PHRASES = [
+// Collective) brands. Match by case-insensitive SUBSTRING on these keyword
+// fragments so variants like "Agentic AI in Financial Services Summit"
+// still catch under "agentic ai". Keep fragments distinctive enough that
+// unrelated PMA brands (Product Marketing, Sales Enablement, RevOps, CFO,
+// AI for Marketers, etc) don't accidentally match.
+const AIAI_CSC_KEYWORDS = [
   // AIAI
-  "Generative AI Summit",
-  "Agentic AI Summit",
-  "Chief AI Officer Summit",
+  "generative ai summit",
+  "agentic ai",
+  "chief ai officer summit",
   // CSC
-  "Customer Success Summit",
-  "Chief Customer Officer Summit",
-  "Customer Support Summit",
-  "AI for Customer Support Summit",
+  "customer success summit",
+  "chief customer officer summit",
+  "customer support summit",
 ];
 
 function matchesAiaiCsc(title: string | undefined | null): boolean {
   if (!title) return false;
   const t = title.toLowerCase();
-  return AIAI_CSC_PHRASES.some((p) => t.includes(p.toLowerCase()));
+  return AIAI_CSC_KEYWORDS.some((p) => t.includes(p));
 }
+
 
 type TitoTicket = {
   id?: number | string;
@@ -38,6 +38,7 @@ type TitoTicket = {
   last_name?: string;
   email?: string;
   company_name?: string;
+  job_title?: string | null;
   state?: string;
   release_id?: number | string;
   release_slug?: string;
@@ -45,6 +46,14 @@ type TitoTicket = {
   release?: { id?: number | string; slug?: string; title?: string };
   registration_id?: number | string;
   registration_slug?: string;
+  billing_address?: {
+    city?: string | null;
+    country?: string | null;
+    country_name?: string | null;
+    region?: string | null;
+    state?: string | null;
+  } | null;
+  metadata?: Record<string, unknown> | null;
   answers?: Array<{
     id?: number | string;
     question_id?: number | string;
@@ -80,18 +89,62 @@ async function titoFetch(path: string, token: string, params?: Record<string, st
   return res.json();
 }
 
+function answerText(a: NonNullable<TitoTicket["answers"]>[number]): string {
+  const r = Array.isArray(a.response) ? a.response.join(", ") : (a.humanized_response ?? a.response);
+  return r ? String(r).trim() : "";
+}
+
 function normalizeJobTitle(t: TitoTicket): string | null {
-  const answers = t.answers ?? [];
-  for (const a of answers) {
+  // Tito exposes job_title as a top-level field on the ticket — this is the
+  // canonical source. Fall back to matching a job-title-style question only
+  // when the top-level field is empty.
+  const top = (t.job_title ?? "").toString().trim();
+  if (top) return top;
+  for (const a of t.answers ?? []) {
     const q = (a.question?.title ?? a.question_title ?? a.title ?? "").toString().toLowerCase();
     if (!q) continue;
-    if (q.includes("job title") || q === "title" || q.includes("role") || q.includes("position")) {
-      const r = Array.isArray(a.response) ? a.response.join(", ") : (a.humanized_response ?? a.response);
-      if (r && String(r).trim()) return String(r).trim();
+    if (
+      q.includes("job title") ||
+      q === "title" ||
+      q.includes("your role") ||
+      q.includes("your position") ||
+      q.includes("what do you do") ||
+      q.includes("designation")
+    ) {
+      const v = answerText(a);
+      if (v) return v;
     }
   }
   return null;
 }
+
+function normalizeLocation(t: TitoTicket): string | null {
+  // 1) Custom question answers matching location-style prompts
+  for (const a of t.answers ?? []) {
+    const q = (a.question?.title ?? a.question_title ?? a.title ?? "").toString().toLowerCase();
+    if (!q) continue;
+    if (
+      q.includes("location") ||
+      q.includes("city") ||
+      q.includes("country") ||
+      q.includes("based in") ||
+      q.includes("where are you")
+    ) {
+      const v = answerText(a);
+      if (v) return v;
+    }
+  }
+  // 2) Billing address fallback
+  const b = t.billing_address ?? null;
+  if (b) {
+    const parts = [b.city, b.region ?? b.state, b.country_name ?? b.country]
+      .map((x) => (x ?? "").toString().trim())
+      .filter(Boolean);
+    if (parts.length) return parts.join(", ");
+  }
+  return null;
+}
+
 
 export const titoConnectionStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -206,6 +259,7 @@ export const syncTito = createServerFn({ method: "POST" })
               email: t.email ?? null,
               company_name: t.company_name ?? null,
               job_title: normalizeJobTitle(t),
+              location: normalizeLocation(t),
               release_id: releaseId ? String(releaseId) : null,
               release_slug: releaseSlug,
               release_title: releaseTitle,
