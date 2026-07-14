@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedWebsiteRouteImport } from './routes/_authenticated/website'
+import { Route as AuthenticatedTitoRouteImport } from './routes/_authenticated/tito'
 import { Route as AuthenticatedSponsorInboxRouteImport } from './routes/_authenticated/sponsor-inbox'
 import { Route as AuthenticatedSpeakersRouteImport } from './routes/_authenticated/speakers'
 import { Route as AuthenticatedSpeakerSourcingRouteImport } from './routes/_authenticated/speaker-sourcing'
@@ -21,6 +22,7 @@ import { Route as AuthenticatedProofingRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedOutreachRouteImport } from './routes/_authenticated/outreach'
 import { Route as AuthenticatedMilestonesRouteImport } from './routes/_authenticated/milestones'
 import { Route as AuthenticatedBannersRouteImport } from './routes/_authenticated/banners'
+import { Route as AuthenticatedTitoSlugRouteImport } from './routes/_authenticated/tito.$slug'
 import { Route as AuthenticatedSpeakersSpeakerIdRouteImport } from './routes/_authenticated/speakers.$speakerId'
 import { Route as AuthenticatedEventsEventIdRouteImport } from './routes/_authenticated/events.$eventId'
 
@@ -41,6 +43,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedWebsiteRoute = AuthenticatedWebsiteRouteImport.update({
   id: '/website',
   path: '/website',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTitoRoute = AuthenticatedTitoRouteImport.update({
+  id: '/tito',
+  path: '/tito',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSponsorInboxRoute =
@@ -86,6 +93,11 @@ const AuthenticatedBannersRoute = AuthenticatedBannersRouteImport.update({
   path: '/banners',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTitoSlugRoute = AuthenticatedTitoSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => AuthenticatedTitoRoute,
+} as any)
 const AuthenticatedSpeakersSpeakerIdRoute =
   AuthenticatedSpeakersSpeakerIdRouteImport.update({
     id: '/$speakerId',
@@ -110,9 +122,11 @@ export interface FileRoutesByFullPath {
   '/speaker-sourcing': typeof AuthenticatedSpeakerSourcingRoute
   '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
+  '/tito': typeof AuthenticatedTitoRouteWithChildren
   '/website': typeof AuthenticatedWebsiteRoute
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
+  '/tito/$slug': typeof AuthenticatedTitoSlugRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -124,10 +138,12 @@ export interface FileRoutesByTo {
   '/speaker-sourcing': typeof AuthenticatedSpeakerSourcingRoute
   '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
+  '/tito': typeof AuthenticatedTitoRouteWithChildren
   '/website': typeof AuthenticatedWebsiteRoute
   '/': typeof AuthenticatedIndexRoute
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
+  '/tito/$slug': typeof AuthenticatedTitoSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -141,10 +157,12 @@ export interface FileRoutesById {
   '/_authenticated/speaker-sourcing': typeof AuthenticatedSpeakerSourcingRoute
   '/_authenticated/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/_authenticated/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
+  '/_authenticated/tito': typeof AuthenticatedTitoRouteWithChildren
   '/_authenticated/website': typeof AuthenticatedWebsiteRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/_authenticated/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
+  '/_authenticated/tito/$slug': typeof AuthenticatedTitoSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -159,9 +177,11 @@ export interface FileRouteTypes {
     | '/speaker-sourcing'
     | '/speakers'
     | '/sponsor-inbox'
+    | '/tito'
     | '/website'
     | '/events/$eventId'
     | '/speakers/$speakerId'
+    | '/tito/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -173,10 +193,12 @@ export interface FileRouteTypes {
     | '/speaker-sourcing'
     | '/speakers'
     | '/sponsor-inbox'
+    | '/tito'
     | '/website'
     | '/'
     | '/events/$eventId'
     | '/speakers/$speakerId'
+    | '/tito/$slug'
   id:
     | '__root__'
     | '/_authenticated'
@@ -189,10 +211,12 @@ export interface FileRouteTypes {
     | '/_authenticated/speaker-sourcing'
     | '/_authenticated/speakers'
     | '/_authenticated/sponsor-inbox'
+    | '/_authenticated/tito'
     | '/_authenticated/website'
     | '/_authenticated/'
     | '/_authenticated/events/$eventId'
     | '/_authenticated/speakers/$speakerId'
+    | '/_authenticated/tito/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -228,6 +252,13 @@ declare module '@tanstack/react-router' {
       path: '/website'
       fullPath: '/website'
       preLoaderRoute: typeof AuthenticatedWebsiteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tito': {
+      id: '/_authenticated/tito'
+      path: '/tito'
+      fullPath: '/tito'
+      preLoaderRoute: typeof AuthenticatedTitoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sponsor-inbox': {
@@ -286,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBannersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tito/$slug': {
+      id: '/_authenticated/tito/$slug'
+      path: '/$slug'
+      fullPath: '/tito/$slug'
+      preLoaderRoute: typeof AuthenticatedTitoSlugRouteImport
+      parentRoute: typeof AuthenticatedTitoRoute
+    }
     '/_authenticated/speakers/$speakerId': {
       id: '/_authenticated/speakers/$speakerId'
       path: '/$speakerId'
@@ -316,6 +354,17 @@ const AuthenticatedSpeakersRouteWithChildren =
     AuthenticatedSpeakersRouteChildren,
   )
 
+interface AuthenticatedTitoRouteChildren {
+  AuthenticatedTitoSlugRoute: typeof AuthenticatedTitoSlugRoute
+}
+
+const AuthenticatedTitoRouteChildren: AuthenticatedTitoRouteChildren = {
+  AuthenticatedTitoSlugRoute: AuthenticatedTitoSlugRoute,
+}
+
+const AuthenticatedTitoRouteWithChildren =
+  AuthenticatedTitoRoute._addFileChildren(AuthenticatedTitoRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBannersRoute: typeof AuthenticatedBannersRoute
   AuthenticatedMilestonesRoute: typeof AuthenticatedMilestonesRoute
@@ -325,6 +374,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSpeakerSourcingRoute: typeof AuthenticatedSpeakerSourcingRoute
   AuthenticatedSpeakersRoute: typeof AuthenticatedSpeakersRouteWithChildren
   AuthenticatedSponsorInboxRoute: typeof AuthenticatedSponsorInboxRoute
+  AuthenticatedTitoRoute: typeof AuthenticatedTitoRouteWithChildren
   AuthenticatedWebsiteRoute: typeof AuthenticatedWebsiteRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedEventsEventIdRoute: typeof AuthenticatedEventsEventIdRoute
@@ -339,6 +389,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSpeakerSourcingRoute: AuthenticatedSpeakerSourcingRoute,
   AuthenticatedSpeakersRoute: AuthenticatedSpeakersRouteWithChildren,
   AuthenticatedSponsorInboxRoute: AuthenticatedSponsorInboxRoute,
+  AuthenticatedTitoRoute: AuthenticatedTitoRouteWithChildren,
   AuthenticatedWebsiteRoute: AuthenticatedWebsiteRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedEventsEventIdRoute: AuthenticatedEventsEventIdRoute,
