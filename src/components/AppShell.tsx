@@ -25,7 +25,6 @@ const NAV_PRIMARY: NavItem[] = [
 const NAV_OPS: NavItem[] = [
   { to: "/milestones", label: "Kickoff & Washup", icon: CalendarDays },
   { to: "/outreach", label: "Weekly Outreach", icon: Target },
-  { to: "/tito", label: "Tito Events", icon: CalendarDays },
   { to: "/speaker-sourcing", label: "Speaker Sourcing", icon: Search },
   { to: "/reply-needed", label: "Reply Needed", icon: Reply },
   { to: "/proofing", label: "Proofing", icon: ClipboardCheck },

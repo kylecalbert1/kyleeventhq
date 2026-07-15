@@ -97,10 +97,10 @@ function TitoEventDetail() {
     <div className="p-6 md:p-8 animate-fade-in space-y-6">
       <div>
         <Link
-          to="/tito"
+          to="/speaker-sourcing"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> All Tito events
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Speaker Sourcing
         </Link>
       </div>
 
