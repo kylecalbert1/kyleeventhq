@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   syncTito,
+  syncTitoByUrl,
   titoConnectionStatus,
   listTitoEvents,
+  listTitoEventsWithStats,
   listTitoEventYears,
   listReleaseTitles,
   searchTitoTickets,
@@ -18,6 +20,7 @@ import {
   addTitoEventFilter,
   deleteTitoEventFilter,
   previewTitoEventClassification,
+  speakerSourcingStats,
 } from "@/lib/tito.functions";
 import { listEvents } from "@/lib/events.functions";
 import { Button } from "@/components/ui/button";
@@ -27,7 +30,21 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Trash2, Sparkles, Copy, X, Search, ChevronDown } from "lucide-react";
+import {
+  Loader2,
+  RefreshCw,
+  Trash2,
+  Sparkles,
+  Copy,
+  X,
+  Search,
+  ChevronDown,
+  Link2,
+  CalendarDays,
+  Users,
+  CheckCircle2,
+  UserPlus,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -46,23 +63,86 @@ import {
 import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAttendeeCard";
 import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDialog";
 
-
-
 export const Route = createFileRoute("/_authenticated/speaker-sourcing")({
   component: SpeakerSourcingPage,
 });
+
+type Brand = "all" | "AIAI" | "CSC" | "Other";
+
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "No date";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "No date";
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function relativeSynced(iso: string | null | undefined): string {
+  if (!iso) return "Never synced";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "Never synced";
+  const diff = Date.now() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Synced just now";
+  if (mins < 60) return `Synced ${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `Synced ${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `Synced ${days}d ago`;
+}
+
+function StatCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number | string;
+  tone: "slate" | "amber" | "green" | "purple" | "red" | "blue";
+}) {
+  const toneMap: Record<typeof tone, string> = {
+    slate: "text-slate-700",
+    amber: "text-amber-600",
+    green: "text-emerald-600",
+    purple: "text-violet-600",
+    red: "text-rose-600",
+    blue: "text-indigo-600",
+  };
+  return (
+    <div className="rounded-xl bg-white border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-4">
+      <div className={cn("text-2xl font-semibold tabular-nums tracking-tight", toneMap[tone])}>
+        {value}
+      </div>
+      <div className="text-[11px] mt-1 uppercase tracking-wide font-medium text-slate-500">
+        {label}
+      </div>
+    </div>
+  );
+}
 
 function SpeakerSourcingPage() {
   const qc = useQueryClient();
   const conn = useQuery({ queryKey: ["tito-conn"], queryFn: () => titoConnectionStatus() });
   const titoEvents = useQuery({ queryKey: ["tito-events"], queryFn: () => listTitoEvents() });
+  const titoEventsStats = useQuery({
+    queryKey: ["tito-events-with-stats"],
+    queryFn: () => listTitoEventsWithStats(),
+  });
   const releaseTitles = useQuery({ queryKey: ["tito-releases"], queryFn: () => listReleaseTitles() });
   const excluded = useQuery({ queryKey: ["excluded-companies"], queryFn: () => listExcludedCompanies() });
   const years = useQuery({ queryKey: ["tito-event-years"], queryFn: () => listTitoEventYears() });
   const upcomingEvents = useQuery({ queryKey: ["events"], queryFn: () => listEvents() });
+  const stats = useQuery({
+    queryKey: ["speaker-sourcing-stats"],
+    queryFn: () => speakerSourcingStats(),
+  });
 
   const [q, setQ] = useState("");
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
+  const [brandFilter, setBrandFilter] = useState<Brand>("all");
   const [selectedEventSlugs, setSelectedEventSlugs] = useState<string[]>([]);
   const [includeReleases, setIncludeReleases] = useState<string[]>([]);
   const [excludeReleases, setExcludeReleases] = useState<string[]>([]);
@@ -70,10 +150,16 @@ function SpeakerSourcingPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [forceFullSync, setForceFullSync] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [detailAttendee, setDetailAttendee] = useState<TitoAttendee | null>(null);
+  const [pasteUrl, setPasteUrl] = useState("");
+  const [lastPasteResult, setLastPasteResult] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
+  const [eventSearch, setEventSearch] = useState("");
 
-
-  // Autocomplete suggestions for the unified search box
+  // Autocomplete
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [debouncedQ, setDebouncedQ] = useState("");
   useEffect(() => {
@@ -87,36 +173,62 @@ function SpeakerSourcingPage() {
     staleTime: 30_000,
   });
 
+  // Build brand-scoped slug allowlist (default: only AIAI/CSC — Kyle's own).
+  const scopedSlugsAll = useMemo(() => {
+    const rows = titoEventsStats.data ?? [];
+    return rows
+      .filter((e) => brandFilter === "all" ? e.brand !== "Other" : e.brand === brandFilter)
+      .map((e) => e.slug);
+  }, [titoEventsStats.data, brandFilter]);
+
   const search = useMutation({
-    mutationFn: () =>
-      searchTitoTickets({
+    mutationFn: () => {
+      // If user picked specific events, use those; otherwise scope to brand-filtered slugs.
+      const eventSlugs = selectedEventSlugs.length
+        ? selectedEventSlugs
+        : scopedSlugsAll.length ? scopedSlugsAll : undefined;
+      return searchTitoTickets({
         data: {
           q: q.trim() || undefined,
-          event_slugs: selectedEventSlugs.length ? selectedEventSlugs : undefined,
+          event_slugs: eventSlugs,
           release_titles_include: includeReleases.length ? includeReleases : undefined,
           release_titles_exclude: excludeReleases.length ? excludeReleases : undefined,
           years: selectedYears.length ? selectedYears : undefined,
           apply_exclude_list: applyExclude,
           limit: 1000,
         },
-      }),
+      });
+    },
   });
 
   const sync = useMutation({
     mutationFn: (force: boolean) => syncTito({ data: { force } }),
     onSuccess: (r) => {
       toast.success(
-        `Synced ${r.events} AIAI/CSC events (skipped ${r.events_skipped} other-brand${r.events_ticket_fetch_skipped ? `, ${r.events_ticket_fetch_skipped} past events unchanged` : ""}), ${r.tickets} tickets, ${r.answers} answers${r.forced ? " · full re-sync" : ""}`,
+        `Synced ${r.events} events, ${r.tickets} tickets${r.forced ? " · full re-sync" : ""}`,
       );
-      qc.invalidateQueries({ queryKey: ["tito-events"] });
-      qc.invalidateQueries({ queryKey: ["tito-releases"] });
-      qc.invalidateQueries({ queryKey: ["tito-event-years"] });
+      qc.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const syncByUrl = useMutation({
+    mutationFn: () => syncTitoByUrl({ data: { url: pasteUrl.trim() } }),
+    onSuccess: (r) => {
+      setLastPasteResult({
+        ok: true,
+        message: `${r.event_title}: ${r.new} new, ${r.updated} updated`,
+      });
+      setPasteUrl("");
+      qc.invalidateQueries({ queryKey: ["tito-events"] });
+      qc.invalidateQueries({ queryKey: ["tito-events-with-stats"] });
+      qc.invalidateQueries({ queryKey: ["speaker-sourcing-stats"] });
+    },
+    onError: (e: Error) =>
+      setLastPasteResult({ ok: false, message: e.message }),
+  });
+
   const results = search.data ?? [];
-  const allSelected = results.length > 0 && results.every((r) => selected.has(r.id));
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -136,257 +248,526 @@ function SpeakerSourcingPage() {
     search.mutate();
   }
 
+  // Filter event cards for the browse section.
+  const visibleEvents = useMemo(() => {
+    const term = eventSearch.trim().toLowerCase();
+    const rows = titoEventsStats.data ?? [];
+    return rows.filter((e) => {
+      if (brandFilter !== "all" && e.brand !== brandFilter) return false;
+      if (brandFilter === "all" && e.brand === "Other") return false;
+      if (selectedYears.length) {
+        const y = e.start_date ? new Date(e.start_date).getUTCFullYear() : null;
+        if (!y || !selectedYears.includes(y)) return false;
+      }
+      if (term) {
+        const hay = `${e.title ?? ""} ${e.slug ?? ""}`.toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [titoEventsStats.data, eventSearch, brandFilter, selectedYears]);
+
   return (
-    <div className="mx-auto max-w-[1400px] p-6 space-y-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Speaker sourcing</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Search past &amp; future Tito attendees to find speaker candidates.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {conn.data && !conn.data.connected ? (
-            <Badge variant="destructive">TITO_API_TOKEN missing</Badge>
-          ) : (
-            <Badge variant="outline">Connected</Badge>
-          )}
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-            <Checkbox
-              checked={forceFullSync}
-              onCheckedChange={(v) => setForceFullSync(Boolean(v))}
-            />
-            Force full re-sync
-          </label>
-          <Button onClick={() => sync.mutate(forceFullSync)} disabled={sync.isPending || !conn.data?.connected}>
-            {sync.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            )}
-            Sync now
-          </Button>
-        </div>
-      </div>
-
-      {!conn.data?.connected && (
-        <div className="rounded-lg border bg-amber-50 text-amber-900 p-4 text-sm">
-          Add <code>TITO_API_TOKEN</code> in Project Settings → Secrets, then click <b>Sync now</b>.
-        </div>
-      )}
-
-      {/* Compact filter bar */}
-      <div className="rounded-lg border bg-background p-3 space-y-3">
-        {/* Unified search + autocomplete */}
-        <div className="flex gap-2 items-start">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setSuggestOpen(true);
-              }}
-              onFocus={() => setSuggestOpen(true)}
-              onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") runSearch();
-              }}
-              placeholder="Search name, email, company, or job title…"
-              className="pl-9 h-10"
-            />
-            {suggestOpen && debouncedQ.length >= 2 && (suggestions.data?.length ?? 0) > 0 && (
-              <div className="absolute z-20 left-0 right-0 top-full mt-1 max-h-80 overflow-y-auto rounded-md border bg-popover shadow-md">
-                {suggestions.data!.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted border-b last:border-b-0"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setQ(s.name ?? s.email ?? s.company_name ?? "");
-                      setSuggestOpen(false);
-                      setTimeout(() => search.mutate(), 0);
-                    }}
-                  >
-                    <div className="font-medium">{s.name ?? s.email ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {[s.job_title, s.company_name].filter(Boolean).join(" · ")}
-                      {s.event_title ? ` — ${s.event_title}` : ""}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+    <div className="min-h-screen bg-slate-50/60">
+      <div className="mx-auto max-w-[1400px] p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Speaker Sourcing</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Find past attendees to invite as speakers. Scoped to AIAI &amp; CSC events by default.
+            </p>
           </div>
-          <Button onClick={runSearch} disabled={search.isPending} className="h-10">
-            {search.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Search
-          </Button>
+          <div className="flex items-center gap-3">
+            {conn.data && !conn.data.connected ? (
+              <Badge variant="destructive">TITO_API_TOKEN missing</Badge>
+            ) : (
+              <Badge variant="outline" className="border-emerald-200 text-emerald-700 bg-emerald-50">
+                Connected
+              </Badge>
+            )}
+            <label className="flex items-center gap-1.5 text-xs text-slate-500 cursor-pointer">
+              <Checkbox
+                checked={forceFullSync}
+                onCheckedChange={(v) => setForceFullSync(Boolean(v))}
+              />
+              Force full re-sync
+            </label>
+            <Button
+              onClick={() => sync.mutate(forceFullSync)}
+              disabled={sync.isPending || !conn.data?.connected}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              {sync.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Sync all events
+            </Button>
+          </div>
         </div>
 
-        {/* Year chips */}
-        {(years.data?.length ?? 0) > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs uppercase tracking-wide text-muted-foreground mr-1">Year</span>
-            {years.data!.map((y) => {
-              const on = selectedYears.includes(y);
-              return (
-                <button
-                  key={y}
-                  type="button"
-                  onClick={() => toggleYear(y)}
-                  className={cn(
-                    "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
-                    on
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background hover:bg-muted text-muted-foreground border-border",
-                  )}
-                >
-                  {y}
-                </button>
-              );
-            })}
-            {selectedYears.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setSelectedYears([])}
-                className="text-xs text-muted-foreground hover:text-foreground underline ml-1"
-              >
-                clear
-              </button>
-            )}
+        {/* Stat bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <StatCard label="Unified Events" value={stats.data?.unified_events ?? "—"} tone="blue" />
+          <StatCard label="Synced Attendees" value={(stats.data?.synced_attendees ?? 0).toLocaleString()} tone="slate" />
+          <StatCard label="New Profiles" value={stats.data?.new_profiles ?? "—"} tone="amber" />
+          <StatCard label="Confirmed Speakers" value={stats.data?.confirmed_speakers ?? "—"} tone="green" />
+          <StatCard label="Waitlisted Speakers" value={stats.data?.waitlisted_speakers ?? "—"} tone="purple" />
+          <StatCard label="Declined Profiles" value={stats.data?.declined_profiles ?? "—"} tone="red" />
+        </div>
+
+        {!conn.data?.connected && (
+          <div className="rounded-lg border bg-amber-50 text-amber-900 p-4 text-sm">
+            Add <code>TITO_API_TOKEN</code> in Project Settings → Secrets, then click{" "}
+            <b>Sync all events</b>.
           </div>
         )}
 
-        {/* More filters (collapsed) */}
-        <div>
-          <button
-            type="button"
-            onClick={() => setShowMore((v) => !v)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-          >
-            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
-            More filters
-            {(selectedEventSlugs.length > 0 || includeReleases.length > 0 || excludeReleases.length > 0 || !applyExclude) && (
-              <span className="ml-1 rounded-full bg-primary/10 text-primary text-[10px] px-1.5 py-0.5">
-                {selectedEventSlugs.length + includeReleases.length + excludeReleases.length + (!applyExclude ? 1 : 0)}
-              </span>
-            )}
-          </button>
-          {showMore && (
-            <div className="mt-3 space-y-3 border-t pt-3">
-              <EventTypeahead
-                label="Events (Tito)"
-                options={(titoEvents.data ?? []).map((e) => ({ value: e.slug, label: e.title }))}
-                selected={selectedEventSlugs}
-                onChange={setSelectedEventSlugs}
-                placeholder="Type to search events…"
+        {/* Paste-URL sync */}
+        <div className="rounded-xl bg-white border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <Link2 className="h-4 w-4 text-indigo-600" />
+            Add a Tito event by URL
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex-1 min-w-[280px]">
+              <Input
+                value={pasteUrl}
+                onChange={(e) => setPasteUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && pasteUrl.trim() && !syncByUrl.isPending) {
+                    syncByUrl.mutate();
+                  }
+                }}
+                placeholder="https://ti.to/sequel-media/some-event-slug"
+                className="h-10"
               />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <MultiSelect
-                  label="Include ticket types"
-                  options={(releaseTitles.data ?? []).map((r) => ({ value: r, label: r }))}
-                  selected={includeReleases}
-                  onChange={setIncludeReleases}
-                  placeholder="Any"
-                />
-                <MultiSelect
-                  label="Exclude ticket types (e.g. Speaker Pass, Sponsor)"
-                  options={(releaseTitles.data ?? []).map((r) => ({ value: r, label: r }))}
-                  selected={excludeReleases}
-                  onChange={setExcludeReleases}
-                  placeholder="None"
-                />
-              </div>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={applyExclude}
-                  onCheckedChange={(v) => setApplyExclude(Boolean(v))}
-                />
-                Apply sponsor/competitor exclude list ({excluded.data?.length ?? 0} companies)
-              </label>
+            </div>
+            <Button
+              onClick={() => syncByUrl.mutate()}
+              disabled={!pasteUrl.trim() || syncByUrl.isPending || !conn.data?.connected}
+              className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              {syncByUrl.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Sync Data
+            </Button>
+          </div>
+          {lastPasteResult && (
+            <div
+              className={cn(
+                "text-xs flex items-center gap-1.5 pt-1",
+                lastPasteResult.ok ? "text-emerald-700" : "text-rose-700",
+              )}
+            >
+              {lastPasteResult.ok && <CheckCircle2 className="h-3.5 w-3.5" />}
+              Synced: {lastPasteResult.message}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Exclude list manager */}
-      <ExcludeListPanel
-        rows={excluded.data ?? []}
-        onAdd={async (name) => {
-          await addExcludedCompany({ data: { company_name: name } });
-          qc.invalidateQueries({ queryKey: ["excluded-companies"] });
-        }}
-        onDelete={async (id) => {
-          await deleteExcludedCompany({ data: { id } });
-          qc.invalidateQueries({ queryKey: ["excluded-companies"] });
-        }}
-      />
-
-      {/* Event filter overrides */}
-      <EventFilterPanel />
-
-      {/* Results */}
-      <div className="rounded-lg border bg-background overflow-hidden">
-        <div className="flex items-center justify-between p-3 border-b">
-          <div className="text-sm font-medium">
-            {results.length} results{selected.size > 0 ? ` · ${selected.size} selected` : ""}
+        {/* Search + chips */}
+        <div className="rounded-xl bg-white border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04)] p-4 space-y-3">
+          <div className="flex gap-2 items-start">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              <Input
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setSuggestOpen(true);
+                }}
+                onFocus={() => setSuggestOpen(true)}
+                onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") runSearch();
+                }}
+                placeholder="Search event names, speakers, or company profiles…"
+                className="pl-9 h-11 text-[15px]"
+              />
+              {suggestOpen && debouncedQ.length >= 2 && (suggestions.data?.length ?? 0) > 0 && (
+                <div className="absolute z-20 left-0 right-0 top-full mt-1 max-h-80 overflow-y-auto rounded-md border bg-popover shadow-md">
+                  {suggestions.data!.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted border-b last:border-b-0"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setQ(s.name ?? s.email ?? s.company_name ?? "");
+                        setSuggestOpen(false);
+                        setTimeout(() => search.mutate(), 0);
+                      }}
+                    >
+                      <div className="font-medium">{s.name ?? s.email ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {[s.job_title, s.company_name].filter(Boolean).join(" · ")}
+                        {s.event_title ? ` — ${s.event_title}` : ""}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Button
+              onClick={runSearch}
+              disabled={search.isPending}
+              className="h-11 bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              {search.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Search
+            </Button>
           </div>
-          <div className="flex gap-2">
-            <TagButton
-              disabled={selected.size === 0}
-              ticketIds={Array.from(selected)}
-              events={(upcomingEvents.data ?? []).map((e) => ({ id: e.id, title: e.name }))}
-              onDone={() => {
-                toast.success("Tagged as speaker candidates");
-                setSelected(new Set());
-                qc.invalidateQueries({ queryKey: ["speakers"] });
-              }}
-            />
-            <DraftButton
-              disabled={selected.size === 0}
-              ticketIds={Array.from(selected)}
-            />
+
+          {/* Brand chips */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] uppercase tracking-wide font-medium text-slate-500 mr-1">
+              Brand
+            </span>
+            {(["all", "AIAI", "CSC"] as const).map((b) => {
+              const on = brandFilter === b;
+              return (
+                <button
+                  key={b}
+                  type="button"
+                  onClick={() => setBrandFilter(b)}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                    on
+                      ? b === "AIAI"
+                        ? "bg-violet-100 text-violet-800 border-violet-200"
+                        : b === "CSC"
+                          ? "bg-sky-100 text-sky-800 border-sky-200"
+                          : "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200",
+                  )}
+                >
+                  {b === "all" ? "All (AIAI + CSC)" : b}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Year chips */}
+          {(years.data?.length ?? 0) > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] uppercase tracking-wide font-medium text-slate-500 mr-1">
+                Year
+              </span>
+              {years.data!.map((y) => {
+                const on = selectedYears.includes(y);
+                return (
+                  <button
+                    key={y}
+                    type="button"
+                    onClick={() => toggleYear(y)}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                      on
+                        ? "bg-indigo-600 text-white border-indigo-600"
+                        : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200",
+                    )}
+                  >
+                    {y}
+                  </button>
+                );
+              })}
+              {selectedYears.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedYears([])}
+                  className="text-xs text-slate-500 hover:text-slate-700 underline ml-1"
+                >
+                  clear
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Optional event chips (via more filters) */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowMore((v) => !v)}
+              className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
+            >
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
+              More filters (specific events, ticket types)
+              {(selectedEventSlugs.length > 0 || includeReleases.length > 0 || excludeReleases.length > 0 || !applyExclude) && (
+                <span className="ml-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5">
+                  {selectedEventSlugs.length + includeReleases.length + excludeReleases.length + (!applyExclude ? 1 : 0)}
+                </span>
+              )}
+            </button>
+            {showMore && (
+              <div className="mt-3 space-y-3 border-t pt-3">
+                <EventTypeahead
+                  label="Events (Tito)"
+                  options={(titoEvents.data ?? []).map((e) => ({ value: e.slug, label: e.title }))}
+                  selected={selectedEventSlugs}
+                  onChange={setSelectedEventSlugs}
+                  placeholder="Type to search events…"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <MultiSelect
+                    label="Include ticket types"
+                    options={(releaseTitles.data ?? []).map((r) => ({ value: r, label: r }))}
+                    selected={includeReleases}
+                    onChange={setIncludeReleases}
+                    placeholder="Any"
+                  />
+                  <MultiSelect
+                    label="Exclude ticket types (e.g. Speaker Pass, Sponsor)"
+                    options={(releaseTitles.data ?? []).map((r) => ({ value: r, label: r }))}
+                    selected={excludeReleases}
+                    onChange={setExcludeReleases}
+                    placeholder="None"
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={applyExclude}
+                    onCheckedChange={(v) => setApplyExclude(Boolean(v))}
+                  />
+                  Apply sponsor/competitor exclude list ({excluded.data?.length ?? 0} companies)
+                </label>
+              </div>
+            )}
           </div>
         </div>
-        <div className="p-3 max-h-[70vh] overflow-y-auto">
-          {results.length === 0 && !search.isPending ? (
-            <div className="p-8 text-center text-muted-foreground text-sm">
-              {search.data === undefined
-                ? `Ready to search ${(titoEvents.data ?? []).length.toLocaleString()} synced events. Type a name / company / job title above and hit Search.`
-                : "No attendees matched these filters. Try broadening your search or clearing year filters."}
+
+        {/* Search results */}
+        {(search.data !== undefined || search.isPending) && (
+          <div className="rounded-xl bg-white border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden">
+            <div className="flex items-center justify-between p-3 border-b bg-slate-50/50">
+              <div className="text-sm font-medium text-slate-700">
+                {results.length} search results{selected.size > 0 ? ` · ${selected.size} selected` : ""}
+              </div>
+              <div className="flex gap-2">
+                <TagButton
+                  disabled={selected.size === 0}
+                  ticketIds={Array.from(selected)}
+                  events={(upcomingEvents.data ?? []).map((e) => ({ id: e.id, title: e.name }))}
+                  onDone={() => {
+                    toast.success("Tagged as speaker candidates");
+                    setSelected(new Set());
+                    qc.invalidateQueries({ queryKey: ["speakers"] });
+                    qc.invalidateQueries({ queryKey: ["speaker-sourcing-stats"] });
+                    qc.invalidateQueries({ queryKey: ["tito-events-with-stats"] });
+                  }}
+                />
+                <DraftButton
+                  disabled={selected.size === 0}
+                  ticketIds={Array.from(selected)}
+                />
+              </div>
+            </div>
+            <div className="p-3 max-h-[70vh] overflow-y-auto">
+              {results.length === 0 && !search.isPending ? (
+                <div className="p-8 text-center text-slate-500 text-sm">
+                  No attendees matched. Try broadening your search or clearing filters.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {results.map((r) => (
+                    <TitoAttendeeCard
+                      key={r.id}
+                      a={r as TitoAttendee}
+                      selected={selected.has(r.id)}
+                      onToggle={() => toggle(r.id)}
+                      onOpenDetail={() => setDetailAttendee(r as TitoAttendee)}
+                      onEmail={() => {
+                        if (r.email) window.location.href = `mailto:${r.email}`;
+                      }}
+                      onAddNote={() => setDetailAttendee(r as TitoAttendee)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Browse events */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight text-slate-900">
+                Or browse by event
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Click an event to open its attendee list. Filtered by brand &amp; year chips above.
+              </p>
+            </div>
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <Input
+                className="pl-8 h-9"
+                placeholder="Filter events…"
+                value={eventSearch}
+                onChange={(e) => setEventSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {titoEventsStats.isLoading ? (
+            <div className="rounded-xl bg-white border border-slate-200/70 p-12 text-center text-sm text-slate-500">
+              Loading events…
+            </div>
+          ) : visibleEvents.length === 0 ? (
+            <div className="rounded-xl bg-white border border-slate-200/70 p-12 text-center text-sm text-slate-500">
+              No events match. Try clearing brand/year filters, or paste a Tito URL above.
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {results.map((r) => (
-                <TitoAttendeeCard
-                  key={r.id}
-                  a={r as TitoAttendee}
-                  selected={selected.has(r.id)}
-                  onToggle={() => toggle(r.id)}
-                  onOpenDetail={() => setDetailAttendee(r as TitoAttendee)}
-                  onEmail={() => {
-                    if (r.email) window.location.href = `mailto:${r.email}`;
-                  }}
-                  onAddNote={() => setDetailAttendee(r as TitoAttendee)}
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {visibleEvents.map((e) => (
+                <Link
+                  key={e.slug}
+                  to="/tito/$slug"
+                  params={{ slug: e.slug }}
+                  className="group block"
+                >
+                  <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.05)] transition-all duration-200 group-hover:shadow-[0_2px_4px_rgba(15,23,42,0.06),0_10px_28px_rgba(15,23,42,0.08)] group-hover:-translate-y-0.5 h-full">
+                    <span
+                      className={cn(
+                        "absolute left-0 top-0 bottom-0 w-1",
+                        e.brand === "AIAI"
+                          ? "bg-violet-500"
+                          : e.brand === "CSC"
+                            ? "bg-sky-500"
+                            : "bg-slate-300",
+                      )}
+                    />
+                    <div className="p-5 space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={cn(
+                            "text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5",
+                            e.brand === "AIAI"
+                              ? "bg-violet-100 text-violet-800"
+                              : e.brand === "CSC"
+                                ? "bg-sky-100 text-sky-800"
+                                : "bg-slate-100 text-slate-700",
+                          )}
+                        >
+                          {e.brand}
+                        </span>
+                        {e.is_past ? (
+                          <span className="text-[10px] font-medium rounded-full px-2 py-0.5 bg-slate-100 text-slate-600">
+                            Past
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-medium rounded-full px-2 py-0.5 bg-emerald-100 text-emerald-700">
+                            Upcoming
+                          </span>
+                        )}
+                        <span className="text-[10px] font-medium rounded-full px-2 py-0.5 bg-indigo-50 text-indigo-700">
+                          Tito
+                        </span>
+                      </div>
+                      <div className="font-semibold text-base leading-tight text-slate-900 group-hover:text-indigo-700 transition-colors">
+                        {e.title}
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">
+                        <span className="inline-flex items-center gap-1.5">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          {formatDate(e.start_date)}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Users className="h-3.5 w-3.5" />
+                          {e.registered_count.toLocaleString()} registered
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                        {e.confirmed_count > 0 && (
+                          <span className="rounded-full px-2 py-0.5 bg-emerald-50 text-emerald-700 font-medium">
+                            {e.confirmed_count} confirmed
+                          </span>
+                        )}
+                        {e.waitlisted_count > 0 && (
+                          <span className="rounded-full px-2 py-0.5 bg-violet-50 text-violet-700 font-medium">
+                            {e.waitlisted_count} waitlisted
+                          </span>
+                        )}
+                        {e.declined_count > 0 && (
+                          <span className="rounded-full px-2 py-0.5 bg-rose-50 text-rose-700 font-medium">
+                            {e.declined_count} declined
+                          </span>
+                        )}
+                        {e.confirmed_count === 0 && e.waitlisted_count === 0 && e.declined_count === 0 && (
+                          <span className="text-slate-400 italic">No candidates tagged yet</span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400">
+                          <RefreshCw className="h-3 w-3" />
+                          {relativeSynced(e.last_synced_at)}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 group-hover:text-indigo-700">
+                          View attendees →
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
           )}
         </div>
+
+        {/* Advanced settings */}
+        <div className="rounded-xl bg-white border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((v) => !v)}
+            className="w-full flex items-center justify-between p-4 text-sm font-medium text-slate-700 hover:bg-slate-50/60"
+          >
+            <span className="flex items-center gap-2">
+              <ChevronDown
+                className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")}
+              />
+              Advanced settings
+            </span>
+            <span className="text-xs text-slate-500">
+              Exclude list · Event filter overrides
+            </span>
+          </button>
+          {showAdvanced && (
+            <div className="p-4 border-t space-y-4">
+              <ExcludeListPanel
+                rows={excluded.data ?? []}
+                onAdd={async (name) => {
+                  await addExcludedCompany({ data: { company_name: name } });
+                  qc.invalidateQueries({ queryKey: ["excluded-companies"] });
+                }}
+                onDelete={async (id) => {
+                  await deleteExcludedCompany({ data: { id } });
+                  qc.invalidateQueries({ queryKey: ["excluded-companies"] });
+                }}
+              />
+              <EventFilterPanel />
+            </div>
+          )}
+        </div>
+
+        <TitoAttendeeDetailDialog
+          attendee={detailAttendee}
+          open={!!detailAttendee}
+          onOpenChange={(v) => {
+            if (!v) setDetailAttendee(null);
+          }}
+        />
       </div>
-
-      <TitoAttendeeDetailDialog
-        attendee={detailAttendee}
-        open={!!detailAttendee}
-        onOpenChange={(v) => { if (!v) setDetailAttendee(null); }}
-      />
-
     </div>
   );
 }
 
+// ============ Helper components ============
 
 function MultiSelect({
   label,
@@ -424,10 +805,7 @@ function MultiSelect({
             </Badge>
           );
         })}
-        <Select
-          value=""
-          onValueChange={(v) => v && onChange([...selected, v])}
-        >
+        <Select value="" onValueChange={(v) => v && onChange([...selected, v])}>
           <SelectTrigger className="border-0 h-7 shadow-none px-1 w-auto text-muted-foreground">
             <SelectValue placeholder={selected.length ? "Add…" : placeholder ?? "Select…"} />
           </SelectTrigger>
@@ -521,17 +899,11 @@ function EventTypeahead({
               ))}
             </div>
           )}
-          {open && query.trim() && suggestions.length === 0 && (
-            <div className="absolute z-20 left-0 right-0 top-full mt-1 rounded-md border bg-popover shadow-md px-3 py-2 text-xs text-muted-foreground">
-              No matches
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 }
-
 
 function ExcludeListPanel({
   rows,
@@ -544,17 +916,18 @@ function ExcludeListPanel({
 }) {
   const [name, setName] = useState("");
   return (
-    <details className="rounded-lg border bg-background p-4">
-      <summary className="cursor-pointer text-sm font-medium">
+    <div className="rounded-lg border bg-slate-50/60 p-4">
+      <div className="text-sm font-medium mb-2">
         Sponsor / competitor exclude list ({rows.length})
-      </summary>
-      <div className="mt-3 flex gap-2">
+      </div>
+      <div className="flex gap-2">
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Company name"
         />
         <Button
+          variant="outline"
           onClick={async () => {
             if (!name.trim()) return;
             await onAdd(name.trim());
@@ -578,7 +951,7 @@ function ExcludeListPanel({
           </Badge>
         ))}
       </div>
-    </details>
+    </div>
   );
 }
 
@@ -596,7 +969,8 @@ function TagButton({
   const [open, setOpen] = useState(false);
   const [eventId, setEventId] = useState("");
   const mut = useMutation({
-    mutationFn: () => tagAsSpeakerCandidates({ data: { event_id: eventId, ticket_ids: ticketIds } }),
+    mutationFn: () =>
+      tagAsSpeakerCandidates({ data: { event_id: eventId, ticket_ids: ticketIds } }),
     onSuccess: (r) => {
       toast.success(`Added ${r.added} candidate(s), skipped ${r.skipped} duplicate(s)`);
       setOpen(false);
@@ -607,6 +981,7 @@ function TagButton({
   return (
     <>
       <Button variant="outline" disabled={disabled} onClick={() => setOpen(true)}>
+        <UserPlus className="h-4 w-4 mr-2" />
         Tag as speaker candidate
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -629,8 +1004,8 @@ function TagButton({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              These will appear in the Speakers pipeline with status <b>contacted</b> and source
-              <b> tito_candidate</b>. No email is sent.
+              These will appear in the Speakers pipeline with status <b>contacted</b> and source{" "}
+              <b>tito_candidate</b>. No email is sent.
             </p>
           </div>
           <DialogFooter>
@@ -661,7 +1036,11 @@ function DraftButton({ disabled, ticketIds }: { disabled: boolean; ticketIds: st
   });
   return (
     <>
-      <Button disabled={disabled} onClick={() => setOpen(true)}>
+      <Button
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        className="bg-indigo-600 hover:bg-indigo-700 text-white"
+      >
         <Sparkles className="h-4 w-4 mr-2" />
         Draft outreach
       </Button>
@@ -688,7 +1067,11 @@ function DraftButton({ disabled, ticketIds }: { disabled: boolean; ticketIds: st
               />
             </div>
             <div className="flex justify-end">
-              <Button disabled={!ctx || mut.isPending} onClick={() => mut.mutate()}>
+              <Button
+                disabled={!ctx || mut.isPending}
+                onClick={() => mut.mutate()}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
                 {mut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Generate
               </Button>
@@ -697,8 +1080,11 @@ function DraftButton({ disabled, ticketIds }: { disabled: boolean; ticketIds: st
               <div key={d.ticket_id} className="rounded-lg border p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium">
-                    {d.name} <span className="text-muted-foreground">· {d.company ?? ""}</span>
-                    <div className="text-xs text-muted-foreground">{d.email ?? "no email on file"}</div>
+                    {d.name}{" "}
+                    <span className="text-muted-foreground">· {d.company ?? ""}</span>
+                    <div className="text-xs text-muted-foreground">
+                      {d.email ?? "no email on file"}
+                    </div>
                   </div>
                   <Button
                     size="sm"
@@ -772,18 +1158,15 @@ function EventFilterPanel() {
   const excludes = rows.filter((r) => r.mode === "exclude");
 
   return (
-    <details className="rounded-lg border bg-background p-4">
-      <summary className="cursor-pointer text-sm font-medium">
+    <div className="rounded-lg border bg-slate-50/60 p-4">
+      <div className="text-sm font-medium mb-2">
         Tito event filters — AIAI/CSC keyword rule + manual overrides
-      </summary>
-      <div className="mt-3 space-y-3 text-sm">
-        <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
-          Default rule: only sync events whose title contains one of the AIAI/CSC
-          keywords (case-insensitive substring): "Generative AI Summit",
-          "Agentic AI", "Chief AI Officer Summit", "Customer Success Summit",
-          "Chief Customer Officer Summit", "Customer Support Summit". Use the
-          overrides below to force-include or force-exclude specific slugs when
-          the keyword rule misses or wrongly catches an event.
+      </div>
+      <div className="space-y-3 text-sm">
+        <div className="rounded-md bg-white p-3 text-xs text-muted-foreground border">
+          Default rule: only sync events whose title contains one of the AIAI/CSC keywords.
+          Use the overrides below to force-include or force-exclude specific slugs when the
+          keyword rule misses or wrongly catches an event.
         </div>
 
         <div className="flex flex-wrap items-end gap-2">
@@ -815,7 +1198,7 @@ function EventFilterPanel() {
               placeholder="e.g. rebranded, keyword misses it"
             />
           </div>
-          <Button onClick={add}>Add rule</Button>
+          <Button variant="outline" onClick={add}>Add rule</Button>
         </div>
 
         {(includes.length > 0 || excludes.length > 0) && (
@@ -833,9 +1216,6 @@ function EventFilterPanel() {
                     </button>
                   </Badge>
                 ))}
-                {includes.length === 0 && (
-                  <span className="text-xs text-muted-foreground">None</span>
-                )}
               </div>
             </div>
             <div>
@@ -851,9 +1231,6 @@ function EventFilterPanel() {
                     </button>
                   </Badge>
                 ))}
-                {excludes.length === 0 && (
-                  <span className="text-xs text-muted-foreground">None</span>
-                )}
               </div>
             </div>
           </div>
@@ -875,7 +1252,7 @@ function EventFilterPanel() {
         </div>
 
         {showPreview && preview.data && (
-          <div className="rounded-md border max-h-72 overflow-y-auto">
+          <div className="rounded-md border max-h-72 overflow-y-auto bg-white">
             <table className="w-full text-xs">
               <thead className="bg-muted/50 sticky top-0">
                 <tr>
@@ -903,10 +1280,10 @@ function EventFilterPanel() {
                       {e.manual_exclude
                         ? "manual exclude"
                         : e.manual_include
-                        ? "manual include"
-                        : e.keyword_match
-                        ? "keyword match"
-                        : "not AIAI/CSC"}
+                          ? "manual include"
+                          : e.keyword_match
+                            ? "keyword match"
+                            : "not AIAI/CSC"}
                     </td>
                   </tr>
                 ))}
@@ -915,7 +1292,6 @@ function EventFilterPanel() {
           </div>
         )}
       </div>
-    </details>
+    </div>
   );
 }
-
