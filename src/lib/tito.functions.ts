@@ -562,18 +562,234 @@ export const listTitoEventsWithStats = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const { data: tickets, error: tErr } = await context.supabase
       .from("tito_tickets")
-      .select("event_slug");
+      .select("id, event_slug");
     if (tErr) throw new Error(tErr.message);
+
     const counts = new Map<string, number>();
+    const ticketToSlug = new Map<string, string>();
     for (const t of tickets ?? []) {
       if (!t.event_slug) continue;
       counts.set(t.event_slug, (counts.get(t.event_slug) ?? 0) + 1);
+      ticketToSlug.set(t.id, t.event_slug);
     }
+
+    // Count tagged-as-speaker speakers per tito event (via source_ticket_id).
+    const { data: taggedSpeakers } = await context.supabase
+      .from("speakers")
+      .select("source_ticket_id, status")
+      .not("source_ticket_id", "is", null);
+    const confirmed = new Map<string, number>();
+    const responded = new Map<string, number>();
+    const declined = new Map<string, number>();
+    for (const s of taggedSpeakers ?? []) {
+      const slug = s.source_ticket_id ? ticketToSlug.get(s.source_ticket_id) : null;
+      if (!slug) continue;
+      const bucket =
+        s.status === "confirmed" ? confirmed :
+        s.status === "responded" ? responded :
+        s.status === "declined" ? declined : null;
+      if (bucket) bucket.set(slug, (bucket.get(slug) ?? 0) + 1);
+    }
+
     return (events ?? []).map((e) => ({
       ...e,
       registered_count: counts.get(e.slug) ?? 0,
+      confirmed_count: confirmed.get(e.slug) ?? 0,
+      waitlisted_count: responded.get(e.slug) ?? 0,
+      declined_count: declined.get(e.slug) ?? 0,
       brand: classifyTitoBrand(e.title),
     }));
+  });
+
+// Overview stats for the top of the Speaker Sourcing page.
+export const speakerSourcingStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const [ev, tk, sp] = await Promise.all([
+      context.supabase.from("events").select("id", { count: "exact", head: true }),
+      context.supabase.from("tito_tickets").select("id", { count: "exact", head: true }),
+      context.supabase.from("speakers").select("status, source"),
+    ]);
+    const speakers = sp.data ?? [];
+    const byStatus = (s: string) => speakers.filter((r) => r.status === s).length;
+    const newProfiles = speakers.filter(
+      (r) => r.source === "tito_candidate" && r.status === "contacted",
+    ).length;
+    return {
+      unified_events: ev.count ?? 0,
+      synced_attendees: tk.count ?? 0,
+      new_profiles: newProfiles,
+      confirmed_speakers: byStatus("confirmed"),
+      waitlisted_speakers: byStatus("responded"),
+      declined_profiles: byStatus("declined"),
+    };
+  });
+
+// Parse a pasted Tito event URL and sync just that event.
+// Accepts: https://ti.to/{account}/{event}, https://{account}.tito.io/{event},
+// or a bare "{account}/{event}" string.
+function parseTitoUrl(input: string): { account: string; event: string } | null {
+  const s = input.trim();
+  if (!s) return null;
+  // {account}.tito.io/{event}
+  let m = s.match(/^(?:https?:\/\/)?([a-z0-9-]+)\.tito\.io\/([a-z0-9-]+)/i);
+  if (m) return { account: m[1], event: m[2] };
+  // ti.to/{account}/{event}
+  m = s.match(/(?:https?:\/\/)?(?:www\.)?ti\.to\/([a-z0-9-]+)\/([a-z0-9-]+)/i);
+  if (m) return { account: m[1], event: m[2] };
+  // bare {account}/{event}
+  m = s.match(/^([a-z0-9-]+)\/([a-z0-9-]+)$/i);
+  if (m) return { account: m[1], event: m[2] };
+  return null;
+}
+
+export const syncTitoByUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ url: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const token = process.env.TITO_API_TOKEN;
+    if (!token) throw new Error("Missing TITO_API_TOKEN — add it in Project Settings → Secrets.");
+    const parsed = parseTitoUrl(data.url);
+    if (!parsed) {
+      throw new Error(
+        "Couldn't recognise that Tito URL. Expected https://ti.to/{account}/{event}.",
+      );
+    }
+    const { account, event: eventSlug } = parsed;
+
+    // Fetch event metadata.
+    const evBody = (await titoFetch(`/${account}/${eventSlug}`, token)) as {
+      event?: TitoEvent;
+    };
+    const ev = evBody.event;
+    if (!ev || !ev.slug) throw new Error("Tito event not found for that URL.");
+
+    await context.supabase
+      .from("tito_events")
+      .upsert(
+        {
+          slug: ev.slug,
+          title: ev.title ?? ev.slug,
+          start_date: ev.start_date ?? null,
+          end_date: ev.end_date ?? null,
+          is_past: Boolean(ev.end_date && new Date(ev.end_date) < new Date()),
+          last_synced_at: new Date().toISOString(),
+        },
+        { onConflict: "slug" },
+      );
+
+    // Existing tickets for this event → to compute new-vs-updated.
+    const { data: existingRows } = await context.supabase
+      .from("tito_tickets")
+      .select("tito_ticket_id")
+      .eq("event_slug", ev.slug);
+    const existingIds = new Set((existingRows ?? []).map((r) => r.tito_ticket_id));
+
+    let newCount = 0;
+    let updatedCount = 0;
+    let page = 1;
+    while (true) {
+      const body = (await titoFetch(`/${account}/${ev.slug}/tickets`, token, {
+        page,
+        per_page: 100,
+        view: "extended",
+      })) as { tickets?: TitoTicket[]; meta?: { next_page?: number | null } };
+      const tickets = body.tickets ?? [];
+      if (tickets.length === 0) break;
+
+      const rows = tickets
+        .filter((t) => t.id != null)
+        .map((t) => {
+          const releaseTitle = t.release_title ?? t.release?.title ?? null;
+          const releaseSlug = t.release_slug ?? t.release?.slug ?? null;
+          const releaseId = t.release_id ?? t.release?.id ?? null;
+          return {
+            tito_ticket_id: String(t.id),
+            event_slug: ev.slug,
+            event_title: ev.title ?? ev.slug,
+            name:
+              t.name ??
+              ([t.first_name, t.last_name].filter(Boolean).join(" ").trim() || null),
+            first_name: t.first_name ?? null,
+            last_name: t.last_name ?? null,
+            email: t.email ?? null,
+            company_name: t.company_name ?? null,
+            job_title: normalizeJobTitle(t),
+            location: normalizeLocation(t),
+            release_id: releaseId ? String(releaseId) : null,
+            release_slug: releaseSlug,
+            release_title: releaseTitle,
+            registration_id:
+              t.registration_id != null ? String(t.registration_id) : null,
+            state: t.state ?? null,
+            raw: t as unknown as import("@/integrations/supabase/types").Json,
+          };
+        });
+      const uniqueRows = new Map<string, (typeof rows)[number]>();
+      for (const r of rows) uniqueRows.set(r.tito_ticket_id, r);
+      const dedupedRows = Array.from(uniqueRows.values());
+
+      for (const r of dedupedRows) {
+        if (existingIds.has(r.tito_ticket_id)) updatedCount++;
+        else {
+          newCount++;
+          existingIds.add(r.tito_ticket_id);
+        }
+      }
+
+      if (dedupedRows.length) {
+        const { data: upserted, error } = await context.supabase
+          .from("tito_tickets")
+          .upsert(dedupedRows, { onConflict: "tito_ticket_id" })
+          .select("id, tito_ticket_id");
+        if (error) throw new Error(`tito_tickets upsert: ${error.message}`);
+        const idMap = new Map((upserted ?? []).map((r) => [r.tito_ticket_id, r.id]));
+        const ticketDbIds = Array.from(idMap.values());
+        if (ticketDbIds.length) {
+          await context.supabase.from("tito_answers").delete().in("ticket_id", ticketDbIds);
+        }
+        const answerRows: Array<{
+          ticket_id: string;
+          question_id: string | null;
+          question_title: string | null;
+          response: string | null;
+        }> = [];
+        for (const t of tickets) {
+          const dbId = idMap.get(String(t.id));
+          if (!dbId) continue;
+          for (const a of t.answers ?? []) {
+            const qTitle = (a.question?.title ?? a.question_title ?? a.title ?? null) as
+              | string | null;
+            const qId = (a.question?.id ?? a.question_id ?? null) as
+              | string | number | null;
+            const resp = Array.isArray(a.response)
+              ? a.response.join(", ")
+              : ((a.humanized_response ?? a.response ?? "") as string);
+            if (!qTitle && !resp) continue;
+            answerRows.push({
+              ticket_id: dbId,
+              question_id: qId != null ? String(qId) : null,
+              question_title: qTitle,
+              response: resp ? String(resp) : null,
+            });
+          }
+        }
+        if (answerRows.length) {
+          await context.supabase.from("tito_answers").insert(answerRows);
+        }
+      }
+      const next = body.meta?.next_page;
+      if (!next) break;
+      page = Number(next);
+    }
+
+    return {
+      ok: true,
+      event_slug: ev.slug,
+      event_title: ev.title ?? ev.slug,
+      new: newCount,
+      updated: updatedCount,
+    };
   });
 
 export const getTitoEventDetail = createServerFn({ method: "POST" })
