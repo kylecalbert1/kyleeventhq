@@ -581,9 +581,11 @@ export const listTitoEventsWithStats = createServerFn({ method: "GET" })
     const confirmed = new Map<string, number>();
     const responded = new Map<string, number>();
     const declined = new Map<string, number>();
+    const tagged = new Map<string, number>();
     for (const s of taggedSpeakers ?? []) {
       const slug = s.source_ticket_id ? ticketToSlug.get(s.source_ticket_id) : null;
       if (!slug) continue;
+      tagged.set(slug, (tagged.get(slug) ?? 0) + 1);
       const bucket =
         s.status === "confirmed" ? confirmed :
         s.status === "responded" ? responded :
@@ -594,12 +596,14 @@ export const listTitoEventsWithStats = createServerFn({ method: "GET" })
     return (events ?? []).map((e) => ({
       ...e,
       registered_count: counts.get(e.slug) ?? 0,
+      tagged_count: tagged.get(e.slug) ?? 0,
       confirmed_count: confirmed.get(e.slug) ?? 0,
       waitlisted_count: responded.get(e.slug) ?? 0,
       declined_count: declined.get(e.slug) ?? 0,
       brand: classifyTitoBrand(e.title),
     }));
   });
+
 
 // Overview stats for the top of the Speaker Sourcing page.
 export const speakerSourcingStats = createServerFn({ method: "GET" })
