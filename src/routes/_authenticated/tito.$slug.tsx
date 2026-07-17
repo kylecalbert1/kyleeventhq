@@ -57,6 +57,7 @@ function TitoEventDetail() {
 
   const [q, setQ] = useState("");
   const [releaseFilter, setReleaseFilter] = useState<string>("all");
+  const [tagFilter, setTagFilter] = useState<"all" | "tagged" | "untagged">("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detailAttendee, setDetailAttendee] = useState<TitoAttendee | null>(null);
 
@@ -74,11 +75,15 @@ function TitoEventDetail() {
     const term = q.trim().toLowerCase();
     return tickets.filter((t) => {
       if (releaseFilter !== "all" && t.release_title !== releaseFilter) return false;
+      const isTagged = ((t as TitoAttendee).tagged_events ?? []).length > 0;
+      if (tagFilter === "tagged" && !isTagged) return false;
+      if (tagFilter === "untagged" && isTagged) return false;
       if (!term) return true;
       const hay = `${t.name ?? ""} ${t.email ?? ""} ${t.company_name ?? ""} ${t.job_title ?? ""}`.toLowerCase();
       return hay.includes(term);
     });
-  }, [tickets, q, releaseFilter]);
+  }, [tickets, q, releaseFilter, tagFilter]);
+
 
   const allSelected = filtered.length > 0 && filtered.every((r) => selected.has(r.id));
 
