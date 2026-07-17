@@ -963,15 +963,25 @@ export const searchTitoTickets = createServerFn({ method: "POST" })
       .limit(data.limit ?? 500);
 
     if (data.q) {
-      const term = `%${data.q}%`;
-      q = q.or(
-        [
-          `name.ilike.${term}`,
-          `email.ilike.${term}`,
-          `company_name.ilike.${term}`,
-          `job_title.ilike.${term}`,
-        ].join(","),
-      );
+      // Split query into whitespace-separated terms. Every term must appear in
+      // at least one searchable field (AND across terms, OR across fields).
+      const terms = data.q.split(/\s+/).map((t) => t.trim()).filter(Boolean);
+      const fields = [
+        "name",
+        "email",
+        "company_name",
+        "job_title",
+        "location",
+        "event_title",
+        "event_slug",
+      ];
+      for (const t of terms) {
+        // Escape PostgREST reserved chars in the .or() value list.
+        const safe = t.replace(/[,()"\\]/g, " ").trim();
+        if (!safe) continue;
+        const pattern = `%${safe}%`;
+        q = q.or(fields.map((f) => `${f}.ilike.${pattern}`).join(","));
+      }
     }
     if (data.company) q = q.ilike("company_name", `%${data.company}%`);
     if (data.job_title) q = q.ilike("job_title", `%${data.job_title}%`);
