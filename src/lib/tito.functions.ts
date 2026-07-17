@@ -1130,12 +1130,35 @@ export const tagAsSpeakerCandidates = createServerFn({ method: "POST" })
         source_ticket_id: t.id,
       }));
 
-    if (!rows.length) return { added: 0, skipped: tickets.length };
+    if (!rows.length) return { added: 0, skipped: tickets.length, created: [] };
 
-    const { error: insErr } = await context.supabase.from("speakers").insert(rows);
+    const { data: inserted, error: insErr } = await context.supabase
+      .from("speakers")
+      .insert(rows)
+      .select("id, event_id, status, source_ticket_id");
     if (insErr) throw new Error(insErr.message);
-    return { added: rows.length, skipped: tickets.length - rows.length };
+
+    // Look up event name once for the response payload.
+    const { data: ev } = await context.supabase
+      .from("events")
+      .select("id, name")
+      .eq("id", data.event_id)
+      .maybeSingle();
+    const eventName = ev?.name ?? "Event";
+
+    return {
+      added: rows.length,
+      skipped: tickets.length - rows.length,
+      created: (inserted ?? []).map((s) => ({
+        speaker_id: s.id,
+        ticket_id: s.source_ticket_id as string,
+        event_id: s.event_id,
+        event_name: eventName,
+        status: s.status,
+      })),
+    };
   });
+
 
 // ============ AI Draft generator (no sending) ============
 
