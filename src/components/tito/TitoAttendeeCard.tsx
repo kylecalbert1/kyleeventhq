@@ -100,8 +100,18 @@ export function TitoAttendeeCard({
               <StatusPill className="text-[11px] bg-violet-100 text-violet-700 border-violet-200">
                 Sourced (Tito)
               </StatusPill>
+              {(a.tagged_events ?? []).map((te) => (
+                <StatusPill
+                  key={te.speaker_id}
+                  className="text-[11px] bg-emerald-50 text-emerald-700 border-emerald-200 inline-flex items-center gap-1"
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  Tagged for {te.event_name}
+                </StatusPill>
+              ))}
             </div>
           </div>
+
 
           {titleAtCompany && (
             <div className="mt-1 text-sm text-slate-500 truncate">{titleAtCompany}</div>
