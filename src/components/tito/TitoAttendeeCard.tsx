@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusPill } from "@/components/StatusPill";
-import { Mail, Eye, Linkedin, MapPin, CalendarDays } from "lucide-react";
+import { Mail, Eye, Linkedin, MapPin, CalendarDays, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { softCard, eventChipCls } from "@/components/speakers/SpeakerListCard";
 
@@ -15,7 +15,9 @@ export type TitoAttendee = {
   event_title: string | null;
   event_slug: string | null;
   linkedin_url?: string | null;
+  tagged_events?: Array<{ event_id: string; event_name: string; status: string | null; speaker_id: string }>;
 };
+
 
 function initialsOf(name: string | null): string {
   if (!name) return "?";
