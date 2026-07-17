@@ -834,9 +834,36 @@ export const getTitoEventDetail = createServerFn({ method: "POST" })
         if (url && !linkedinMap.has(a.ticket_id)) linkedinMap.set(a.ticket_id, url);
       }
     }
+    // Attach tagged-as-speaker info for each ticket.
+    const taggedMap = new Map<string, Array<{ event_id: string; event_name: string; status: string | null; speaker_id: string }>>();
+    if (ids.length) {
+      const { data: sp } = await context.supabase
+        .from("speakers")
+        .select("id, event_id, status, source_ticket_id, events(id, name)")
+        .in("source_ticket_id", ids);
+      for (const s of (sp ?? []) as Array<{
+        id: string;
+        event_id: string;
+        status: string | null;
+        source_ticket_id: string | null;
+        events: { id: string; name: string } | null;
+      }>) {
+        if (!s.source_ticket_id) continue;
+        const arr = taggedMap.get(s.source_ticket_id) ?? [];
+        arr.push({
+          event_id: s.event_id,
+          event_name: s.events?.name ?? "Event",
+          status: s.status,
+          speaker_id: s.id,
+        });
+        taggedMap.set(s.source_ticket_id, arr);
+      }
+    }
+
     const enriched = (tickets ?? []).map((t) => ({
       ...t,
       linkedin_url: linkedinMap.get(t.id) ?? null,
+      tagged_events: taggedMap.get(t.id) ?? [],
     }));
 
     return {
@@ -844,6 +871,7 @@ export const getTitoEventDetail = createServerFn({ method: "POST" })
       tickets: enriched,
     };
   });
+
 
 
 export const listReleaseTitles = createServerFn({ method: "GET" })
