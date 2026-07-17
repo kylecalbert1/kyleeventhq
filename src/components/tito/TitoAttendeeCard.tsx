@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusPill } from "@/components/StatusPill";
-import { Mail, Eye, Linkedin, MapPin, CalendarDays } from "lucide-react";
+import { Mail, Eye, Linkedin, MapPin, CalendarDays, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { softCard, eventChipCls } from "@/components/speakers/SpeakerListCard";
 
@@ -15,7 +15,9 @@ export type TitoAttendee = {
   event_title: string | null;
   event_slug: string | null;
   linkedin_url?: string | null;
+  tagged_events?: Array<{ event_id: string; event_name: string; status: string | null; speaker_id: string }>;
 };
+
 
 function initialsOf(name: string | null): string {
   if (!name) return "?";
@@ -98,8 +100,18 @@ export function TitoAttendeeCard({
               <StatusPill className="text-[11px] bg-violet-100 text-violet-700 border-violet-200">
                 Sourced (Tito)
               </StatusPill>
+              {(a.tagged_events ?? []).map((te) => (
+                <StatusPill
+                  key={te.speaker_id}
+                  className="text-[11px] bg-emerald-50 text-emerald-700 border-emerald-200 inline-flex items-center gap-1"
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  Tagged for {te.event_name}
+                </StatusPill>
+              ))}
             </div>
           </div>
+
 
           {titleAtCompany && (
             <div className="mt-1 text-sm text-slate-500 truncate">{titleAtCompany}</div>

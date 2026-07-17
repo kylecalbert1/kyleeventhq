@@ -581,9 +581,11 @@ export const listTitoEventsWithStats = createServerFn({ method: "GET" })
     const confirmed = new Map<string, number>();
     const responded = new Map<string, number>();
     const declined = new Map<string, number>();
+    const tagged = new Map<string, number>();
     for (const s of taggedSpeakers ?? []) {
       const slug = s.source_ticket_id ? ticketToSlug.get(s.source_ticket_id) : null;
       if (!slug) continue;
+      tagged.set(slug, (tagged.get(slug) ?? 0) + 1);
       const bucket =
         s.status === "confirmed" ? confirmed :
         s.status === "responded" ? responded :
@@ -594,12 +596,14 @@ export const listTitoEventsWithStats = createServerFn({ method: "GET" })
     return (events ?? []).map((e) => ({
       ...e,
       registered_count: counts.get(e.slug) ?? 0,
+      tagged_count: tagged.get(e.slug) ?? 0,
       confirmed_count: confirmed.get(e.slug) ?? 0,
       waitlisted_count: responded.get(e.slug) ?? 0,
       declined_count: declined.get(e.slug) ?? 0,
       brand: classifyTitoBrand(e.title),
     }));
   });
+
 
 // Overview stats for the top of the Speaker Sourcing page.
 export const speakerSourcingStats = createServerFn({ method: "GET" })
@@ -830,9 +834,36 @@ export const getTitoEventDetail = createServerFn({ method: "POST" })
         if (url && !linkedinMap.has(a.ticket_id)) linkedinMap.set(a.ticket_id, url);
       }
     }
+    // Attach tagged-as-speaker info for each ticket.
+    const taggedMap = new Map<string, Array<{ event_id: string; event_name: string; status: string | null; speaker_id: string }>>();
+    if (ids.length) {
+      const { data: sp } = await context.supabase
+        .from("speakers")
+        .select("id, event_id, status, source_ticket_id, events(id, name)")
+        .in("source_ticket_id", ids);
+      for (const s of (sp ?? []) as Array<{
+        id: string;
+        event_id: string;
+        status: string | null;
+        source_ticket_id: string | null;
+        events: { id: string; name: string } | null;
+      }>) {
+        if (!s.source_ticket_id) continue;
+        const arr = taggedMap.get(s.source_ticket_id) ?? [];
+        arr.push({
+          event_id: s.event_id,
+          event_name: s.events?.name ?? "Event",
+          status: s.status,
+          speaker_id: s.id,
+        });
+        taggedMap.set(s.source_ticket_id, arr);
+      }
+    }
+
     const enriched = (tickets ?? []).map((t) => ({
       ...t,
       linkedin_url: linkedinMap.get(t.id) ?? null,
+      tagged_events: taggedMap.get(t.id) ?? [],
     }));
 
     return {
@@ -840,6 +871,7 @@ export const getTitoEventDetail = createServerFn({ method: "POST" })
       tickets: enriched,
     };
   });
+
 
 
 export const listReleaseTitles = createServerFn({ method: "GET" })
@@ -1098,12 +1130,35 @@ export const tagAsSpeakerCandidates = createServerFn({ method: "POST" })
         source_ticket_id: t.id,
       }));
 
-    if (!rows.length) return { added: 0, skipped: tickets.length };
+    if (!rows.length) return { added: 0, skipped: tickets.length, created: [] };
 
-    const { error: insErr } = await context.supabase.from("speakers").insert(rows);
+    const { data: inserted, error: insErr } = await context.supabase
+      .from("speakers")
+      .insert(rows)
+      .select("id, event_id, status, source_ticket_id");
     if (insErr) throw new Error(insErr.message);
-    return { added: rows.length, skipped: tickets.length - rows.length };
+
+    // Look up event name once for the response payload.
+    const { data: ev } = await context.supabase
+      .from("events")
+      .select("id, name")
+      .eq("id", data.event_id)
+      .maybeSingle();
+    const eventName = ev?.name ?? "Event";
+
+    return {
+      added: rows.length,
+      skipped: tickets.length - rows.length,
+      created: (inserted ?? []).map((s) => ({
+        speaker_id: s.id,
+        ticket_id: s.source_ticket_id as string,
+        event_id: s.event_id,
+        event_name: eventName,
+        status: s.status,
+      })),
+    };
   });
+
 
 // ============ AI Draft generator (no sending) ============
 
