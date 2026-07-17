@@ -204,8 +204,8 @@ function TitoEventDetail() {
             </div>
           </Card>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
               <label className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Checkbox
                   checked={allSelected}
@@ -216,6 +216,30 @@ function TitoEventDetail() {
                 />
                 Select all visible
               </label>
+              <div className="inline-flex rounded-md border bg-white p-0.5 text-xs">
+                {(["all", "tagged", "untagged"] as const).map((k) => {
+                  const label = k === "all" ? "All" : k === "tagged" ? "Tagged" : "Not tagged yet";
+                  const count =
+                    k === "all"
+                      ? tickets.length
+                      : k === "tagged"
+                        ? tickets.filter((t) => ((t as TitoAttendee).tagged_events ?? []).length > 0).length
+                        : tickets.filter((t) => ((t as TitoAttendee).tagged_events ?? []).length === 0).length;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setTagFilter(k)}
+                      className={cn(
+                        "px-2.5 py-1 rounded font-medium transition-colors",
+                        tagFilter === k ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100",
+                      )}
+                    >
+                      {label} <span className="tabular-nums opacity-80">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
               <div className="text-sm text-muted-foreground tabular-nums">
                 {filtered.length} of {tickets.length}
                 {selected.size > 0 ? ` · ${selected.size} selected` : ""}
@@ -228,6 +252,8 @@ function TitoEventDetail() {
                 events={(upcomingEvents.data ?? []).map((e) => ({ id: e.id, title: e.name }))}
                 onDone={() => {
                   setSelected(new Set());
+                  qc.invalidateQueries({ queryKey: ["tito-event-detail", slug] });
+                  qc.invalidateQueries({ queryKey: ["tito-events-with-stats"] });
                   qc.invalidateQueries({ queryKey: ["speakers"] });
                 }}
               />
@@ -237,6 +263,7 @@ function TitoEventDetail() {
               />
             </div>
           </div>
+
 
           {filtered.length === 0 ? (
             <Card className="p-12 text-center text-sm text-muted-foreground">
