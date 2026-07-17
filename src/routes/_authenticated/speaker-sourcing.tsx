@@ -684,6 +684,11 @@ function SpeakerSourcingPage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                        {e.tagged_count > 0 && (
+                          <span className="rounded-full px-2 py-0.5 bg-indigo-50 text-indigo-700 font-medium">
+                            {e.tagged_count} tagged
+                          </span>
+                        )}
                         {e.confirmed_count > 0 && (
                           <span className="rounded-full px-2 py-0.5 bg-emerald-50 text-emerald-700 font-medium">
                             {e.confirmed_count} confirmed
@@ -699,10 +704,11 @@ function SpeakerSourcingPage() {
                             {e.declined_count} declined
                           </span>
                         )}
-                        {e.confirmed_count === 0 && e.waitlisted_count === 0 && e.declined_count === 0 && (
+                        {e.tagged_count === 0 && (
                           <span className="text-slate-400 italic">No candidates tagged yet</span>
                         )}
                       </div>
+
                       <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                         <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400">
                           <RefreshCw className="h-3 w-3" />
