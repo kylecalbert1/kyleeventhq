@@ -200,6 +200,10 @@ function SpeakerSourcingPage() {
           release_titles_exclude: excludeReleases.length ? excludeReleases : undefined,
           years: selectedYears.length ? selectedYears : undefined,
           apply_exclude_list: applyExclude,
+          companies_include:
+            companyList.length && companyMode === "only" ? companyList : undefined,
+          companies_exclude:
+            companyList.length && companyMode === "exclude" ? companyList : undefined,
           limit: 1000,
         },
       });
