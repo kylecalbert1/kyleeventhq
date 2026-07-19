@@ -260,6 +260,7 @@ function TitoEventDetail() {
               <DraftButton
                 disabled={selected.size === 0}
                 ticketIds={Array.from(selected)}
+                tickets={filtered as TitoAttendee[]}
               />
             </div>
           </div>
