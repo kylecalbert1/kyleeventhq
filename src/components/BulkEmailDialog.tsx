@@ -156,14 +156,16 @@ export function BulkEmailDialog({
     return speakers.map((s) => {
       const firstName = firstNameOf(s.name);
       const vars = { firstName, name: s.name, company: s.company ?? "" };
+      const override = perRecipientDrafts?.[s.id];
       return {
         ...s,
         firstName,
-        rSubject: renderTemplate(subject, vars),
-        rBody: renderTemplate(body, vars),
+        rSubject: override?.subject ?? renderTemplate(subject, vars),
+        rBody: override?.body ?? renderTemplate(body, vars),
+        hasCustomDraft: !!override,
       };
     });
-  }, [speakers, subject, body]);
+  }, [speakers, subject, body, perRecipientDrafts]);
 
   const missingEmail = rows.filter((r) => !r.email).length;
   const sendable = rows.filter((r) => r.email);
