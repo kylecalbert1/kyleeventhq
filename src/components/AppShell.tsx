@@ -10,6 +10,8 @@ import {
   Inbox,
   Reply,
   Search,
+  MessageSquare,
+  ListChecks,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,14 +20,16 @@ type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boo
 
 const NAV_PRIMARY: NavItem[] = [
   { to: "/", label: "Events", icon: LayoutGrid, exact: true },
-  { to: "/speakers", label: "Speakers", icon: Users },
+  { to: "/speakers", label: "Speaker pipeline", icon: Users },
+  { to: "/speaker-sourcing", label: "Speaker Prospecting", icon: Search },
+  { to: "/outreach-templates", label: "Outreach", icon: MessageSquare },
+  { to: "/agenda", label: "Agenda", icon: ListChecks },
   { to: "/website", label: "Website", icon: Globe },
 ];
 
 const NAV_OPS: NavItem[] = [
   { to: "/milestones", label: "Kickoff & Washup", icon: CalendarDays },
   { to: "/outreach", label: "Weekly Outreach", icon: Target },
-  { to: "/speaker-sourcing", label: "Speaker Sourcing", icon: Search },
   { to: "/reply-needed", label: "Reply Needed", icon: Reply },
   { to: "/proofing", label: "Proofing", icon: ClipboardCheck },
   { to: "/sponsor-inbox", label: "Sponsor Inbox", icon: Inbox },
@@ -55,8 +59,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.navigate({ to: "/auth" });
   }
   return (
-    <div className="flex min-h-screen bg-muted/30">
-      <aside className="hidden md:flex md:w-60 flex-col border-r bg-background">
+    <div className="flex min-h-screen bg-background">
+      <aside className="hidden md:flex md:w-60 flex-col border-r bg-sidebar">
         <div className="flex h-16 items-center px-5 border-b">
           <div className="text-sm font-semibold tracking-tight leading-tight">
             Event Ops
@@ -65,7 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>
-        <nav className="flex-1 px-3 py-4">
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
             Event delivery
           </div>
