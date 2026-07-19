@@ -85,12 +85,21 @@ export function BulkEmailDialog({
   speakers,
   initialTemplate,
   eventId,
+  perRecipientDrafts,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   speakers: Speaker[];
   initialTemplate?: TemplateKey;
   eventId?: string | null;
+  /**
+   * Optional per-recipient AI-generated overrides keyed by speaker id.
+   * When present, the recipient's rSubject/rBody use these instead of the
+   * shared template — used by the Tito "Draft outreach" flow so each person
+   * gets a personalized draft that can still be reviewed & sent through the
+   * app's Gmail integration.
+   */
+  perRecipientDrafts?: Record<string, { subject: string; body: string }>;
 }) {
   const [templateKey, setTemplateKey] = useState<TemplateKey>(initialTemplate ?? "custom");
   const [subject, setSubject] = useState(TEMPLATES[initialTemplate ?? "custom"].subject);
