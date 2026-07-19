@@ -588,6 +588,7 @@ function SpeakerSourcingPage() {
                 <DraftButton
                   disabled={selected.size === 0}
                   ticketIds={Array.from(selected)}
+                  results={results as TitoAttendee[]}
                 />
               </div>
             </div>
