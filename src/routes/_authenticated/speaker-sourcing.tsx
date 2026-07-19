@@ -506,10 +506,10 @@ function SpeakerSourcingPage() {
               className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
             >
               <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
-              More filters (specific events, ticket types)
-              {(selectedEventSlugs.length > 0 || includeReleases.length > 0 || excludeReleases.length > 0 || !applyExclude) && (
+              More filters (events, ticket types, company CSV)
+              {(selectedEventSlugs.length > 0 || includeReleases.length > 0 || excludeReleases.length > 0 || !applyExclude || companyList.length > 0) && (
                 <span className="ml-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5">
-                  {selectedEventSlugs.length + includeReleases.length + excludeReleases.length + (!applyExclude ? 1 : 0)}
+                  {selectedEventSlugs.length + includeReleases.length + excludeReleases.length + (!applyExclude ? 1 : 0) + (companyList.length ? 1 : 0)}
                 </span>
               )}
             </button>
