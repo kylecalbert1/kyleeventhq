@@ -545,6 +545,21 @@ function SpeakerSourcingPage() {
                   />
                   Apply sponsor/competitor exclude list ({excluded.data?.length ?? 0} companies)
                 </label>
+
+                <CompaniesCsvPanel
+                  list={companyList}
+                  mode={companyMode}
+                  fileName={companyFileName}
+                  onLoad={(names, name) => {
+                    setCompanyList(names);
+                    setCompanyFileName(name);
+                  }}
+                  onModeChange={setCompanyMode}
+                  onClear={() => {
+                    setCompanyList([]);
+                    setCompanyFileName(null);
+                  }}
+                />
               </div>
             )}
           </div>
