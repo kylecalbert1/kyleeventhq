@@ -14,6 +14,8 @@ import {
   X,
   LayoutGrid,
   Rows3,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { SyncDialog } from "@/components/SyncDialog";
 import { Button } from "@/components/ui/button";
