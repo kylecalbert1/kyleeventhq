@@ -518,6 +518,9 @@ const Filters = z.object({
   event_date_to: z.string().optional(),
   years: z.array(z.number().int()).optional(),
   apply_exclude_list: z.boolean().optional(),
+  // CSV-driven company lists (case-insensitive substring match on company_name).
+  companies_include: z.array(z.string()).optional(),
+  companies_exclude: z.array(z.string()).optional(),
   limit: z.number().int().min(1).max(2000).optional(),
 });
 
@@ -1007,6 +1010,28 @@ export const searchTitoTickets = createServerFn({ method: "POST" })
       out = out.filter(
         (r) => !r.company_name || !excSet.has(r.company_name.toLowerCase().trim()),
       );
+    }
+
+    if (data.companies_include?.length) {
+      const inc = data.companies_include
+        .map((c) => c.toLowerCase().trim())
+        .filter(Boolean);
+      out = out.filter((r) => {
+        const c = (r.company_name ?? "").toLowerCase().trim();
+        if (!c) return false;
+        return inc.some((x) => c === x || c.includes(x) || x.includes(c));
+      });
+    }
+
+    if (data.companies_exclude?.length) {
+      const exc = data.companies_exclude
+        .map((c) => c.toLowerCase().trim())
+        .filter(Boolean);
+      out = out.filter((r) => {
+        const c = (r.company_name ?? "").toLowerCase().trim();
+        if (!c) return true;
+        return !exc.some((x) => c === x || c.includes(x) || x.includes(c));
+      });
     }
 
     // Also fetch job title from answers if missing (fallback search)

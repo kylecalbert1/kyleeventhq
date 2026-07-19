@@ -85,12 +85,21 @@ export function BulkEmailDialog({
   speakers,
   initialTemplate,
   eventId,
+  perRecipientDrafts,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   speakers: Speaker[];
   initialTemplate?: TemplateKey;
   eventId?: string | null;
+  /**
+   * Optional per-recipient AI-generated overrides keyed by speaker id.
+   * When present, the recipient's rSubject/rBody use these instead of the
+   * shared template — used by the Tito "Draft outreach" flow so each person
+   * gets a personalized draft that can still be reviewed & sent through the
+   * app's Gmail integration.
+   */
+  perRecipientDrafts?: Record<string, { subject: string; body: string }>;
 }) {
   const [templateKey, setTemplateKey] = useState<TemplateKey>(initialTemplate ?? "custom");
   const [subject, setSubject] = useState(TEMPLATES[initialTemplate ?? "custom"].subject);
@@ -147,14 +156,16 @@ export function BulkEmailDialog({
     return speakers.map((s) => {
       const firstName = firstNameOf(s.name);
       const vars = { firstName, name: s.name, company: s.company ?? "" };
+      const override = perRecipientDrafts?.[s.id];
       return {
         ...s,
         firstName,
-        rSubject: renderTemplate(subject, vars),
-        rBody: renderTemplate(body, vars),
+        rSubject: override?.subject ?? renderTemplate(subject, vars),
+        rBody: override?.body ?? renderTemplate(body, vars),
+        hasCustomDraft: !!override,
       };
     });
-  }, [speakers, subject, body]);
+  }, [speakers, subject, body, perRecipientDrafts]);
 
   const missingEmail = rows.filter((r) => !r.email).length;
   const sendable = rows.filter((r) => r.email);
@@ -272,41 +283,51 @@ export function BulkEmailDialog({
             </div>
           )}
 
-          <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
-            Use <code className="bg-background px-1 py-0.5 rounded">{`{{firstName}}`}</code>{" "}
-            as a merge tag. Each speaker gets a personalized email sent through your
-            connected Gmail account.
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs">Template</Label>
-            <Select value={templateKey} onValueChange={(v) => applyTemplate(v as TemplateKey)}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {(Object.keys(TEMPLATES) as TemplateKey[]).map((k) => (
-                  <SelectItem key={k} value={k}>{TEMPLATES[k].label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-[11px] text-muted-foreground">
-              Picking a template pre-fills subject & body. Edits below stay local until you switch templates again.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Subject template</Label>
-              <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+          {perRecipientDrafts ? (
+            <div className="rounded-md border border-indigo-200 bg-indigo-50/60 p-3 text-xs text-indigo-900">
+              Each recipient has an AI-generated personalized draft below. Review
+              or edit any message via <b>Send</b> before it goes out. The shared
+              template picker is disabled for this batch.
             </div>
-            <div className="space-y-1.5 md:row-span-2">
-              <Label className="text-xs">Body template</Label>
-              <Textarea
-                rows={9}
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-              />
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
+                Use <code className="bg-background px-1 py-0.5 rounded">{`{{firstName}}`}</code>{" "}
+                as a merge tag. Each speaker gets a personalized email sent through your
+                connected Gmail account.
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Template</Label>
+                <Select value={templateKey} onValueChange={(v) => applyTemplate(v as TemplateKey)}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TEMPLATES) as TemplateKey[]).map((k) => (
+                      <SelectItem key={k} value={k}>{TEMPLATES[k].label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Picking a template pre-fills subject & body. Edits below stay local until you switch templates again.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Subject template</Label>
+                  <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+                </div>
+                <div className="space-y-1.5 md:row-span-2">
+                  <Label className="text-xs">Body template</Label>
+                  <Textarea
+                    rows={9}
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           {sendable.length === 0 ? (
             <div className="flex items-start gap-2 rounded-md border border-rose-300 bg-rose-50/70 px-3 py-2.5 text-sm text-rose-900">

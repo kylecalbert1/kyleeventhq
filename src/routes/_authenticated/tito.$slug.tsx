@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -24,11 +23,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Search, X, Users, CalendarDays, Loader2, Sparkles, Copy } from "lucide-react";
+import { ArrowLeft, Search, X, Users, CalendarDays, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAttendeeCard";
 import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDialog";
+import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 
 
 export const Route = createFileRoute("/_authenticated/tito/$slug")({
@@ -260,6 +260,7 @@ function TitoEventDetail() {
               <DraftButton
                 disabled={selected.size === 0}
                 ticketIds={Array.from(selected)}
+                tickets={filtered as TitoAttendee[]}
               />
             </div>
           </div>
@@ -360,17 +361,52 @@ function TagButton({
   );
 }
 
-function DraftButton({ disabled, ticketIds }: { disabled: boolean; ticketIds: string[] }) {
+function DraftButton({
+  disabled,
+  ticketIds,
+  tickets,
+}: {
+  disabled: boolean;
+  ticketIds: string[];
+  tickets: TitoAttendee[];
+}) {
   const [open, setOpen] = useState(false);
   const [ctx, setCtx] = useState("");
   const [angle, setAngle] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, { subject: string; body: string }> | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+
+  const cappedIds = useMemo(() => ticketIds.slice(0, 25), [ticketIds]);
+
+  const speakers = useMemo(() => {
+    const idSet = new Set(cappedIds);
+    return tickets
+      .filter((t) => idSet.has(t.id))
+      .map((t) => ({
+        id: t.id,
+        name: t.name ?? "Unknown",
+        email: t.email ?? null,
+        company: t.company_name ?? null,
+      }));
+  }, [cappedIds, tickets]);
+
   const mut = useMutation({
     mutationFn: () =>
       generateOutreachDrafts({
-        data: { ticket_ids: ticketIds.slice(0, 25), event_context: ctx, angle: angle || undefined },
+        data: { ticket_ids: cappedIds, event_context: ctx, angle: angle || undefined },
       }),
+    onSuccess: (r) => {
+      const map: Record<string, { subject: string; body: string }> = {};
+      for (const d of r.drafts ?? []) {
+        map[d.ticket_id] = { subject: d.subject, body: d.body };
+      }
+      setDrafts(map);
+      setOpen(false);
+      setBulkOpen(true);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
+
   return (
     <>
       <Button disabled={disabled} onClick={() => setOpen(true)}>
@@ -378,49 +414,52 @@ function DraftButton({ disabled, ticketIds }: { disabled: boolean; ticketIds: st
         Draft outreach
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Generate outreach drafts ({Math.min(ticketIds.length, 25)})</DialogTitle>
+            <DialogTitle>
+              Draft outreach for {Math.min(ticketIds.length, 25)} attendee
+              {Math.min(ticketIds.length, 25) === 1 ? "" : "s"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Event context</Label>
-              <Input value={ctx} onChange={(e) => setCtx(e.target.value)} />
+              <Label>Event context (what you're inviting them to)</Label>
+              <Input
+                value={ctx}
+                onChange={(e) => setCtx(e.target.value)}
+                placeholder="e.g. AI for Customer Support Summit, London, Mar 2027"
+              />
             </div>
             <div>
               <Label>Angle (optional)</Label>
               <Input value={angle} onChange={(e) => setAngle(e.target.value)} />
             </div>
-            <div className="flex justify-end">
-              <Button disabled={!ctx || mut.isPending} onClick={() => mut.mutate()}>
-                {mut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Generate
-              </Button>
-            </div>
-            {mut.data?.drafts?.map((d) => (
-              <div key={d.ticket_id} className="rounded-lg border p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">
-                    {d.name} <span className="text-muted-foreground">· {d.company ?? ""}</span>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`Subject: ${d.subject}\n\n${d.body}`);
-                      toast.success("Copied");
-                    }}
-                  >
-                    <Copy className="h-3.5 w-3.5 mr-1" /> Copy
-                  </Button>
-                </div>
-                <div className="text-xs font-medium">Subject: {d.subject}</div>
-                <Textarea defaultValue={d.body} rows={6} />
-              </div>
-            ))}
+            <p className="text-xs text-muted-foreground">
+              We&apos;ll generate one personalized draft per selected attendee, then
+              open the send dialog so you can review and send each through your
+              connected Gmail.
+            </p>
           </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button disabled={!ctx || mut.isPending} onClick={() => mut.mutate()}>
+              {mut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Generate drafts
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkEmailDialog
+        open={bulkOpen}
+        onOpenChange={(o) => {
+          setBulkOpen(o);
+          if (!o) setDrafts(null);
+        }}
+        speakers={speakers}
+        perRecipientDrafts={drafts ?? undefined}
+        initialTemplate="custom"
+      />
     </>
   );
 }

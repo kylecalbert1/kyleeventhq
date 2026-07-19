@@ -28,14 +28,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+
 import { toast } from "sonner";
 import {
   Loader2,
   RefreshCw,
   Trash2,
   Sparkles,
-  Copy,
   X,
   Search,
   ChevronDown,
@@ -44,6 +43,8 @@ import {
   Users,
   CheckCircle2,
   UserPlus,
+  Upload,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -62,6 +63,7 @@ import {
 } from "@/components/ui/select";
 import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAttendeeCard";
 import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDialog";
+import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 
 export const Route = createFileRoute("/_authenticated/speaker-sourcing")({
   component: SpeakerSourcingPage,
@@ -158,6 +160,9 @@ function SpeakerSourcingPage() {
     message: string;
   } | null>(null);
   const [eventSearch, setEventSearch] = useState("");
+  const [companyList, setCompanyList] = useState<string[]>([]);
+  const [companyMode, setCompanyMode] = useState<"only" | "exclude">("only");
+  const [companyFileName, setCompanyFileName] = useState<string | null>(null);
 
   // Autocomplete
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -195,6 +200,10 @@ function SpeakerSourcingPage() {
           release_titles_exclude: excludeReleases.length ? excludeReleases : undefined,
           years: selectedYears.length ? selectedYears : undefined,
           apply_exclude_list: applyExclude,
+          companies_include:
+            companyList.length && companyMode === "only" ? companyList : undefined,
+          companies_exclude:
+            companyList.length && companyMode === "exclude" ? companyList : undefined,
           limit: 1000,
         },
       });
@@ -497,10 +506,10 @@ function SpeakerSourcingPage() {
               className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
             >
               <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
-              More filters (specific events, ticket types)
-              {(selectedEventSlugs.length > 0 || includeReleases.length > 0 || excludeReleases.length > 0 || !applyExclude) && (
+              More filters (events, ticket types, company CSV)
+              {(selectedEventSlugs.length > 0 || includeReleases.length > 0 || excludeReleases.length > 0 || !applyExclude || companyList.length > 0) && (
                 <span className="ml-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5">
-                  {selectedEventSlugs.length + includeReleases.length + excludeReleases.length + (!applyExclude ? 1 : 0)}
+                  {selectedEventSlugs.length + includeReleases.length + excludeReleases.length + (!applyExclude ? 1 : 0) + (companyList.length ? 1 : 0)}
                 </span>
               )}
             </button>
@@ -536,6 +545,21 @@ function SpeakerSourcingPage() {
                   />
                   Apply sponsor/competitor exclude list ({excluded.data?.length ?? 0} companies)
                 </label>
+
+                <CompaniesCsvPanel
+                  list={companyList}
+                  mode={companyMode}
+                  fileName={companyFileName}
+                  onLoad={(names, name) => {
+                    setCompanyList(names);
+                    setCompanyFileName(name);
+                  }}
+                  onModeChange={setCompanyMode}
+                  onClear={() => {
+                    setCompanyList([]);
+                    setCompanyFileName(null);
+                  }}
+                />
               </div>
             )}
           </div>
@@ -564,6 +588,7 @@ function SpeakerSourcingPage() {
                 <DraftButton
                   disabled={selected.size === 0}
                   ticketIds={Array.from(selected)}
+                  results={results as TitoAttendee[]}
                 />
               </div>
             </div>
@@ -1029,17 +1054,56 @@ function TagButton({
   );
 }
 
-function DraftButton({ disabled, ticketIds }: { disabled: boolean; ticketIds: string[] }) {
+function DraftButton({
+  disabled,
+  ticketIds,
+  results,
+}: {
+  disabled: boolean;
+  ticketIds: string[];
+  results: TitoAttendee[];
+}) {
   const [open, setOpen] = useState(false);
   const [ctx, setCtx] = useState("");
   const [angle, setAngle] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, { subject: string; body: string }> | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+
+  const cappedIds = useMemo(() => ticketIds.slice(0, 25), [ticketIds]);
+
+  const speakers = useMemo(() => {
+    const idSet = new Set(cappedIds);
+    return results
+      .filter((r) => idSet.has(r.id))
+      .map((r) => ({
+        id: r.id,
+        name: r.name ?? "Unknown",
+        email: r.email ?? null,
+        company: r.company_name ?? null,
+      }));
+  }, [cappedIds, results]);
+
   const mut = useMutation({
     mutationFn: () =>
       generateOutreachDrafts({
-        data: { ticket_ids: ticketIds.slice(0, 25), event_context: ctx, angle: angle || undefined },
+        data: {
+          ticket_ids: cappedIds,
+          event_context: ctx,
+          angle: angle || undefined,
+        },
       }),
+    onSuccess: (r) => {
+      const map: Record<string, { subject: string; body: string }> = {};
+      for (const d of r.drafts ?? []) {
+        map[d.ticket_id] = { subject: d.subject, body: d.body };
+      }
+      setDrafts(map);
+      setOpen(false);
+      setBulkOpen(true);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
+
   return (
     <>
       <Button
@@ -1050,10 +1114,14 @@ function DraftButton({ disabled, ticketIds }: { disabled: boolean; ticketIds: st
         <Sparkles className="h-4 w-4 mr-2" />
         Draft outreach
       </Button>
+
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Generate outreach drafts ({Math.min(ticketIds.length, 25)})</DialogTitle>
+            <DialogTitle>
+              Draft outreach for {Math.min(ticketIds.length, 25)} attendee
+              {Math.min(ticketIds.length, 25) === 1 ? "" : "s"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -1072,48 +1140,141 @@ function DraftButton({ disabled, ticketIds }: { disabled: boolean; ticketIds: st
                 placeholder="e.g. how they scaled CS with AI in past 12 months"
               />
             </div>
-            <div className="flex justify-end">
-              <Button
-                disabled={!ctx || mut.isPending}
-                onClick={() => mut.mutate()}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white"
-              >
-                {mut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Generate
-              </Button>
-            </div>
-            {mut.data?.drafts?.map((d) => (
-              <div key={d.ticket_id} className="rounded-lg border p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">
-                    {d.name}{" "}
-                    <span className="text-muted-foreground">· {d.company ?? ""}</span>
-                    <div className="text-xs text-muted-foreground">
-                      {d.email ?? "no email on file"}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`Subject: ${d.subject}\n\n${d.body}`);
-                      toast.success("Copied");
-                    }}
-                  >
-                    <Copy className="h-3.5 w-3.5 mr-1" /> Copy
-                  </Button>
-                </div>
-                <div className="text-xs font-medium">Subject: {d.subject}</div>
-                <Textarea defaultValue={d.body} rows={6} />
-              </div>
-            ))}
             <p className="text-xs text-muted-foreground">
-              Drafts only. Copy and send yourself — nothing is emailed from this app.
+              We&apos;ll generate one personalized draft per selected attendee, then
+              open the send dialog so you can review and send each through your
+              connected Gmail.
             </p>
           </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!ctx || mut.isPending}
+              onClick={() => mut.mutate()}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              {mut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Generate drafts
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkEmailDialog
+        open={bulkOpen}
+        onOpenChange={(o) => {
+          setBulkOpen(o);
+          if (!o) setDrafts(null);
+        }}
+        speakers={speakers}
+        perRecipientDrafts={drafts ?? undefined}
+        initialTemplate="custom"
+      />
     </>
+  );
+}
+
+function CompaniesCsvPanel({
+  list,
+  mode,
+  fileName,
+  onLoad,
+  onModeChange,
+  onClear,
+}: {
+  list: string[];
+  mode: "only" | "exclude";
+  fileName: string | null;
+  onLoad: (names: string[], fileName: string) => void;
+  onModeChange: (m: "only" | "exclude") => void;
+  onClear: () => void;
+}) {
+  const inputId = "companies-csv-upload";
+  async function handleFile(f: File) {
+    const text = await f.text();
+    const names = Array.from(
+      new Set(
+        text
+          .split(/[\n,]/)
+          .map((s) => s.trim().replace(/^"|"$/g, "").replace(/^"|"$/g, ""))
+          .filter(Boolean)
+          // Skip a likely header row.
+          .filter(
+            (v, i) => !(i === 0 && /^(company|company_?name|name)$/i.test(v)),
+          ),
+      ),
+    );
+    onLoad(names, f.name);
+  }
+  return (
+    <div className="rounded-md border bg-slate-50/70 p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <FileSpreadsheet className="h-4 w-4 text-indigo-600" />
+          Company CSV filter
+          {list.length > 0 && (
+            <span className="text-xs font-normal text-slate-500">
+              — {list.length} companies loaded{fileName ? ` (${fileName})` : ""}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            id={inputId}
+            type="file"
+            accept=".csv,text/csv,text/plain"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+              e.currentTarget.value = "";
+            }}
+          />
+          <Button asChild variant="outline" size="sm">
+            <label htmlFor={inputId} className="cursor-pointer">
+              <Upload className="h-3.5 w-3.5 mr-1.5" />
+              {list.length ? "Replace CSV" : "Upload CSV"}
+            </label>
+          </Button>
+          {list.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={onClear}>
+              <X className="h-3.5 w-3.5 mr-1" />
+              Clear
+            </Button>
+          )}
+        </div>
+      </div>
+      {list.length > 0 && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="inline-flex rounded-md border bg-white p-0.5 text-xs">
+            {(["only", "exclude"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => onModeChange(m)}
+                className={cn(
+                  "px-2.5 py-1 rounded font-medium transition-colors",
+                  mode === m
+                    ? "bg-indigo-600 text-white"
+                    : "text-slate-600 hover:bg-slate-100",
+                )}
+              >
+                {m === "only" ? "Only these companies" : "Exclude these companies"}
+              </button>
+            ))}
+          </div>
+          <span className="text-[11px] text-slate-500">
+            Matches company_name case-insensitively (substring).
+          </span>
+        </div>
+      )}
+      <p className="text-[11px] text-slate-500">
+        Upload a plain CSV or single-column list of company names. A header row
+        named &quot;company&quot; is auto-skipped.
+      </p>
+    </div>
   );
 }
 
