@@ -160,6 +160,9 @@ function SpeakerSourcingPage() {
     message: string;
   } | null>(null);
   const [eventSearch, setEventSearch] = useState("");
+  const [companyList, setCompanyList] = useState<string[]>([]);
+  const [companyMode, setCompanyMode] = useState<"only" | "exclude">("only");
+  const [companyFileName, setCompanyFileName] = useState<string | null>(null);
 
   // Autocomplete
   const [suggestOpen, setSuggestOpen] = useState(false);
