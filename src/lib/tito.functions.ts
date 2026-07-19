@@ -1012,6 +1012,28 @@ export const searchTitoTickets = createServerFn({ method: "POST" })
       );
     }
 
+    if (data.companies_include?.length) {
+      const inc = data.companies_include
+        .map((c) => c.toLowerCase().trim())
+        .filter(Boolean);
+      out = out.filter((r) => {
+        const c = (r.company_name ?? "").toLowerCase().trim();
+        if (!c) return false;
+        return inc.some((x) => c === x || c.includes(x) || x.includes(c));
+      });
+    }
+
+    if (data.companies_exclude?.length) {
+      const exc = data.companies_exclude
+        .map((c) => c.toLowerCase().trim())
+        .filter(Boolean);
+      out = out.filter((r) => {
+        const c = (r.company_name ?? "").toLowerCase().trim();
+        if (!c) return true;
+        return !exc.some((x) => c === x || c.includes(x) || x.includes(c));
+      });
+    }
+
     // Also fetch job title from answers if missing (fallback search)
     if (data.job_title) {
       const kw = data.job_title.toLowerCase();
