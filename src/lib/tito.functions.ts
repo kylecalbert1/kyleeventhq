@@ -518,6 +518,9 @@ const Filters = z.object({
   event_date_to: z.string().optional(),
   years: z.array(z.number().int()).optional(),
   apply_exclude_list: z.boolean().optional(),
+  // CSV-driven company lists (case-insensitive substring match on company_name).
+  companies_include: z.array(z.string()).optional(),
+  companies_exclude: z.array(z.string()).optional(),
   limit: z.number().int().min(1).max(2000).optional(),
 });
 
