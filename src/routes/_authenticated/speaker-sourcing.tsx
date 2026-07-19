@@ -35,7 +35,6 @@ import {
   RefreshCw,
   Trash2,
   Sparkles,
-  Copy,
   X,
   Search,
   ChevronDown,
@@ -44,6 +43,8 @@ import {
   Users,
   CheckCircle2,
   UserPlus,
+  Upload,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -62,6 +63,7 @@ import {
 } from "@/components/ui/select";
 import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAttendeeCard";
 import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDialog";
+import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 
 export const Route = createFileRoute("/_authenticated/speaker-sourcing")({
   component: SpeakerSourcingPage,
