@@ -48,8 +48,6 @@ import {
   type BannerRow,
 } from "@/components/banners/EventBannerGroup";
 import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
-import { OutreachHub } from "@/components/outreach/OutreachHub";
-import { AgendaTab } from "@/components/agenda/AgendaTab";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
