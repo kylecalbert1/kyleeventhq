@@ -76,9 +76,8 @@ function TitoEventDetail() {
     return Array.from(s).sort();
   }, [tickets]);
 
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
   const attendeeEmails = useMemo(
+
     () => tickets.map((t) => t.email as string | null),
     [tickets],
   );
