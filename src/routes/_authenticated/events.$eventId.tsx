@@ -81,8 +81,6 @@ function EventDetail() {
   });
   const asanaDues = asanaQuery.data?.dues;
 
-  const upSpeaker = useServerFn(updateSpeaker);
-  const upSponsor = useServerFn(updateSponsor);
   const upEvent = useServerFn(updateEvent);
 
   const [editingEvent, setEditingEvent] = useState(false);
