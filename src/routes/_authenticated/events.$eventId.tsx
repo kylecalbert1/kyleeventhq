@@ -157,38 +157,44 @@ function EventDetail() {
         </Button>
       </div>
 
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-            {e.code}
-            <StatusPill className={pillClass.businessLine[e.business_line as "AIAI" | "CSC"]}>
-              {e.business_line}
+      <Card className="p-5 rounded-2xl border-slate-200/70">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+              {e.code}
+              <StatusPill className={pillClass.businessLine[e.business_line as "AIAI" | "CSC"]}>
+                {e.business_line}
+              </StatusPill>
+              <span className="text-muted-foreground">
+                · {labels.format[e.format as "in_person" | "virtual"]}
+              </span>
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight mt-1">{e.name}</h1>
+            <div className="text-sm text-muted-foreground mt-1">
+              {e.venue ? `${e.venue} · ` : ""}
+              {e.event_date ? new Date(e.event_date).toLocaleDateString() : "Date TBC"}
+              {e.owner ? ` · Owner: ${e.owner}` : ""}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <StatusPill className={pillClass.website[e.website_status as never]}>
+              {labels.website[e.website_status as never]}
             </StatusPill>
-            <span className="text-muted-foreground">
-              · {labels.format[e.format as "in_person" | "virtual"]}
-            </span>
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight mt-1">{e.name}</h1>
-          <div className="text-sm text-muted-foreground mt-1">
-            {e.venue ? `${e.venue} · ` : ""}
-            {e.event_date ? new Date(e.event_date).toLocaleDateString() : "Date TBC"}
-            {e.owner ? ` · Owner: ${e.owner}` : ""}
+            <Button variant="outline" size="sm" onClick={() => setEditingEvent(true)}>
+              <Pencil className="h-4 w-4 mr-1.5" />
+              Edit Event
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              Sync from Tito
+            </Button>
+            <Button size="sm" onClick={() => setSpeakerEdit({ open: true })}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add Attendee
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <StatusPill className={pillClass.website[e.website_status as never]}>
-            {labels.website[e.website_status as never]}
-          </StatusPill>
-          <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)}>
-            <Sparkles className="h-4 w-4 mr-1.5" />
-            Sync
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setEditingEvent(true)}>
-            <Pencil className="h-4 w-4 mr-1.5" />
-            Edit
-          </Button>
-        </div>
-      </div>
+      </Card>
 
       {/* Top-level search — filters the Speakers, Outreach, Banners lists below */}
       <div className="relative max-w-xl">
