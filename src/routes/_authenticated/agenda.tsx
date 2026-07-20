@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo, useEffect } from "react";
 import { eventsQuery, agendaItemsQuery } from "@/lib/queries";
 import { AgendaTab } from "@/components/agenda/AgendaTab";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { updateEvent } from "@/lib/events.functions";
+import { toast } from "sonner";
 import {
   ListChecks,
   Search,
@@ -13,6 +15,9 @@ import {
   CalendarDays,
   MapPin,
   ArrowLeft,
+  Save,
+  Link2,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -107,10 +112,38 @@ function AgendaPage() {
 }
 
 function SelectedEventAgenda({ event }: { event: any }) {
-  const external = (event.external_agenda_url ?? "").trim();
+  const qc = useQueryClient();
+  const [urlInput, setUrlInput] = useState<string>(event.external_agenda_url ?? "");
+  useEffect(() => {
+    setUrlInput(event.external_agenda_url ?? "");
+  }, [event.id, event.external_agenda_url]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      updateEvent({
+        data: {
+          id: event.id,
+          patch: { external_agenda_url: urlInput.trim() || null },
+        },
+      }),
+    onSuccess: () => {
+      toast.success("External agenda link saved");
+      qc.invalidateQueries({ queryKey: ["events"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const trimmed = urlInput.trim();
+  const dirty = trimmed !== (event.external_agenda_url ?? "").trim();
+  const openHref = trimmed
+    ? trimmed.startsWith("http")
+      ? trimmed
+      : `https://${trimmed}`
+    : null;
+
   return (
     <div className="space-y-4">
-      <div className="surface-card p-4">
+      <div className="surface-card p-4 space-y-4">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -130,22 +163,47 @@ function SelectedEventAgenda({ event }: { event: any }) {
               )}
             </div>
           </div>
-          {external ? (
-            <a
-              href={external.startsWith("http") ? external : `https://${external}`}
-              target="_blank"
-              rel="noopener noreferrer"
+        </div>
+
+        <div className="border-t pt-3">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
+            <Link2 className="h-3 w-3" />
+            External agenda link
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[260px]">
+              <Input
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="https://docs.google.com/… or https://…"
+                className="h-9"
+              />
+            </div>
+            <Button
+              onClick={() => save.mutate()}
+              disabled={!dirty || save.isPending}
+              size="sm"
+              variant={dirty ? "default" : "outline"}
             >
-              <Button variant="outline" size="sm">
-                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                Open external agenda
-              </Button>
-            </a>
-          ) : (
-            <span className="text-[11px] text-muted-foreground italic">
-              No external link. Add one from the event's edit dialog.
-            </span>
-          )}
+              {save.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Save
+            </Button>
+            {openHref && (
+              <a href={openHref} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">
+                  <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                  Open
+                </Button>
+              </a>
+            )}
+          </div>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Paste a Google Doc, Sheets, or any external link. Editable here — no need to open Edit Event.
+          </p>
         </div>
       </div>
 
