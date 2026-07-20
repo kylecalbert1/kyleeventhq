@@ -44,21 +44,40 @@ function Stat({
 }: {
   label: string;
   value: number | string;
-  tone?: "neutral" | "amber" | "green" | "purple" | "red";
+  tone?: "neutral" | "amber" | "green" | "violet" | "red";
 }) {
-  const toneClass: Record<string, string> = {
-    neutral: "text-slate-900",
-    amber: "text-amber-600",
-    green: "text-emerald-600",
-    purple: "text-violet-600",
-    red: "text-rose-600",
+  const styles: Record<string, { card: string; value: string; label: string }> = {
+    neutral: {
+      card: "bg-white ring-1 ring-slate-200/70",
+      value: "text-slate-900",
+      label: "text-slate-500",
+    },
+    amber: {
+      card: "bg-amber-50 ring-1 ring-amber-100",
+      value: "text-amber-700",
+      label: "text-amber-600",
+    },
+    green: {
+      card: "bg-emerald-50 ring-1 ring-emerald-100",
+      value: "text-emerald-700",
+      label: "text-emerald-600",
+    },
+    violet: {
+      card: "bg-violet-50 ring-1 ring-violet-100",
+      value: "text-violet-700",
+      label: "text-violet-600",
+    },
+    red: {
+      card: "bg-red-50 ring-1 ring-red-100",
+      value: "text-red-700",
+      label: "text-red-600",
+    },
   };
+  const s = styles[tone];
   return (
-    <div className="flex-1 min-w-[110px] px-4 py-3 text-center">
-      <div className={`text-3xl font-bold tabular-nums leading-none ${toneClass[tone]}`}>
-        {value}
-      </div>
-      <div className="mt-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-500">
+    <div className={`flex-1 min-w-[120px] rounded-xl px-4 py-4 text-center ${s.card}`}>
+      <div className={`text-3xl font-bold tabular-nums leading-none ${s.value}`}>{value}</div>
+      <div className={`mt-1.5 text-[11px] font-medium uppercase tracking-wider ${s.label}`}>
         {label}
       </div>
     </div>
