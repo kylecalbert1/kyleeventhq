@@ -82,7 +82,7 @@ export const logEmailSend = createServerFn({ method: "POST" })
 
     // Best-effort activity log per speaker
     const activityRows = data.recipients
-      .filter((r) => r.speaker_id)
+      .filter((r) => r.speaker_id && validIds.has(r.speaker_id))
       .map((r) => ({
         speaker_id: r.speaker_id!,
         event_type: "email_sent",
