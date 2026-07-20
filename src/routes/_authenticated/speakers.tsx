@@ -76,6 +76,7 @@ export const Route = createFileRoute("/_authenticated/speakers")({
 });
 
 const COLUMNS = [
+  { key: "new", title: "New", accent: "border-t-slate-400", dot: "bg-slate-400" },
   { key: "contacted", title: "Contacted", accent: "border-t-sky-400", dot: "bg-sky-400" },
   { key: "responded", title: "Responded", accent: "border-t-violet-400", dot: "bg-violet-400" },
   { key: "confirmed", title: "Confirmed", accent: "border-t-emerald-500", dot: "bg-emerald-500" },
@@ -87,6 +88,8 @@ type StageFilter = "all" | ColKey;
 
 function patchForColumn(target: ColKey): Record<string, any> {
   switch (target) {
+    case "new":
+      return { status: "new" };
     case "contacted":
       return { status: "contacted" };
     case "responded":
