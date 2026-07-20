@@ -130,6 +130,7 @@ export function SpeakerListCard({
   onCopyLink,
   onEdit,
   showEventChip = true,
+  history,
 }: {
   s: any;
   ev: any;
@@ -140,12 +141,14 @@ export function SpeakerListCard({
   onCopyLink: () => void;
   onEdit: () => void;
   showEventChip?: boolean;
+  history?: { count: number; last_sent_at: string | null } | null;
 }) {
   const colKey = columnFor(s);
   const stage = stagePill[colKey];
   const alert = outreachAlert(s);
   const addedShort = fmtShort(s.created_at);
   const lastShort = fmtShort(s.last_message_at);
+  const historyShort = fmtShort(history?.last_sent_at ?? null);
   const dir = s.last_message_direction as string | null;
   const titleAtCompany = [s.title, s.company].filter(Boolean).join(" at ");
 
@@ -269,6 +272,14 @@ export function SpeakerListCard({
                   {dir ? ` (${dir})` : ""}
                 </span>
               )}
+            </div>
+          )}
+
+          {history && history.count > 0 && (
+            <div className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+              <MessageSquare className="h-3 w-3 text-slate-400" />
+              Messaged {history.count}x
+              {historyShort ? ` · last sent ${historyShort}` : ""}
             </div>
           )}
 

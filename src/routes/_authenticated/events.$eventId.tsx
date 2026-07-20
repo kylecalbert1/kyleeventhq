@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SpeakerListCard } from "@/components/speakers/SpeakerListCard";
+import { useContactHistory } from "@/hooks/use-contact-history";
 
 import { StatusPill } from "@/components/StatusPill";
 import {
@@ -66,6 +67,11 @@ function EventDetail() {
   const event = useQuery(eventQuery(eventId));
   const speakers = useQuery(speakersQuery(eventId));
   const sponsors = useQuery(sponsorsQuery(eventId));
+  const speakerEmails = useMemo(
+    () => (speakers.data ?? []).map((s: any) => s.email as string | null),
+    [speakers.data],
+  );
+  const { lookup: lookupHistory } = useContactHistory(speakerEmails);
   const tasks = useQuery(websiteTasksQuery(eventId));
   const milestones = useQuery(milestonesQuery(eventId));
   const fetchAsana = useServerFn(getAsanaProofingDueDates);
@@ -305,6 +311,7 @@ function EventDetail() {
                           } catch { toast.error("Couldn't copy link"); }
                         }}
                         onEdit={() => setSpeakerEdit({ open: true, speaker: s })}
+                        history={lookupHistory(s.email)}
                       />
                     ))}
                   </div>

@@ -108,3 +108,108 @@ export const listEmailSends = createServerFn({ method: "GET" })
       }>;
     }>;
   });
+
+// ---------- History & tracked lookups (for "already contacted" and
+// "already in my database" surfacing across cards) ----------
+
+const EmailsInput = z.object({
+  emails: z.array(z.string()).max(3000),
+});
+
+export const getContactHistoryByEmails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => EmailsInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const emails = Array.from(
+      new Set(
+        data.emails
+          .map((e) => (e ?? "").trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    );
+    if (!emails.length) {
+      return [] as Array<{
+        email: string;
+        count: number;
+        last_sent_at: string | null;
+      }>;
+    }
+    const { data: rows, error } = await context.supabase
+      .from("email_send_recipients")
+      .select("recipient_email, email_sends(sent_at)")
+      .in("recipient_email", emails);
+    if (error) throw new Error(error.message);
+
+    const map = new Map<
+      string,
+      { count: number; last_sent_at: string | null }
+    >();
+    for (const r of rows ?? []) {
+      const em = ((r as { recipient_email: string | null }).recipient_email ?? "")
+        .toLowerCase();
+      if (!em) continue;
+      const sent =
+        ((r as { email_sends?: { sent_at?: string } | null }).email_sends
+          ?.sent_at as string | null | undefined) ?? null;
+      const cur = map.get(em);
+      if (!cur) {
+        map.set(em, { count: 1, last_sent_at: sent });
+      } else {
+        cur.count += 1;
+        if (sent && (!cur.last_sent_at || sent > cur.last_sent_at)) {
+          cur.last_sent_at = sent;
+        }
+      }
+    }
+    return Array.from(map.entries()).map(([email, v]) => ({
+      email,
+      count: v.count,
+      last_sent_at: v.last_sent_at,
+    }));
+  });
+
+export const getTrackedByEmails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => EmailsInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const emails = Array.from(
+      new Set(
+        data.emails
+          .map((e) => (e ?? "").trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    );
+    if (!emails.length) {
+      return [] as Array<{
+        email: string;
+        speaker_id: string;
+        event_id: string;
+        event_name: string | null;
+        status: string | null;
+        source: string | null;
+      }>;
+    }
+    const { data: rows, error } = await context.supabase
+      .from("speakers")
+      .select("id, email, event_id, status, source, events(name)")
+      .in("email", emails);
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r) => {
+      const row = r as {
+        id: string;
+        email: string | null;
+        event_id: string;
+        status: string | null;
+        source: string | null;
+        events: { name: string | null } | null;
+      };
+      return {
+        email: (row.email ?? "").toLowerCase(),
+        speaker_id: row.id,
+        event_id: row.event_id,
+        event_name: row.events?.name ?? null,
+        status: row.status,
+        source: row.source,
+      };
+    });
+  });
