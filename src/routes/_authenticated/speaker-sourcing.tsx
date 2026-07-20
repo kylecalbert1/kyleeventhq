@@ -243,6 +243,28 @@ function SpeakerSourcingPage() {
 
   const results = search.data ?? [];
 
+  const resultEmails = useMemo(
+    () => results.map((r) => r.email as string | null),
+    [results],
+  );
+  const { lookup: lookupHistory } = useContactHistory(resultEmails);
+  const { lookup: lookupTracked } = useTrackedByEmails(resultEmails);
+
+  const visibleResults = useMemo(() => {
+    return results.filter((r) => {
+      const tracked = lookupTracked(r.email);
+      if (hideTracked && tracked) return false;
+      if (contactedFilter !== "all") {
+        const h = lookupHistory(r.email);
+        const contacted = !!h && h.count > 0;
+        if (contactedFilter === "never" && contacted) return false;
+        if (contactedFilter === "before" && !contacted) return false;
+      }
+      return true;
+    });
+  }, [results, hideTracked, contactedFilter, lookupTracked, lookupHistory]);
+
+
   function toggle(id: string) {
     setSelected((prev) => {
       const n = new Set(prev);
