@@ -302,6 +302,8 @@ function TitoEventDetail() {
                   }}
                   onAddNote={() => setDetailAttendee(t as TitoAttendee)}
                   showEvent={false}
+                  history={lookupHistory(t.email)}
+                  trackedIn={lookupTracked(t.email)}
                 />
               ))}
             </div>
