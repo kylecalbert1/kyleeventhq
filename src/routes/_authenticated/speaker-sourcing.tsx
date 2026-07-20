@@ -507,9 +507,9 @@ function SpeakerSourcingPage() {
             >
               <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
               More filters (events, ticket types, company CSV)
-              {(selectedEventSlugs.length > 0 || includeReleases.length > 0 || excludeReleases.length > 0 || !applyExclude || companyList.length > 0) && (
+              {(selectedEventSlugs.length > 0 || includeReleases.length > 0 || excludeReleases.length > 0 || !applyExclude || companiesInclude.length > 0 || companiesExclude.length > 0) && (
                 <span className="ml-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5">
-                  {selectedEventSlugs.length + includeReleases.length + excludeReleases.length + (!applyExclude ? 1 : 0) + (companyList.length ? 1 : 0)}
+                  {selectedEventSlugs.length + includeReleases.length + excludeReleases.length + (!applyExclude ? 1 : 0) + (companiesInclude.length ? 1 : 0) + (companiesExclude.length ? 1 : 0)}
                 </span>
               )}
             </button>
@@ -546,20 +546,24 @@ function SpeakerSourcingPage() {
                   Apply sponsor/competitor exclude list ({excluded.data?.length ?? 0} companies)
                 </label>
 
-                <CompaniesCsvPanel
-                  list={companyList}
-                  mode={companyMode}
-                  fileName={companyFileName}
-                  onLoad={(names, name) => {
-                    setCompanyList(names);
-                    setCompanyFileName(name);
-                  }}
-                  onModeChange={setCompanyMode}
-                  onClear={() => {
-                    setCompanyList([]);
-                    setCompanyFileName(null);
-                  }}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <CompaniesCsvSlot
+                    title="Only these companies"
+                    accent="emerald"
+                    list={companiesInclude}
+                    fileName={companiesIncludeFile}
+                    onLoad={(names, name) => { setCompaniesInclude(names); setCompaniesIncludeFile(name); }}
+                    onClear={() => { setCompaniesInclude([]); setCompaniesIncludeFile(null); }}
+                  />
+                  <CompaniesCsvSlot
+                    title="Exclude these companies"
+                    accent="rose"
+                    list={companiesExclude}
+                    fileName={companiesExcludeFile}
+                    onLoad={(names, name) => { setCompaniesExclude(names); setCompaniesExcludeFile(name); }}
+                    onClear={() => { setCompaniesExclude([]); setCompaniesExcludeFile(null); }}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -585,6 +589,14 @@ function SpeakerSourcingPage() {
                     qc.invalidateQueries({ queryKey: ["tito-events-with-stats"] });
                   }}
                 />
+                <Button
+                  variant="outline"
+                  disabled={selected.size === 0}
+                  onClick={() => setComposeOpen(true)}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Compose email
+                </Button>
                 <DraftButton
                   disabled={selected.size === 0}
                   ticketIds={Array.from(selected)}
@@ -1176,22 +1188,29 @@ function DraftButton({
   );
 }
 
-function CompaniesCsvPanel({
+function CompaniesCsvSlot({
+  title,
+  accent,
   list,
-  mode,
   fileName,
   onLoad,
-  onModeChange,
   onClear,
 }: {
+  title: string;
+  accent: "emerald" | "rose";
   list: string[];
-  mode: "only" | "exclude";
   fileName: string | null;
   onLoad: (names: string[], fileName: string) => void;
-  onModeChange: (m: "only" | "exclude") => void;
   onClear: () => void;
 }) {
-  const inputId = "companies-csv-upload";
+  const inputId = `companies-csv-${accent}`;
+  const accentBar =
+    accent === "emerald"
+      ? "bg-emerald-500"
+      : "bg-rose-500";
+  const accentText =
+    accent === "emerald" ? "text-emerald-700" : "text-rose-700";
+
   async function handleFile(f: File) {
     const text = await f.text();
     const names = Array.from(
@@ -1200,7 +1219,6 @@ function CompaniesCsvPanel({
           .split(/[\n,]/)
           .map((s) => s.trim().replace(/^"|"$/g, "").replace(/^"|"$/g, ""))
           .filter(Boolean)
-          // Skip a likely header row.
           .filter(
             (v, i) => !(i === 0 && /^(company|company_?name|name)$/i.test(v)),
           ),
@@ -1210,69 +1228,45 @@ function CompaniesCsvPanel({
   }
   return (
     <div className="rounded-md border bg-slate-50/70 p-3 space-y-2">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-          <FileSpreadsheet className="h-4 w-4 text-indigo-600" />
-          Company CSV filter
-          {list.length > 0 && (
-            <span className="text-xs font-normal text-slate-500">
-              — {list.length} companies loaded{fileName ? ` (${fileName})` : ""}
-            </span>
-          )}
+      <div className="flex items-center gap-2">
+        <span className={cn("h-2 w-2 rounded-full", accentBar)} />
+        <div className={cn("text-xs font-semibold uppercase tracking-wide", accentText)}>
+          {title}
         </div>
-        <div className="flex items-center gap-2">
-          <input
-            id={inputId}
-            type="file"
-            accept=".csv,text/csv,text/plain"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFile(f);
-              e.currentTarget.value = "";
-            }}
-          />
-          <Button asChild variant="outline" size="sm">
-            <label htmlFor={inputId} className="cursor-pointer">
-              <Upload className="h-3.5 w-3.5 mr-1.5" />
-              {list.length ? "Replace CSV" : "Upload CSV"}
-            </label>
-          </Button>
-          {list.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={onClear}>
-              <X className="h-3.5 w-3.5 mr-1" />
-              Clear
-            </Button>
-          )}
-        </div>
-      </div>
-      {list.length > 0 && (
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="inline-flex rounded-md border bg-white p-0.5 text-xs">
-            {(["only", "exclude"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => onModeChange(m)}
-                className={cn(
-                  "px-2.5 py-1 rounded font-medium transition-colors",
-                  mode === m
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 hover:bg-slate-100",
-                )}
-              >
-                {m === "only" ? "Only these companies" : "Exclude these companies"}
-              </button>
-            ))}
-          </div>
-          <span className="text-[11px] text-slate-500">
-            Matches company_name case-insensitively (substring).
+        {list.length > 0 && (
+          <span className="ml-auto text-[11px] text-slate-500">
+            {list.length} companies{fileName ? ` · ${fileName}` : ""}
           </span>
-        </div>
-      )}
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          id={inputId}
+          type="file"
+          accept=".csv,text/csv,text/plain"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+            e.currentTarget.value = "";
+          }}
+        />
+        <Button asChild variant="outline" size="sm">
+          <label htmlFor={inputId} className="cursor-pointer">
+            <Upload className="h-3.5 w-3.5 mr-1.5" />
+            {list.length ? "Replace CSV" : "Upload CSV"}
+          </label>
+        </Button>
+        {list.length > 0 && (
+          <Button variant="ghost" size="sm" onClick={onClear}>
+            <X className="h-3.5 w-3.5 mr-1" />
+            Clear
+          </Button>
+        )}
+      </div>
       <p className="text-[11px] text-slate-500">
-        Upload a plain CSV or single-column list of company names. A header row
-        named &quot;company&quot; is auto-skipped.
+        Plain CSV or single-column list. Header row (&quot;company&quot;) auto-skipped.
+        Matches company_name case-insensitively.
       </p>
     </div>
   );
