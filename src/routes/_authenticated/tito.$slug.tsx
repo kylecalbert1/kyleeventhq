@@ -221,7 +221,35 @@ function TitoEventDetail() {
                 </Button>
               )}
             </div>
+            <div className="flex flex-wrap items-center gap-3 mt-2 pt-2 border-t border-slate-100">
+              <div className="inline-flex rounded-md border bg-white p-0.5 text-xs">
+                {(["all", "never", "contacted"] as const).map((k) => {
+                  const label = k === "all" ? "Any contact" : k === "never" ? "Never contacted" : "Contacted before";
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setContactFilter(k)}
+                      className={cn(
+                        "px-2.5 py-1 rounded font-medium transition-colors",
+                        contactFilter === k ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                <Checkbox
+                  checked={hideTracked}
+                  onCheckedChange={(v) => setHideTracked(!!v)}
+                />
+                Hide people already in my database
+              </label>
+            </div>
           </Card>
+
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
