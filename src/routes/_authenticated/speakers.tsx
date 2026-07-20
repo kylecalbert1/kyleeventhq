@@ -90,7 +90,7 @@ function SpeakersPage() {
             <button
               key={m}
               type="button"
-              onClick={() => navigate({ to: "/speakers", search: (prev) => ({ ...prev, mode: m }) })}
+              onClick={() => navigate({ to: "/speakers", search: { ...search, mode: m } })}
               className={cn(
                 "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors",
                 mode === m ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900",
