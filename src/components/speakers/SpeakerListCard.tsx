@@ -200,6 +200,12 @@ export function SpeakerListCard({
                   Sourced (Tito)
                 </StatusPill>
               )}
+              {s.call_scheduled && (
+                <StatusPill className="text-[11px] bg-emerald-100 text-emerald-800 ring-emerald-200 font-semibold">
+                  <CalendarCheck className="h-3 w-3" />
+                  {s.call_scheduled_at ? `Call ${fmtShort(s.call_scheduled_at)}` : "Call scheduled"}
+                </StatusPill>
+              )}
             </div>
             <Button
               variant="outline"
