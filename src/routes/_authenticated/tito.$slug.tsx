@@ -60,6 +60,8 @@ function TitoEventDetail() {
   const [q, setQ] = useState("");
   const [releaseFilter, setReleaseFilter] = useState<string>("all");
   const [tagFilter, setTagFilter] = useState<"all" | "tagged" | "untagged">("all");
+  const [contactFilter, setContactFilter] = useState<"all" | "never" | "contacted">("all");
+  const [hideTracked, setHideTracked] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detailAttendee, setDetailAttendee] = useState<TitoAttendee | null>(null);
