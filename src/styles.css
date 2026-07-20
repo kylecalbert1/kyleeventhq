@@ -63,8 +63,8 @@
 
 :root {
   --radius: 0.75rem;
-  /* Soft light-gray page background (Alliance/Reconfirm reference). Cards stay pure white. */
-  --background: oklch(0.98 0.004 250);
+  /* Warm off-white/cream page background (Alliance/Reconfirm reference). Cards stay pure white. */
+  --background: oklch(0.982 0.006 85);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
