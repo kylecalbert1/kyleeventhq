@@ -43,10 +43,7 @@ import { MilestoneFormDialog } from "@/components/dialogs/MilestoneFormDialog";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { SendHistoryPanel } from "@/components/SendHistoryPanel";
-import {
-  EventBannerGroup,
-  type BannerRow,
-} from "@/components/banners/EventBannerGroup";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { firstNameOf } from "@/lib/gmail";
