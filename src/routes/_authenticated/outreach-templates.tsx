@@ -3,13 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
 import { eventsQuery } from "@/lib/queries";
 import { OutreachHub } from "@/components/outreach/OutreachHub";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { MessageSquare } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/outreach-templates")({
