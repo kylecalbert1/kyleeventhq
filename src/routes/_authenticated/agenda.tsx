@@ -3,13 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
 import { eventsQuery } from "@/lib/queries";
 import { AgendaTab } from "@/components/agenda/AgendaTab";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ListChecks } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/agenda")({
