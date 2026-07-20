@@ -21,7 +21,9 @@ type Speaker = {
   company: string | null;
   title: string | null;
   email: string | null;
-  status: "contacted" | "responded" | "confirmed" | "declined";
+  status: "new" | "contacted" | "responded" | "confirmed" | "declined";
+  call_scheduled?: boolean;
+  call_scheduled_at?: string | null;
   session_title: string | null;
   session_format: "keynote" | "panel" | "workshop" | "fireside" | null;
   banner_status: "not_started" | "created" | "sent" | "confirmed_live";
