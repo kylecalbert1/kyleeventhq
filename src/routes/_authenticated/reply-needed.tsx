@@ -411,5 +411,6 @@ function ReplyNeededPage() {
         onConfirm={performSendConfirmed}
       />
     </div>
+    </div>
   );
 }

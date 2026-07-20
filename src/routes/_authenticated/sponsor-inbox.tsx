@@ -196,5 +196,6 @@ function SponsorInboxPage() {
         </div>
       )}
     </div>
+    </div>
   );
 }
