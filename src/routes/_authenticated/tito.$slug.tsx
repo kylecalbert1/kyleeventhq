@@ -23,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Search, X, Users, CalendarDays, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Search, X, Users, CalendarDays, Loader2, Sparkles, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAttendeeCard";
@@ -58,6 +58,7 @@ function TitoEventDetail() {
   const [q, setQ] = useState("");
   const [releaseFilter, setReleaseFilter] = useState<string>("all");
   const [tagFilter, setTagFilter] = useState<"all" | "tagged" | "untagged">("all");
+  const [composeOpen, setComposeOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detailAttendee, setDetailAttendee] = useState<TitoAttendee | null>(null);
 
@@ -105,7 +106,7 @@ function TitoEventDetail() {
           to="/speaker-sourcing"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to Speaker Sourcing
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Speaker Prospecting
         </Link>
       </div>
 
@@ -257,6 +258,14 @@ function TitoEventDetail() {
                   qc.invalidateQueries({ queryKey: ["speakers"] });
                 }}
               />
+              <Button
+                variant="outline"
+                disabled={selected.size === 0}
+                onClick={() => setComposeOpen(true)}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Compose email
+              </Button>
               <DraftButton
                 disabled={selected.size === 0}
                 ticketIds={Array.from(selected)}
@@ -293,6 +302,20 @@ function TitoEventDetail() {
             attendee={detailAttendee}
             open={!!detailAttendee}
             onOpenChange={(v) => { if (!v) setDetailAttendee(null); }}
+          />
+
+          <BulkEmailDialog
+            open={composeOpen}
+            onOpenChange={setComposeOpen}
+            speakers={filtered
+              .filter((t) => selected.has(t.id))
+              .map((t) => ({
+                id: t.id,
+                name: t.name ?? "Unknown",
+                email: t.email ?? null,
+                company: t.company_name ?? null,
+              }))}
+            initialTemplate="custom"
           />
         </>
       )}
