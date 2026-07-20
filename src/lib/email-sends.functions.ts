@@ -50,9 +50,28 @@ export const logEmailSend = createServerFn({ method: "POST" })
       .single();
     if (sendErr) throw new Error(sendErr.message);
 
+    // Validate speaker_ids — callers may pass non-speaker ids (e.g. Tito
+    // ticket ids) which would violate the FK. Keep only ids that exist.
+    const candidateIds = Array.from(
+      new Set(
+        data.recipients
+          .map((r) => r.speaker_id)
+          .filter((v): v is string => !!v),
+      ),
+    );
+    let validIds = new Set<string>();
+    if (candidateIds.length) {
+      const { data: existing, error: exErr } = await context.supabase
+        .from("speakers")
+        .select("id")
+        .in("id", candidateIds);
+      if (exErr) throw new Error(exErr.message);
+      validIds = new Set((existing ?? []).map((r) => (r as { id: string }).id));
+    }
+
     const recipientRows = data.recipients.map((r) => ({
       email_send_id: sendRow.id,
-      speaker_id: r.speaker_id ?? null,
+      speaker_id: r.speaker_id && validIds.has(r.speaker_id) ? r.speaker_id : null,
       recipient_email: r.email ?? null,
       recipient_name: r.name ?? null,
     }));
