@@ -326,6 +326,7 @@ export type Database = {
           code: string
           created_at: string
           event_date: string | null
+          external_agenda_url: string | null
           final_signoff_due: string | null
           format: Database["public"]["Enums"]["event_format"]
           id: string
@@ -352,6 +353,7 @@ export type Database = {
           code: string
           created_at?: string
           event_date?: string | null
+          external_agenda_url?: string | null
           final_signoff_due?: string | null
           format: Database["public"]["Enums"]["event_format"]
           id?: string
@@ -378,6 +380,7 @@ export type Database = {
           code?: string
           created_at?: string
           event_date?: string | null
+          external_agenda_url?: string | null
           final_signoff_due?: string | null
           format?: Database["public"]["Enums"]["event_format"]
           id?: string

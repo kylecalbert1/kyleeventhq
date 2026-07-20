@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS external_agenda_url TEXT;
