@@ -3,13 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
 import { eventsQuery } from "@/lib/queries";
 import { AgendaTab } from "@/components/agenda/AgendaTab";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ListChecks } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/agenda")({
@@ -51,18 +45,18 @@ function AgendaPage() {
         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Event
         </span>
-        <Select value={eventId} onValueChange={setEventId}>
-          <SelectTrigger className="w-[420px] max-w-full h-10">
-            <SelectValue placeholder="Choose an event…" />
-          </SelectTrigger>
-          <SelectContent>
-            {sorted.map((e: any) => (
-              <SelectItem key={e.id} value={e.id}>
-                {e.code ? `${e.code} — ` : ""}{e.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          triggerClassName="w-[420px] max-w-full h-10"
+          placeholder="Choose an event…"
+          searchPlaceholder="Search events…"
+          value={eventId}
+          onValueChange={setEventId}
+          options={sorted.map((e: any) => ({
+            value: e.id,
+            label: `${e.code ? `${e.code} — ` : ""}${e.name}`,
+          }))}
+        />
+
       </div>
 
       {eventId && selected ? (

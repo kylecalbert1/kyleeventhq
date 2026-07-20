@@ -1,3 +1,4 @@
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -358,18 +359,14 @@ function TagButton({
           </DialogHeader>
           <div className="space-y-2">
             <Label>Event</Label>
-            <Select value={eventId} onValueChange={setEventId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose event…" />
-              </SelectTrigger>
-              <SelectContent>
-                {events.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              triggerClassName="w-full"
+              placeholder="Choose event…"
+              searchPlaceholder="Search events…"
+              value={eventId}
+              onValueChange={setEventId}
+              options={events.map((e) => ({ value: e.id, label: e.title }))}
+            />
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
