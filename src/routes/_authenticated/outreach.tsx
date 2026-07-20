@@ -445,15 +445,18 @@ function AccountFormDialog({
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Event / product</Label>
-              <Select value={form.event_id || "none"} onValueChange={(v) => setForm({ ...form, event_id: v === "none" ? "" : v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— none —</SelectItem>
-                  {events.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.code} — {e.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                triggerClassName="w-full"
+                placeholder="— none —"
+                searchPlaceholder="Search events…"
+                value={form.event_id}
+                onValueChange={(v) => setForm({ ...form, event_id: v })}
+                allowClear
+                options={events.map((e) => ({
+                  value: e.id,
+                  label: `${e.code} — ${e.name}`,
+                }))}
+              />
             </div>
           </div>
           {ACTIONS.map((a) => {

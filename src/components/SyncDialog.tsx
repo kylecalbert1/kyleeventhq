@@ -476,18 +476,18 @@ export function SyncDialog({
               Default event for new leads
               <span className="ml-1 text-muted-foreground/70">(optional)</span>
             </span>
-            <Select value={eventId ?? ""} onValueChange={(v) => setEventId(v || undefined)}>
-              <SelectTrigger className="w-52 h-8 text-xs">
-                <SelectValue placeholder="None — pick per lead" />
-              </SelectTrigger>
-              <SelectContent>
-                {(events.data ?? []).map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.code}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              triggerClassName="w-52 h-8 text-xs"
+              placeholder="None — pick per lead"
+              searchPlaceholder="Search events…"
+              value={eventId ?? ""}
+              onValueChange={(v) => setEventId(v || undefined)}
+              options={(events.data ?? []).map((e) => ({
+                value: e.id,
+                label: e.code,
+                keywords: e.name,
+              }))}
+            />
             {eventId && (
               <Button
                 variant="ghost"
@@ -626,21 +626,14 @@ function ReviewRow({
           {isLead && !defaultEventId && (
             <div className="mt-2 flex items-center gap-2">
               <span className="text-[11px] text-muted-foreground">Assign to:</span>
-              <Select
+              <SearchableSelect
+                triggerClassName="h-7 text-xs w-48"
+                placeholder="Pick event…"
+                searchPlaceholder="Search events…"
                 value={rowEventId ?? ""}
                 onValueChange={(v) => setRowEventId(v || undefined)}
-              >
-                <SelectTrigger className="h-7 text-xs w-48">
-                  <SelectValue placeholder="Pick event…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {eventOptions.map((o) => (
-                    <SelectItem key={o.id} value={o.id}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={eventOptions.map((o) => ({ value: o.id, label: o.label }))}
+              />
             </div>
           )}
         </div>

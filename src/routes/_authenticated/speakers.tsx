@@ -412,17 +412,20 @@ function SpeakerBoard() {
       {/* Primary filters: Event + Business line (always visible) */}
       <Card className="p-3 mb-4 rounded-xl border-slate-200/70 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={eventFilter} onValueChange={setEventFilter}>
-            <SelectTrigger className="w-56 h-9">
-              <SelectValue placeholder="Event" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All events</SelectItem>
-              {(events.data ?? []).map((e) => (
-                <SelectItem key={e.id} value={e.id}>{e.code}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            triggerClassName="w-56 h-9"
+            placeholder="Event"
+            searchPlaceholder="Search events…"
+            value={eventFilter}
+            onValueChange={setEventFilter}
+            allOption={{ value: "all", label: "All events" }}
+            options={(events.data ?? []).map((e) => ({
+              value: e.id,
+              label: e.code,
+              keywords: e.name,
+            }))}
+          />
+
           <Select value={lineFilter} onValueChange={setLineFilter}>
             <SelectTrigger className="w-40 h-9">
               <SelectValue placeholder="Business line" />
