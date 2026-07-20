@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { eventsQuery, agendaItemsQuery } from "@/lib/queries";
 import { AgendaTab } from "@/components/agenda/AgendaTab";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -265,5 +265,4 @@ function EventBrowseCard({ event, onPick }: { event: any; onPick: (id: string) =
   );
 }
 
-// Suppress unused-warning for previous effect pattern
-void useEffect;
+
