@@ -31,6 +31,7 @@ import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAtten
 import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDialog";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
+import { JobTitleFilter, parseKeywordList, matchesJobTitleFilters } from "@/components/tito/JobTitleFilter";
 
 
 export const Route = createFileRoute("/_authenticated/tito/$slug")({
@@ -63,6 +64,8 @@ function TitoEventDetail() {
   const [contactFilter, setContactFilter] = useState<"all" | "never" | "contacted">("all");
   const [hideTracked, setHideTracked] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [jobTitleInclude, setJobTitleInclude] = useState("");
+  const [jobTitleExclude, setJobTitleExclude] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detailAttendee, setDetailAttendee] = useState<TitoAttendee | null>(null);
 
@@ -86,6 +89,8 @@ function TitoEventDetail() {
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
+    const inc = parseKeywordList(jobTitleInclude);
+    const exc = parseKeywordList(jobTitleExclude);
     return tickets.filter((t) => {
       if (releaseFilter !== "all" && t.release_title !== releaseFilter) return false;
       const isTagged = ((t as TitoAttendee).tagged_events ?? []).length > 0;
@@ -96,11 +101,12 @@ function TitoEventDetail() {
       const hist = lookupHistory(t.email);
       if (contactFilter === "never" && hist && hist.count > 0) return false;
       if (contactFilter === "contacted" && (!hist || hist.count === 0)) return false;
+      if (!matchesJobTitleFilters(t.job_title, inc, exc)) return false;
       if (!term) return true;
       const hay = `${t.name ?? ""} ${t.email ?? ""} ${t.company_name ?? ""} ${t.job_title ?? ""}`.toLowerCase();
       return hay.includes(term);
     });
-  }, [tickets, q, releaseFilter, tagFilter, contactFilter, hideTracked, lookupHistory, lookupTracked]);
+  }, [tickets, q, releaseFilter, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, lookupHistory, lookupTracked]);
 
 
 
@@ -247,6 +253,14 @@ function TitoEventDetail() {
                 />
                 Hide people already in my database
               </label>
+            </div>
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <JobTitleFilter
+                includeText={jobTitleInclude}
+                excludeText={jobTitleExclude}
+                onIncludeChange={setJobTitleInclude}
+                onExcludeChange={setJobTitleExclude}
+              />
             </div>
           </Card>
 

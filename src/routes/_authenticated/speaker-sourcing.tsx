@@ -66,6 +66,7 @@ import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAtten
 import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDialog";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
+import { JobTitleFilter, parseKeywordList, matchesJobTitleFilters } from "@/components/tito/JobTitleFilter";
 
 export const Route = createFileRoute("/_authenticated/speaker-sourcing")({
   component: SpeakerSourcingPage,
@@ -169,6 +170,8 @@ function SpeakerSourcingPage() {
   const [composeOpen, setComposeOpen] = useState(false);
   const [hideTracked, setHideTracked] = useState(false);
   const [contactedFilter, setContactedFilter] = useState<"all" | "never" | "before">("all");
+  const [jobTitleInclude, setJobTitleInclude] = useState("");
+  const [jobTitleExclude, setJobTitleExclude] = useState("");
 
   // Autocomplete
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -251,6 +254,8 @@ function SpeakerSourcingPage() {
   const { lookup: lookupTracked } = useTrackedByEmails(resultEmails);
 
   const visibleResults = useMemo(() => {
+    const inc = parseKeywordList(jobTitleInclude);
+    const exc = parseKeywordList(jobTitleExclude);
     return results.filter((r) => {
       const tracked = lookupTracked(r.email);
       if (hideTracked && tracked) return false;
@@ -260,9 +265,10 @@ function SpeakerSourcingPage() {
         if (contactedFilter === "never" && contacted) return false;
         if (contactedFilter === "before" && !contacted) return false;
       }
+      if (!matchesJobTitleFilters((r as any).job_title, inc, exc)) return false;
       return true;
     });
-  }, [results, hideTracked, contactedFilter, lookupTracked, lookupHistory]);
+  }, [results, hideTracked, contactedFilter, jobTitleInclude, jobTitleExclude, lookupTracked, lookupHistory]);
 
 
   function toggle(id: string) {
@@ -532,10 +538,10 @@ function SpeakerSourcingPage() {
               className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
             >
               <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
-              More filters (events, ticket types, company CSV)
-              {(selectedEventSlugs.length > 0 || includeReleases.length > 0 || excludeReleases.length > 0 || !applyExclude || companiesInclude.length > 0 || companiesExclude.length > 0) && (
+              More filters (events, ticket types, company CSV, job titles)
+              {(selectedEventSlugs.length > 0 || includeReleases.length > 0 || excludeReleases.length > 0 || !applyExclude || companiesInclude.length > 0 || companiesExclude.length > 0 || parseKeywordList(jobTitleInclude).length > 0 || parseKeywordList(jobTitleExclude).length > 0) && (
                 <span className="ml-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5">
-                  {selectedEventSlugs.length + includeReleases.length + excludeReleases.length + (!applyExclude ? 1 : 0) + (companiesInclude.length ? 1 : 0) + (companiesExclude.length ? 1 : 0)}
+                  {selectedEventSlugs.length + includeReleases.length + excludeReleases.length + (!applyExclude ? 1 : 0) + (companiesInclude.length ? 1 : 0) + (companiesExclude.length ? 1 : 0) + (parseKeywordList(jobTitleInclude).length ? 1 : 0) + (parseKeywordList(jobTitleExclude).length ? 1 : 0)}
                 </span>
               )}
             </button>
@@ -590,6 +596,13 @@ function SpeakerSourcingPage() {
                     onClear={() => { setCompaniesExclude([]); setCompaniesExcludeFile(null); }}
                   />
                 </div>
+
+                <JobTitleFilter
+                  includeText={jobTitleInclude}
+                  excludeText={jobTitleExclude}
+                  onIncludeChange={setJobTitleInclude}
+                  onExcludeChange={setJobTitleExclude}
+                />
               </div>
             )}
           </div>

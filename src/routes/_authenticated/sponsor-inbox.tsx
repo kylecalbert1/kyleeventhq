@@ -68,9 +68,11 @@ function SponsorInboxPage() {
   const unactionedCount = (mentions.data ?? []).filter((r: any) => !r.actioned).length;
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
       <header className="flex items-center justify-between gap-4">
         <div>
+          <div className="accent-bar mb-3" />
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
             <InboxIcon className="h-6 w-6 text-indigo-600" />
             Sponsor Inbox
@@ -195,6 +197,7 @@ function SponsorInboxPage() {
           })}
         </div>
       )}
+    </div>
     </div>
   );
 }
