@@ -78,23 +78,31 @@ function TitoEventDetail() {
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    return tickets.filter((t) => {
-      if (releaseFilter !== "all" && t.release_title !== releaseFilter) return false;
-      const isTagged = ((t as TitoAttendee).tagged_events ?? []).length > 0;
-      if (tagFilter === "tagged" && !isTagged) return false;
-      if (tagFilter === "untagged" && isTagged) return false;
-      if (!term) return true;
-      const hay = `${t.name ?? ""} ${t.email ?? ""} ${t.company_name ?? ""} ${t.job_title ?? ""}`.toLowerCase();
-      return hay.includes(term);
-    });
-  }, [tickets, q, releaseFilter, tagFilter]);
-
   const attendeeEmails = useMemo(
     () => tickets.map((t) => t.email as string | null),
     [tickets],
   );
   const { lookup: lookupHistory } = useContactHistory(attendeeEmails);
   const { lookup: lookupTracked } = useTrackedByEmails(attendeeEmails);
+
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return tickets.filter((t) => {
+      if (releaseFilter !== "all" && t.release_title !== releaseFilter) return false;
+      const isTagged = ((t as TitoAttendee).tagged_events ?? []).length > 0;
+      if (tagFilter === "tagged" && !isTagged) return false;
+      if (tagFilter === "untagged" && isTagged) return false;
+      const tracked = lookupTracked(t.email);
+      if (hideTracked && tracked) return false;
+      const hist = lookupHistory(t.email);
+      if (contactFilter === "never" && hist && hist.count > 0) return false;
+      if (contactFilter === "contacted" && (!hist || hist.count === 0)) return false;
+      if (!term) return true;
+      const hay = `${t.name ?? ""} ${t.email ?? ""} ${t.company_name ?? ""} ${t.job_title ?? ""}`.toLowerCase();
+      return hay.includes(term);
+    });
+  }, [tickets, q, releaseFilter, tagFilter, contactFilter, hideTracked, lookupHistory, lookupTracked]);
+
 
 
   const allSelected = filtered.length > 0 && filtered.every((r) => selected.has(r.id));
