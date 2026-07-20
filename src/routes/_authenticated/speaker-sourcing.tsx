@@ -65,6 +65,7 @@ import {
 import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAttendeeCard";
 import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDialog";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
+import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
 
 export const Route = createFileRoute("/_authenticated/speaker-sourcing")({
   component: SpeakerSourcingPage,
