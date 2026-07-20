@@ -167,6 +167,8 @@ function SpeakerSourcingPage() {
   const [companiesExclude, setCompaniesExclude] = useState<string[]>([]);
   const [companiesExcludeFile, setCompaniesExcludeFile] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [hideTracked, setHideTracked] = useState(false);
+  const [contactedFilter, setContactedFilter] = useState<"all" | "never" | "before">("all");
 
   // Autocomplete
   const [suggestOpen, setSuggestOpen] = useState(false);
