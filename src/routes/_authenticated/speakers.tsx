@@ -166,6 +166,7 @@ function SpeakerBoard() {
   const [syncOpen, setSyncOpen] = useState(false);
   const [dragOver, setDragOver] = useState<ColKey | null>(null);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [callScheduledOnly, setCallScheduledOnly] = useState(search.call_scheduled === "true");
   const [candidatesOpen, setCandidatesOpen] = useState(true);
 
   const eventById = useMemo(
@@ -187,6 +188,7 @@ function SpeakerBoard() {
         } else if (s.outreach_channel !== channelFilter) return false;
       }
       if (missingBH && bioHeadshotDone(s)) return false;
+      if (callScheduledOnly && !s.call_scheduled) return false;
       if (attentionFilter !== "all") {
         const a = outreachAlert(s);
         if (!a) return false;
@@ -200,7 +202,7 @@ function SpeakerBoard() {
       }
       return true;
     });
-  }, [speakers.data, eventFilter, lineFilter, channelFilter, missingBH, attentionFilter, q, eventById]);
+  }, [speakers.data, eventFilter, lineFilter, channelFilter, missingBH, callScheduledOnly, attentionFilter, q, eventById]);
 
   // Stage counts (pre-stage-filter, so the dropdown shows real totals).
   const stageCounts = useMemo(() => {
@@ -226,7 +228,7 @@ function SpeakerBoard() {
         return ea.localeCompare(eb);
       }
       if (sortKey === "status") {
-        const rank: Record<string, number> = { contacted: 0, responded: 1, confirmed: 2, declined: 3 };
+        const rank: Record<string, number> = { new: -1, contacted: 0, responded: 1, confirmed: 2, declined: 3 };
         return (rank[a.status] ?? 9) - (rank[b.status] ?? 9);
       }
       const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : -Infinity;
@@ -239,7 +241,7 @@ function SpeakerBoard() {
   // Partition: freshly-tagged Tito candidates (source='tito_candidate', status='contacted', no messages yet)
   // land in a separate "Potential speakers" section grouped by event; everything else stays in the main pipeline.
   const isPotentialCandidate = (s: any) =>
-    s.source === "tito_candidate" && s.status === "contacted" && !s.last_message_at;
+    s.source === "tito_candidate" && (s.status === "new" || s.status === "contacted") && !s.last_message_at;
 
   const pipelineSorted = useMemo(() => sorted.filter((s: any) => !isPotentialCandidate(s)), [sorted]);
   const candidatesSorted = useMemo(() => sorted.filter((s: any) => isPotentialCandidate(s)), [sorted]);
