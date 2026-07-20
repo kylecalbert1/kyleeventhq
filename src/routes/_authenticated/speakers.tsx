@@ -335,16 +335,21 @@ function SpeakerBoard() {
   const totalPreStage = preStageFiltered.length;
 
   return (
-    <div className="p-6 md:p-8 animate-fade-in">
-      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+    <div className="min-h-screen bg-background p-6 md:p-8 animate-fade-in">
+      <div className="flex items-end justify-between mb-6 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Speaker pipeline</h1>
-          <p className="text-sm text-muted-foreground">
+          <div className="accent-bar mb-3" />
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <LayoutGrid className="h-6 w-6 text-primary" />
+            Speaker pipeline
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {view === "board"
               ? "Drag cards to move speakers between stages."
               : "One-column feed — filter by stage above, switch to Board to drag between stages."}
           </p>
         </div>
+
         <div className="flex items-center gap-2 flex-wrap">
           {/* List / Board toggle */}
           <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm">
