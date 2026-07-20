@@ -46,6 +46,7 @@ type EventRow = {
   self_status?: "on_track" | "needs_attention" | "off_track";
   asana_project_gid?: string | null;
   speaker_target?: number | null;
+  external_agenda_url?: string | null;
 };
 
 export function EventFormDialog({
@@ -80,6 +81,7 @@ export function EventFormDialog({
     self_status: "on_track" as "on_track" | "needs_attention" | "off_track",
     asana_link: "",
     speaker_target: 15,
+    external_agenda_url: "",
   });
 
   useEffect(() => {
@@ -102,6 +104,7 @@ export function EventFormDialog({
         self_status: event.self_status ?? "on_track",
         asana_link: event.asana_project_gid ?? "",
         speaker_target: event.speaker_target ?? 15,
+        external_agenda_url: event.external_agenda_url ?? "",
       });
     } else {
       setForm({
@@ -122,6 +125,7 @@ export function EventFormDialog({
         self_status: "on_track",
         asana_link: "",
         speaker_target: 15,
+        external_agenda_url: "",
       });
     }
   }, [event, open]);
@@ -142,6 +146,7 @@ export function EventFormDialog({
         final_signoff_due: form.final_signoff_due || null,
         asana_project_gid: parseAsanaGid(asana_link),
         speaker_target: Number(form.speaker_target) || 15,
+        external_agenda_url: form.external_agenda_url.trim() || null,
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
@@ -273,6 +278,18 @@ export function EventFormDialog({
               </p>
             )}
           </Field>
+          <Field label="External agenda link (optional)" full>
+            <Input
+              type="url"
+              placeholder="https://docs.google.com/document/d/…  or Sheets / Notion / etc."
+              value={form.external_agenda_url}
+              onChange={(e) => setForm({ ...form, external_agenda_url: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              If your agenda is hosted elsewhere, paste the link. Shown as an "Open" button on the Agenda page.
+            </p>
+          </Field>
+
           <DialogFooter className="col-span-2 flex justify-between sm:justify-between">
             <div>
               {event && (
