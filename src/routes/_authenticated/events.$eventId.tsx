@@ -682,6 +682,18 @@ function EventDetail() {
   );
 }
 
+function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-2">
+      <div className="text-slate-400 mt-0.5">{icon}</div>
+      <div className="min-w-0">
+        <div className="text-[11px] font-medium uppercase tracking-wider text-slate-500">{label}</div>
+        <div className="text-sm text-slate-900 truncate">{value}</div>
+      </div>
+    </div>
+  );
+}
+
 function SectionHeader({ title, onAdd }: { title: string; onAdd?: () => void }) {
   return (
     <div className="flex justify-between items-center mb-3">
