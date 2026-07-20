@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -68,9 +68,7 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
 import { JobTitleFilter, parseKeywordList, matchesJobTitleFilters } from "@/components/tito/JobTitleFilter";
 
-export const Route = createFileRoute("/_authenticated/speaker-sourcing")({
-  component: SpeakerSourcingPage,
-});
+// Rendered as an embedded view inside /speakers when "Find new candidates" mode is on.
 
 type Brand = "all" | "AIAI" | "CSC" | "Other";
 
@@ -128,7 +126,7 @@ function StatCard({
   );
 }
 
-function SpeakerSourcingPage() {
+export function DiscoveryView() {
   const qc = useQueryClient();
   const conn = useQuery({ queryKey: ["tito-conn"], queryFn: () => titoConnectionStatus() });
   const titoEvents = useQuery({ queryKey: ["tito-events"], queryFn: () => listTitoEvents() });
