@@ -60,9 +60,12 @@ import {
   type ColKey,
 } from "@/components/speakers/SpeakerListCard";
 import { useContactHistory } from "@/hooks/use-contact-history";
+import { DiscoveryView } from "@/components/speakers/DiscoveryView";
 
 const searchSchema = z.object({
   attention: z.enum(["reply", "follow_up", "any"]).optional(),
+  mode: z.enum(["pipeline", "discover"]).optional(),
+  call_scheduled: z.enum(["true"]).optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/speakers")({
@@ -72,8 +75,36 @@ export const Route = createFileRoute("/_authenticated/speakers")({
       context.queryClient.ensureQueryData(speakersQuery()),
       context.queryClient.ensureQueryData(eventsQuery),
     ]),
-  component: SpeakerBoard,
+  component: SpeakersPage,
 });
+
+function SpeakersPage() {
+  const search = Route.useSearch();
+  const navigate = useNavigate();
+  const mode = search.mode ?? "pipeline";
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="px-6 md:px-8 pt-6">
+        <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm">
+          {(["pipeline", "discover"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => navigate({ to: "/speakers", search: (prev) => ({ ...prev, mode: m }) })}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors",
+                mode === m ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900",
+              )}
+            >
+              {m === "pipeline" ? "My speakers" : "Find new candidates"}
+            </button>
+          ))}
+        </div>
+      </div>
+      {mode === "discover" ? <DiscoveryView /> : <SpeakerBoard />}
+    </div>
+  );
+}
 
 const COLUMNS = [
   { key: "new", title: "New", accent: "border-t-slate-400", dot: "bg-slate-400" },
