@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   MessageSquare,
   Inbox,
+  CalendarCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";

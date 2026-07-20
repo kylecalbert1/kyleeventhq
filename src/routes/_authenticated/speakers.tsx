@@ -560,6 +560,9 @@ function SpeakerBoard() {
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
               <Checkbox checked={missingBH} onCheckedChange={(v) => setMissingBH(!!v)} /> Bio &amp; headshot missing
             </label>
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
+              <Checkbox checked={callScheduledOnly} onCheckedChange={(v) => setCallScheduledOnly(!!v)} /> Call scheduled
+            </label>
           </div>
         )}
       </Card>
