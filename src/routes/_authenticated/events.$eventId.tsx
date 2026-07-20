@@ -128,39 +128,9 @@ function EventDetail() {
     }
   }
 
-  const bannerRows = useMemo<BannerRow[]>(() => {
-    return [
-      ...((speakers.data ?? []) as any[]).map((s) => ({
-        kind: "speaker" as const,
-        id: s.id,
-        event_id: s.event_id,
-        name: s.name,
-        banner_status: s.banner_status,
-        linkedin_post_confirmed: s.linkedin_post_confirmed,
-      })),
-      ...((sponsors.data ?? []) as any[]).map((s) => ({
-        kind: "sponsor" as const,
-        id: s.id,
-        event_id: s.event_id,
-        name: s.name,
-        banner_status: s.banner_status,
-        linkedin_post_confirmed: s.linkedin_post_confirmed,
-      })),
-    ];
-  }, [speakers.data, sponsors.data]);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
 
-  const patchRow = useMutation({
-    mutationFn: async ({ row, patch }: { row: BannerRow; patch: any }) => {
-      if (row.kind === "speaker") return upSpeaker({ data: { id: row.id, patch } });
-      return upSponsor({ data: { id: row.id, patch } });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["speakers"] });
-      qc.invalidateQueries({ queryKey: ["sponsors"] });
-      qc.invalidateQueries({ queryKey: ["eventSummaries"] });
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
 
   const patchEvent = useMutation({
     mutationFn: async ({ patch }: { patch: any }) => upEvent({ data: { id: eventId, patch } }),
