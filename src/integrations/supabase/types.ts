@@ -529,6 +529,8 @@ export type Database = {
           bio_and_headshot_received: boolean
           bio_received: boolean
           bio_text: string | null
+          call_scheduled: boolean
+          call_scheduled_at: string | null
           company: string | null
           created_at: string
           dropbox_link: string | null
@@ -560,6 +562,8 @@ export type Database = {
           bio_and_headshot_received?: boolean
           bio_received?: boolean
           bio_text?: string | null
+          call_scheduled?: boolean
+          call_scheduled_at?: string | null
           company?: string | null
           created_at?: string
           dropbox_link?: string | null
@@ -591,6 +595,8 @@ export type Database = {
           bio_and_headshot_received?: boolean
           bio_received?: boolean
           bio_text?: string | null
+          call_scheduled?: boolean
+          call_scheduled_at?: string | null
           company?: string | null
           created_at?: string
           dropbox_link?: string | null
@@ -1076,7 +1082,12 @@ export type Database = {
         | "cold_email"
       self_status: "on_track" | "needs_attention" | "off_track"
       session_format: "keynote" | "panel" | "workshop" | "fireside"
-      speaker_status: "contacted" | "responded" | "confirmed" | "declined"
+      speaker_status:
+        | "new"
+        | "contacted"
+        | "responded"
+        | "confirmed"
+        | "declined"
       website_stage:
         | "draft"
         | "proof_1"
@@ -1234,7 +1245,13 @@ export const Constants = {
       ],
       self_status: ["on_track", "needs_attention", "off_track"],
       session_format: ["keynote", "panel", "workshop", "fireside"],
-      speaker_status: ["contacted", "responded", "confirmed", "declined"],
+      speaker_status: [
+        "new",
+        "contacted",
+        "responded",
+        "confirmed",
+        "declined",
+      ],
       website_stage: [
         "draft",
         "proof_1",
