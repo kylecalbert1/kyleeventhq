@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronLeft, ChevronRight, Plus, Trash2, ChevronDown, Copy, ArrowRightLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, ChevronDown, Copy, ArrowRightLeft, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -114,12 +114,17 @@ function OutreachPage() {
   const pct = totalActions === 0 ? 0 : Math.round((doneActions / totalActions) * 100);
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="min-h-screen bg-background p-6 md:p-8 space-y-6">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Weekly outreach</h1>
-          <p className="text-sm text-muted-foreground">Target accounts, actions and team checklists — reset every Monday.</p>
+          <div className="accent-bar mb-3" />
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <Target className="h-6 w-6 text-primary" />
+            Weekly outreach
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Target accounts, actions and team checklists — reset every Monday.</p>
         </div>
+
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center rounded-md border bg-background">
             <Button variant="ghost" size="sm" onClick={() => setWeek(shiftWeek(week, -1))}>

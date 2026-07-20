@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Lock, Plus } from "lucide-react";
+import { Lock, Plus, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -46,14 +46,20 @@ function WebsiteBoard() {
   }
 
   return (
-    <div className="p-6 md:p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Website production</h1>
-          <p className="text-sm text-muted-foreground">Move each event through proofing to live. Protected cards need confirmation.</p>
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-[1400px] p-6 md:p-8 space-y-6">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <div className="accent-bar mb-3" />
+            <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <Globe className="h-6 w-6 text-primary" />
+              Website production
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">Move each event through proofing to live. Protected cards need confirmation.</p>
+          </div>
+          <Button onClick={() => setEditing({ open: true })}><Plus className="h-4 w-4 mr-1.5" />Add task</Button>
         </div>
-        <Button onClick={() => setEditing({ open: true })}><Plus className="h-4 w-4 mr-1.5" />Add task</Button>
-      </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
         {WEBSITE_STAGES.map((stage) => (
@@ -119,6 +125,7 @@ function WebsiteBoard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

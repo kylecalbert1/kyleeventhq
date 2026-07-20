@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, ExternalLink, Pencil } from "lucide-react";
+import { Plus, ExternalLink, Pencil, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -24,28 +24,35 @@ function MilestonesList() {
   const done = rows.filter((m: any) => m.status === "done");
 
   return (
-    <div className="p-6 md:p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Kickoff & Washup</h1>
-          <p className="text-sm text-muted-foreground">Every planning and retrospective session across events.</p>
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-6xl p-6 md:p-8 space-y-6">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <div className="accent-bar mb-3" />
+            <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <CalendarDays className="h-6 w-6 text-primary" />
+              Kickoff & Washup
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">Every planning and retrospective session across events.</p>
+          </div>
+          <Button onClick={() => setEditing({ open: true })}><Plus className="h-4 w-4 mr-1.5" />Add milestone</Button>
         </div>
-        <Button onClick={() => setEditing({ open: true })}><Plus className="h-4 w-4 mr-1.5" />Add milestone</Button>
+
+        <Tabs defaultValue="upcoming">
+          <TabsList>
+            <TabsTrigger value="upcoming">Upcoming ({upcoming.length})</TabsTrigger>
+            <TabsTrigger value="done">Done ({done.length})</TabsTrigger>
+          </TabsList>
+          <TabsContent value="upcoming" className="mt-4"><List rows={upcoming} onEdit={(m) => setEditing({ open: true, milestone: m })} /></TabsContent>
+          <TabsContent value="done" className="mt-4"><List rows={done} onEdit={(m) => setEditing({ open: true, milestone: m })} /></TabsContent>
+        </Tabs>
+
+        {editing && <MilestoneFormDialog open={editing.open} onOpenChange={(o) => setEditing(o ? editing : null)} milestone={editing.milestone} />}
       </div>
-
-      <Tabs defaultValue="upcoming">
-        <TabsList>
-          <TabsTrigger value="upcoming">Upcoming ({upcoming.length})</TabsTrigger>
-          <TabsTrigger value="done">Done ({done.length})</TabsTrigger>
-        </TabsList>
-        <TabsContent value="upcoming" className="mt-4"><List rows={upcoming} onEdit={(m) => setEditing({ open: true, milestone: m })} /></TabsContent>
-        <TabsContent value="done" className="mt-4"><List rows={done} onEdit={(m) => setEditing({ open: true, milestone: m })} /></TabsContent>
-      </Tabs>
-
-      {editing && <MilestoneFormDialog open={editing.open} onOpenChange={(o) => setEditing(o ? editing : null)} milestone={editing.milestone} />}
     </div>
   );
 }
+
 
 function List({ rows, onEdit }: { rows: any[]; onEdit: (m: any) => void }) {
   if (rows.length === 0) return <Card className="p-8 text-center text-sm text-muted-foreground">Nothing here yet.</Card>;

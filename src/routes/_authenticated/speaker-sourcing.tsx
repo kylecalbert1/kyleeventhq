@@ -303,7 +303,7 @@ function SpeakerSourcingPage() {
   }, [titoEventsStats.data, eventSearch, brandFilter, selectedYears]);
 
   return (
-    <div className="min-h-screen bg-slate-50/60">
+    <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-[1400px] p-6 space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">

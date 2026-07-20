@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/StatusPill";
 import { pillClass } from "@/lib/status";
-import { RefreshCw, ExternalLink, AlertCircle } from "lucide-react";
+import { RefreshCw, ExternalLink, AlertCircle, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 import {
   listProofingBoard,
@@ -112,15 +112,21 @@ function ProofingBoard() {
   }
 
   return (
-    <div className="p-6 md:p-8 space-y-5">
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-[1400px] p-6 md:p-8 space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Proofing tracker</h1>
-          <p className="text-sm text-muted-foreground">
+          <div className="accent-bar mb-3" />
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <ClipboardCheck className="h-6 w-6 text-primary" />
+            Proofing tracker
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Every event's website proofing cycle in one place. Drag cards between stages to mark
             progress. Due dates pulled live from Asana.
           </p>
         </div>
+
         <div className="flex flex-wrap gap-2 items-center">
           <Select value={lineFilter} onValueChange={(v) => setLineFilter(v as any)}>
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
@@ -229,8 +235,10 @@ function ProofingBoard() {
         </div>
       )}
     </div>
+    </div>
   );
 }
+
 
 function ProofingCard({
   row,
