@@ -1,8 +1,22 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusPill } from "@/components/StatusPill";
-import { Mail, Eye, Linkedin, MapPin, CalendarDays, CheckCircle2 } from "lucide-react";
+import {
+  Mail,
+  Eye,
+  Linkedin,
+  MapPin,
+  CalendarDays,
+  CheckCircle2,
+  UserCheck,
+  MessageSquare,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { softCard, eventChipCls } from "@/components/speakers/SpeakerListCard";
+import {
+  type ContactHistory,
+  type TrackedInfo,
+  formatSentShort,
+} from "@/hooks/use-contact-history";
 
 export type TitoAttendee = {
   id: string;
@@ -37,6 +51,8 @@ export function TitoAttendeeCard({
   onEmail,
   onAddNote,
   showEvent = true,
+  history,
+  trackedIn,
 }: {
   a: TitoAttendee;
   selected?: boolean;
@@ -45,8 +61,11 @@ export function TitoAttendeeCard({
   onEmail?: () => void;
   onAddNote?: () => void;
   showEvent?: boolean;
+  history?: ContactHistory | null;
+  trackedIn?: TrackedInfo | null;
 }) {
   const titleAtCompany = [a.job_title, a.company_name].filter(Boolean).join(" at ");
+  const lastSent = formatSentShort(history?.last_sent_at);
 
   return (
     <div
@@ -109,6 +128,13 @@ export function TitoAttendeeCard({
                   Tagged for {te.event_name}
                 </StatusPill>
               ))}
+              {trackedIn && (
+                <StatusPill className="text-[11px] bg-emerald-100 text-emerald-800 border-emerald-200 inline-flex items-center gap-1">
+                  <UserCheck className="h-3 w-3" />
+                  Already tracked
+                  {trackedIn.event_name ? `: ${trackedIn.status ?? "in DB"} at ${trackedIn.event_name}` : ""}
+                </StatusPill>
+              )}
             </div>
           </div>
 
@@ -146,6 +172,14 @@ export function TitoAttendeeCard({
               </span>
             )}
           </div>
+
+          {history && history.count > 0 && (
+            <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+              <MessageSquare className="h-3 w-3 text-slate-400" />
+              Messaged {history.count}x
+              {lastSent ? ` · last sent ${lastSent}` : ""}
+            </div>
+          )}
 
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
             <button

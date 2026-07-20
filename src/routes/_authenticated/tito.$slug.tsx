@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { TitoAttendeeCard, type TitoAttendee } from "@/components/tito/TitoAttendeeCard";
 import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDialog";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
+import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
 
 
 export const Route = createFileRoute("/_authenticated/tito/$slug")({
@@ -85,6 +86,13 @@ function TitoEventDetail() {
       return hay.includes(term);
     });
   }, [tickets, q, releaseFilter, tagFilter]);
+
+  const attendeeEmails = useMemo(
+    () => tickets.map((t) => t.email as string | null),
+    [tickets],
+  );
+  const { lookup: lookupHistory } = useContactHistory(attendeeEmails);
+  const { lookup: lookupTracked } = useTrackedByEmails(attendeeEmails);
 
 
   const allSelected = filtered.length > 0 && filtered.every((r) => selected.has(r.id));
@@ -294,6 +302,8 @@ function TitoEventDetail() {
                   }}
                   onAddNote={() => setDetailAttendee(t as TitoAttendee)}
                   showEvent={false}
+                  history={lookupHistory(t.email)}
+                  trackedIn={lookupTracked(t.email)}
                 />
               ))}
             </div>

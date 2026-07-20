@@ -59,6 +59,7 @@ import {
   outreachAlert,
   type ColKey,
 } from "@/components/speakers/SpeakerListCard";
+import { useContactHistory } from "@/hooks/use-contact-history";
 
 const searchSchema = z.object({
   attention: z.enum(["reply", "follow_up", "any"]).optional(),
@@ -208,6 +209,12 @@ function SpeakerBoard() {
 
   const pipelineSorted = useMemo(() => sorted.filter((s: any) => !isPotentialCandidate(s)), [sorted]);
   const candidatesSorted = useMemo(() => sorted.filter((s: any) => isPotentialCandidate(s)), [sorted]);
+
+  const speakerEmails = useMemo(
+    () => sorted.map((s: any) => s.email as string | null),
+    [sorted],
+  );
+  const { lookup: lookupHistory } = useContactHistory(speakerEmails);
 
   const candidatesByEvent = useMemo(() => {
     const map = new Map<string, { event: any; rows: any[] }>();
@@ -579,6 +586,7 @@ function SpeakerBoard() {
                   onEmail={() => emailOne(s, ev)}
                   onCopyLink={() => copyLink(s)}
                   onEdit={() => setEditing({ open: true, speaker: s })}
+                  history={lookupHistory(s.email)}
                 />
               );
             })
