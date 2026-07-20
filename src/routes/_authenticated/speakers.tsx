@@ -60,9 +60,12 @@ import {
   type ColKey,
 } from "@/components/speakers/SpeakerListCard";
 import { useContactHistory } from "@/hooks/use-contact-history";
+import { DiscoveryView } from "@/components/speakers/DiscoveryView";
 
 const searchSchema = z.object({
   attention: z.enum(["reply", "follow_up", "any"]).optional(),
+  mode: z.enum(["pipeline", "discover"]).optional(),
+  call_scheduled: z.enum(["true"]).optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/speakers")({
@@ -72,10 +75,39 @@ export const Route = createFileRoute("/_authenticated/speakers")({
       context.queryClient.ensureQueryData(speakersQuery()),
       context.queryClient.ensureQueryData(eventsQuery),
     ]),
-  component: SpeakerBoard,
+  component: SpeakersPage,
 });
 
+function SpeakersPage() {
+  const search = Route.useSearch();
+  const navigate = useNavigate();
+  const mode = search.mode ?? "pipeline";
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="px-6 md:px-8 pt-6">
+        <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm">
+          {(["pipeline", "discover"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => navigate({ to: "/speakers", search: { ...search, mode: m } })}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors",
+                mode === m ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900",
+              )}
+            >
+              {m === "pipeline" ? "My speakers" : "Find new candidates"}
+            </button>
+          ))}
+        </div>
+      </div>
+      {mode === "discover" ? <DiscoveryView /> : <SpeakerBoard />}
+    </div>
+  );
+}
+
 const COLUMNS = [
+  { key: "new", title: "New", accent: "border-t-slate-400", dot: "bg-slate-400" },
   { key: "contacted", title: "Contacted", accent: "border-t-sky-400", dot: "bg-sky-400" },
   { key: "responded", title: "Responded", accent: "border-t-violet-400", dot: "bg-violet-400" },
   { key: "confirmed", title: "Confirmed", accent: "border-t-emerald-500", dot: "bg-emerald-500" },
@@ -87,6 +119,8 @@ type StageFilter = "all" | ColKey;
 
 function patchForColumn(target: ColKey): Record<string, any> {
   switch (target) {
+    case "new":
+      return { status: "new" };
     case "contacted":
       return { status: "contacted" };
     case "responded":
@@ -132,6 +166,7 @@ function SpeakerBoard() {
   const [syncOpen, setSyncOpen] = useState(false);
   const [dragOver, setDragOver] = useState<ColKey | null>(null);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [callScheduledOnly, setCallScheduledOnly] = useState(search.call_scheduled === "true");
   const [candidatesOpen, setCandidatesOpen] = useState(true);
 
   const eventById = useMemo(
@@ -153,6 +188,7 @@ function SpeakerBoard() {
         } else if (s.outreach_channel !== channelFilter) return false;
       }
       if (missingBH && bioHeadshotDone(s)) return false;
+      if (callScheduledOnly && !s.call_scheduled) return false;
       if (attentionFilter !== "all") {
         const a = outreachAlert(s);
         if (!a) return false;
@@ -166,12 +202,12 @@ function SpeakerBoard() {
       }
       return true;
     });
-  }, [speakers.data, eventFilter, lineFilter, channelFilter, missingBH, attentionFilter, q, eventById]);
+  }, [speakers.data, eventFilter, lineFilter, channelFilter, missingBH, callScheduledOnly, attentionFilter, q, eventById]);
 
   // Stage counts (pre-stage-filter, so the dropdown shows real totals).
   const stageCounts = useMemo(() => {
     const c: Record<ColKey, number> = {
-      contacted: 0, responded: 0, confirmed: 0, banner_sent: 0, bio_headshot_in: 0,
+      new: 0, contacted: 0, responded: 0, confirmed: 0, banner_sent: 0, bio_headshot_in: 0,
     };
     preStageFiltered.forEach((s: any) => { c[columnFor(s)]++; });
     return c;
@@ -192,7 +228,7 @@ function SpeakerBoard() {
         return ea.localeCompare(eb);
       }
       if (sortKey === "status") {
-        const rank: Record<string, number> = { contacted: 0, responded: 1, confirmed: 2, declined: 3 };
+        const rank: Record<string, number> = { new: -1, contacted: 0, responded: 1, confirmed: 2, declined: 3 };
         return (rank[a.status] ?? 9) - (rank[b.status] ?? 9);
       }
       const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : -Infinity;
@@ -205,7 +241,7 @@ function SpeakerBoard() {
   // Partition: freshly-tagged Tito candidates (source='tito_candidate', status='contacted', no messages yet)
   // land in a separate "Potential speakers" section grouped by event; everything else stays in the main pipeline.
   const isPotentialCandidate = (s: any) =>
-    s.source === "tito_candidate" && s.status === "contacted" && !s.last_message_at;
+    s.source === "tito_candidate" && (s.status === "new" || s.status === "contacted") && !s.last_message_at;
 
   const pipelineSorted = useMemo(() => sorted.filter((s: any) => !isPotentialCandidate(s)), [sorted]);
   const candidatesSorted = useMemo(() => sorted.filter((s: any) => isPotentialCandidate(s)), [sorted]);
@@ -229,7 +265,7 @@ function SpeakerBoard() {
   }, [candidatesSorted, eventById]);
 
   const grouped: Record<ColKey, any[]> = {
-    contacted: [], responded: [], confirmed: [], banner_sent: [], bio_headshot_in: [],
+    new: [], contacted: [], responded: [], confirmed: [], banner_sent: [], bio_headshot_in: [],
   };
   pipelineSorted.forEach((s: any) => grouped[columnFor(s)].push(s));
 
@@ -523,6 +559,9 @@ function SpeakerBoard() {
             </Select>
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
               <Checkbox checked={missingBH} onCheckedChange={(v) => setMissingBH(!!v)} /> Bio &amp; headshot missing
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
+              <Checkbox checked={callScheduledOnly} onCheckedChange={(v) => setCallScheduledOnly(!!v)} /> Call scheduled
             </label>
           </div>
         )}

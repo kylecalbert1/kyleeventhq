@@ -9,7 +9,7 @@ import {
   ClipboardCheck,
   Inbox,
   Reply,
-  Search,
+  
   MessageSquare,
   ListChecks,
 } from "lucide-react";
@@ -20,8 +20,7 @@ type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boo
 
 const NAV_PRIMARY: NavItem[] = [
   { to: "/", label: "Events", icon: LayoutGrid, exact: true },
-  { to: "/speakers", label: "Speaker pipeline", icon: Users },
-  { to: "/speaker-sourcing", label: "Speaker Prospecting", icon: Search },
+  { to: "/speakers", label: "Speakers", icon: Users },
   { to: "/outreach-templates", label: "Outreach", icon: MessageSquare },
   { to: "/agenda", label: "Agenda", icon: ListChecks },
   { to: "/website", label: "Website", icon: Globe },
