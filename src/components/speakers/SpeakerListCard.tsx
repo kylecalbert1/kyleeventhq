@@ -32,6 +32,7 @@ export const missingChipCls =
   "border border-orange-300 text-orange-800 bg-orange-50 ring-0";
 
 export type ColKey =
+  | "new"
   | "contacted"
   | "responded"
   | "confirmed"
@@ -49,10 +50,12 @@ export function columnFor(s: any): ColKey {
     return "banner_sent";
   if (s.status === "confirmed") return "confirmed";
   if (s.status === "responded") return "responded";
+  if (s.status === "new") return "new";
   return "contacted";
 }
 
 export const stagePill: Record<ColKey, { label: string; cls: string }> = {
+  new: { label: "New", cls: "bg-slate-100 text-slate-700 ring-slate-200" },
   contacted: { label: "Contacted", cls: "bg-sky-100 text-sky-800 ring-sky-200" },
   responded: { label: "Responded", cls: "bg-violet-100 text-violet-800 ring-violet-200" },
   confirmed: { label: "Confirmed", cls: "bg-emerald-100 text-emerald-800 ring-emerald-200" },
@@ -64,6 +67,7 @@ export const stagePill: Record<ColKey, { label: string; cls: string }> = {
 };
 
 export const avatarGradient: Record<ColKey, string> = {
+  new: "from-slate-400 to-slate-500",
   contacted: "from-sky-500 to-sky-600",
   responded: "from-violet-500 to-violet-600",
   confirmed: "from-emerald-500 to-emerald-600",
