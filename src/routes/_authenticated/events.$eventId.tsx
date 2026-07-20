@@ -78,7 +78,6 @@ function EventDetail() {
   });
   const asanaDues = asanaQuery.data?.dues;
 
-  const upEvent = useServerFn(updateEvent);
 
   const [editingEvent, setEditingEvent] = useState(false);
   const [speakerEdit, setSpeakerEdit] = useState<null | { open: boolean; speaker?: any }>(null);
