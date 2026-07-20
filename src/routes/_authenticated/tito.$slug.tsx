@@ -60,6 +60,8 @@ function TitoEventDetail() {
   const [q, setQ] = useState("");
   const [releaseFilter, setReleaseFilter] = useState<string>("all");
   const [tagFilter, setTagFilter] = useState<"all" | "tagged" | "untagged">("all");
+  const [contactFilter, setContactFilter] = useState<"all" | "never" | "contacted">("all");
+  const [hideTracked, setHideTracked] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detailAttendee, setDetailAttendee] = useState<TitoAttendee | null>(null);
@@ -74,6 +76,14 @@ function TitoEventDetail() {
     return Array.from(s).sort();
   }, [tickets]);
 
+  const attendeeEmails = useMemo(
+
+    () => tickets.map((t) => t.email as string | null),
+    [tickets],
+  );
+  const { lookup: lookupHistory } = useContactHistory(attendeeEmails);
+  const { lookup: lookupTracked } = useTrackedByEmails(attendeeEmails);
+
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return tickets.filter((t) => {
@@ -81,18 +91,17 @@ function TitoEventDetail() {
       const isTagged = ((t as TitoAttendee).tagged_events ?? []).length > 0;
       if (tagFilter === "tagged" && !isTagged) return false;
       if (tagFilter === "untagged" && isTagged) return false;
+      const tracked = lookupTracked(t.email);
+      if (hideTracked && tracked) return false;
+      const hist = lookupHistory(t.email);
+      if (contactFilter === "never" && hist && hist.count > 0) return false;
+      if (contactFilter === "contacted" && (!hist || hist.count === 0)) return false;
       if (!term) return true;
       const hay = `${t.name ?? ""} ${t.email ?? ""} ${t.company_name ?? ""} ${t.job_title ?? ""}`.toLowerCase();
       return hay.includes(term);
     });
-  }, [tickets, q, releaseFilter, tagFilter]);
+  }, [tickets, q, releaseFilter, tagFilter, contactFilter, hideTracked, lookupHistory, lookupTracked]);
 
-  const attendeeEmails = useMemo(
-    () => tickets.map((t) => t.email as string | null),
-    [tickets],
-  );
-  const { lookup: lookupHistory } = useContactHistory(attendeeEmails);
-  const { lookup: lookupTracked } = useTrackedByEmails(attendeeEmails);
 
 
   const allSelected = filtered.length > 0 && filtered.every((r) => selected.has(r.id));
@@ -212,7 +221,35 @@ function TitoEventDetail() {
                 </Button>
               )}
             </div>
+            <div className="flex flex-wrap items-center gap-3 mt-2 pt-2 border-t border-slate-100">
+              <div className="inline-flex rounded-md border bg-white p-0.5 text-xs">
+                {(["all", "never", "contacted"] as const).map((k) => {
+                  const label = k === "all" ? "Any contact" : k === "never" ? "Never contacted" : "Contacted before";
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setContactFilter(k)}
+                      className={cn(
+                        "px-2.5 py-1 rounded font-medium transition-colors",
+                        contactFilter === k ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                <Checkbox
+                  checked={hideTracked}
+                  onCheckedChange={(v) => setHideTracked(!!v)}
+                />
+                Hide people already in my database
+              </label>
+            </div>
           </Card>
+
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
