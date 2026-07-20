@@ -129,6 +129,8 @@ function SpeakerBoard() {
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
   const [dragOver, setDragOver] = useState<ColKey | null>(null);
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [candidatesOpen, setCandidatesOpen] = useState(true);
 
   const eventById = useMemo(
     () => Object.fromEntries((events.data ?? []).map((e) => [e.id, e])),
@@ -198,10 +200,30 @@ function SpeakerBoard() {
     return arr;
   }, [filtered, sortKey, eventById]);
 
+  // Partition: freshly-tagged Tito candidates (source='tito_candidate', status='contacted', no messages yet)
+  // land in a separate "Potential speakers" section grouped by event; everything else stays in the main pipeline.
+  const isPotentialCandidate = (s: any) =>
+    s.source === "tito_candidate" && s.status === "contacted" && !s.last_message_at;
+
+  const pipelineSorted = useMemo(() => sorted.filter((s: any) => !isPotentialCandidate(s)), [sorted]);
+  const candidatesSorted = useMemo(() => sorted.filter((s: any) => isPotentialCandidate(s)), [sorted]);
+
+  const candidatesByEvent = useMemo(() => {
+    const map = new Map<string, { event: any; rows: any[] }>();
+    for (const s of candidatesSorted) {
+      const ev = eventById[s.event_id];
+      const key = s.event_id ?? "unassigned";
+      const entry = map.get(key) ?? { event: ev, rows: [] };
+      entry.rows.push(s);
+      map.set(key, entry);
+    }
+    return Array.from(map.entries()).map(([id, v]) => ({ id, ...v }));
+  }, [candidatesSorted, eventById]);
+
   const grouped: Record<ColKey, any[]> = {
     contacted: [], responded: [], confirmed: [], banner_sent: [], bio_headshot_in: [],
   };
-  sorted.forEach((s: any) => grouped[columnFor(s)].push(s));
+  pipelineSorted.forEach((s: any) => grouped[columnFor(s)].push(s));
 
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const selectedSpeakers = useMemo(
@@ -387,20 +409,13 @@ function SpeakerBoard() {
         />
       </div>
 
-      {/* Secondary filters */}
+      {/* Primary filters: Event + Business line (always visible) */}
       <Card className="p-3 mb-4 rounded-xl border-slate-200/70 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-            <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Sort by" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="stalest">Sort: Stalest contact</SelectItem>
-              <SelectItem value="name">Sort: Name A–Z</SelectItem>
-              <SelectItem value="event">Sort: Event</SelectItem>
-              <SelectItem value="status">Sort: Status</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={eventFilter} onValueChange={setEventFilter}>
-            <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-56 h-9">
+              <SelectValue placeholder="Event" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All events</SelectItem>
               {(events.data ?? []).map((e) => (
@@ -409,35 +424,30 @@ function SpeakerBoard() {
             </SelectContent>
           </Select>
           <Select value={lineFilter} onValueChange={setLineFilter}>
-            <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-40 h-9">
+              <SelectValue placeholder="Business line" />
+            </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All lines</SelectItem>
+              <SelectItem value="all">All business lines</SelectItem>
               <SelectItem value="AIAI">AIAI</SelectItem>
               <SelectItem value="CSC">CSC</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={channelFilter} onValueChange={setChannelFilter}>
-            <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All channels</SelectItem>
-              <SelectItem value="untagged">Untagged</SelectItem>
-              {OUTREACH_CHANNELS.map((c) => (
-                <SelectItem key={c} value={c}>{labels.outreachChannel[c as OutreachChannel]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={attentionFilter} onValueChange={(v) => setAttentionFilter(v as any)}>
-            <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Attention: all</SelectItem>
-              <SelectItem value="any">Needs attention</SelectItem>
-              <SelectItem value="reply">Reply needed</SelectItem>
-              <SelectItem value="follow_up">Follow up</SelectItem>
-            </SelectContent>
-          </Select>
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
-            <Checkbox checked={missingBH} onCheckedChange={(v) => setMissingBH(!!v)} /> Bio &amp; headshot missing
-          </label>
+
+          <button
+            type="button"
+            onClick={() => setShowMoreFilters((v) => !v)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md px-2 py-1"
+          >
+            {showMoreFilters ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            More filters
+            {(sortKey !== "stalest" || channelFilter !== "all" || attentionFilter !== "all" || missingBH) && (
+              <span className="ml-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5">
+                {[sortKey !== "stalest", channelFilter !== "all", attentionFilter !== "all", missingBH].filter(Boolean).length}
+              </span>
+            )}
+          </button>
+
           {hasFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8">
               <X className="h-3.5 w-3.5 mr-1" /> Clear
@@ -445,15 +455,15 @@ function SpeakerBoard() {
           )}
           <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground cursor-pointer px-2 py-1 rounded-md hover:bg-muted/60 transition-colors">
             <Checkbox
-              checked={sorted.length > 0 && sorted.every((s: any) => selected[s.id])}
+              checked={pipelineSorted.length > 0 && pipelineSorted.every((s: any) => selected[s.id])}
               onCheckedChange={(v) => {
                 if (v) {
                   const next = { ...selected };
-                  sorted.forEach((s: any) => (next[s.id] = true));
+                  pipelineSorted.forEach((s: any) => (next[s.id] = true));
                   setSelected(next);
                 } else {
                   const next = { ...selected };
-                  sorted.forEach((s: any) => delete next[s.id]);
+                  pipelineSorted.forEach((s: any) => delete next[s.id]);
                   setSelected(next);
                 }
               }}
@@ -461,9 +471,45 @@ function SpeakerBoard() {
             Select all visible
           </label>
           <div className="text-xs text-muted-foreground tabular-nums">
-            {sorted.length} shown
+            {pipelineSorted.length} shown
           </div>
         </div>
+
+        {showMoreFilters && (
+          <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+            <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+              <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Sort by" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stalest">Sort: Stalest contact</SelectItem>
+                <SelectItem value="name">Sort: Name A–Z</SelectItem>
+                <SelectItem value="event">Sort: Event</SelectItem>
+                <SelectItem value="status">Sort: Status</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={channelFilter} onValueChange={setChannelFilter}>
+              <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Channels" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All channels</SelectItem>
+                <SelectItem value="untagged">Untagged</SelectItem>
+                {OUTREACH_CHANNELS.map((c) => (
+                  <SelectItem key={c} value={c}>{labels.outreachChannel[c as OutreachChannel]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={attentionFilter} onValueChange={(v) => setAttentionFilter(v as any)}>
+              <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Attention" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Attention: all</SelectItem>
+                <SelectItem value="any">Needs attention</SelectItem>
+                <SelectItem value="reply">Reply needed</SelectItem>
+                <SelectItem value="follow_up">Follow up</SelectItem>
+              </SelectContent>
+            </Select>
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
+              <Checkbox checked={missingBH} onCheckedChange={(v) => setMissingBH(!!v)} /> Bio &amp; headshot missing
+            </label>
+          </div>
+        )}
       </Card>
 
       <div className="mb-4">

@@ -160,9 +160,11 @@ function SpeakerSourcingPage() {
     message: string;
   } | null>(null);
   const [eventSearch, setEventSearch] = useState("");
-  const [companyList, setCompanyList] = useState<string[]>([]);
-  const [companyMode, setCompanyMode] = useState<"only" | "exclude">("only");
-  const [companyFileName, setCompanyFileName] = useState<string | null>(null);
+  const [companiesInclude, setCompaniesInclude] = useState<string[]>([]);
+  const [companiesIncludeFile, setCompaniesIncludeFile] = useState<string | null>(null);
+  const [companiesExclude, setCompaniesExclude] = useState<string[]>([]);
+  const [companiesExcludeFile, setCompaniesExcludeFile] = useState<string | null>(null);
+  const [composeOpen, setComposeOpen] = useState(false);
 
   // Autocomplete
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -200,10 +202,8 @@ function SpeakerSourcingPage() {
           release_titles_exclude: excludeReleases.length ? excludeReleases : undefined,
           years: selectedYears.length ? selectedYears : undefined,
           apply_exclude_list: applyExclude,
-          companies_include:
-            companyList.length && companyMode === "only" ? companyList : undefined,
-          companies_exclude:
-            companyList.length && companyMode === "exclude" ? companyList : undefined,
+          companies_include: companiesInclude.length ? companiesInclude : undefined,
+          companies_exclude: companiesExclude.length ? companiesExclude : undefined,
           limit: 1000,
         },
       });
@@ -282,7 +282,7 @@ function SpeakerSourcingPage() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Speaker Sourcing</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Speaker Prospecting</h1>
             <p className="text-sm text-slate-500 mt-1">
               Find past attendees to invite as speakers. Scoped to AIAI &amp; CSC events by default.
             </p>
