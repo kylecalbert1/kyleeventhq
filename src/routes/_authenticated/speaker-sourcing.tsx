@@ -598,9 +598,47 @@ function SpeakerSourcingPage() {
         {/* Search results */}
         {(search.data !== undefined || search.isPending) && (
           <div className="rounded-xl bg-white border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden">
-            <div className="flex items-center justify-between p-3 border-b bg-slate-50/50">
-              <div className="text-sm font-medium text-slate-700">
-                {results.length} search results{selected.size > 0 ? ` · ${selected.size} selected` : ""}
+            <div className="flex items-center justify-between p-3 border-b bg-slate-50/50 gap-3 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="text-sm font-medium text-slate-700">
+                  {visibleResults.length}
+                  {visibleResults.length !== results.length ? ` of ${results.length}` : ""}
+                  {" "}search result{results.length === 1 ? "" : "s"}
+                  {selected.size > 0 ? ` · ${selected.size} selected` : ""}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {(["all", "never", "before"] as const).map((v) => {
+                    const on = contactedFilter === v;
+                    const label =
+                      v === "all"
+                        ? "All"
+                        : v === "never"
+                          ? "Never contacted"
+                          : "Contacted before";
+                    return (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setContactedFilter(v)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
+                          on
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
+                  <Checkbox
+                    checked={hideTracked}
+                    onCheckedChange={(v) => setHideTracked(Boolean(v))}
+                  />
+                  Hide people already in my database
+                </label>
               </div>
               <div className="flex gap-2">
                 <TagButton
@@ -631,13 +669,15 @@ function SpeakerSourcingPage() {
               </div>
             </div>
             <div className="p-3 max-h-[70vh] overflow-y-auto">
-              {results.length === 0 && !search.isPending ? (
+              {visibleResults.length === 0 && !search.isPending ? (
                 <div className="p-8 text-center text-slate-500 text-sm">
-                  No attendees matched. Try broadening your search or clearing filters.
+                  {results.length === 0
+                    ? "No attendees matched. Try broadening your search or clearing filters."
+                    : "All results were hidden by the contact/tracked filters above."}
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {results.map((r) => (
+                  {visibleResults.map((r) => (
                     <TitoAttendeeCard
                       key={r.id}
                       a={r as TitoAttendee}
@@ -648,6 +688,8 @@ function SpeakerSourcingPage() {
                         if (r.email) window.location.href = `mailto:${r.email}`;
                       }}
                       onAddNote={() => setDetailAttendee(r as TitoAttendee)}
+                      history={lookupHistory(r.email)}
+                      trackedIn={lookupTracked(r.email)}
                     />
                   ))}
                 </div>
