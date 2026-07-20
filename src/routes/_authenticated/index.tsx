@@ -327,12 +327,9 @@ function EventsGrid() {
                     </div>
 
                     <div className="mt-4 flex items-center gap-2 flex-wrap">
-                      <Pill tone="neutral">{counts.total} speakers</Pill>
+                      <Pill tone="neutral">{counts.total} attendees</Pill>
                       {counts.contacted > 0 && (
-                        <Pill tone="amber">{counts.contacted} contacted</Pill>
-                      )}
-                      {counts.responded > 0 && (
-                        <Pill tone="purple">{counts.responded} responded</Pill>
+                        <Pill tone="amber">{counts.contacted} registered</Pill>
                       )}
                       {counts.confirmed > 0 && (
                         <Pill tone="green">{counts.confirmed} confirmed</Pill>
@@ -341,7 +338,7 @@ function EventsGrid() {
                         <Pill tone="red">{counts.declined} declined</Pill>
                       )}
                       {s.bannersSent > 0 && (
-                        <Pill tone="purple">{s.bannersSent} banners live</Pill>
+                        <Pill tone="blue">{s.bannersSent} speakers/sponsors</Pill>
                       )}
                     </div>
                   </div>
