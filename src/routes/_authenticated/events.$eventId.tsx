@@ -322,17 +322,9 @@ function EventDetail() {
         <EmailSection eventId={eventId} speakers={speakers.data ?? []} />
       </section>
 
-      {/* ─── Banners & Sponsors ─── */}
+      {/* ─── Sponsors ─── */}
       <section className="space-y-6">
         <div className="accent-bar mb-2" />
-        <h2 className="text-sm font-semibold">Banners</h2>
-        <EventBannerGroup
-          event={e}
-          rows={bannerRows}
-          onPatchRow={(row, patch) => patchRow.mutate({ row, patch })}
-          onPatchEvent={(patch) => patchEvent.mutate({ patch })}
-          compact
-        />
         <div>
           <SectionHeader title="Sponsors" onAdd={() => setSponsorEdit({ open: true })} />
           <Card>
