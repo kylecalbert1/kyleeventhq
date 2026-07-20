@@ -44,21 +44,40 @@ function Stat({
 }: {
   label: string;
   value: number | string;
-  tone?: "neutral" | "amber" | "green" | "purple" | "red";
+  tone?: "neutral" | "amber" | "green" | "violet" | "red";
 }) {
-  const toneClass: Record<string, string> = {
-    neutral: "text-slate-900",
-    amber: "text-amber-600",
-    green: "text-emerald-600",
-    purple: "text-violet-600",
-    red: "text-rose-600",
+  const styles: Record<string, { card: string; value: string; label: string }> = {
+    neutral: {
+      card: "bg-white ring-1 ring-slate-200/70",
+      value: "text-slate-900",
+      label: "text-slate-500",
+    },
+    amber: {
+      card: "bg-amber-50 ring-1 ring-amber-100",
+      value: "text-amber-700",
+      label: "text-amber-600",
+    },
+    green: {
+      card: "bg-emerald-50 ring-1 ring-emerald-100",
+      value: "text-emerald-700",
+      label: "text-emerald-600",
+    },
+    violet: {
+      card: "bg-violet-50 ring-1 ring-violet-100",
+      value: "text-violet-700",
+      label: "text-violet-600",
+    },
+    red: {
+      card: "bg-red-50 ring-1 ring-red-100",
+      value: "text-red-700",
+      label: "text-red-600",
+    },
   };
+  const s = styles[tone];
   return (
-    <div className="flex-1 min-w-[110px] px-4 py-3 text-center">
-      <div className={`text-3xl font-bold tabular-nums leading-none ${toneClass[tone]}`}>
-        {value}
-      </div>
-      <div className="mt-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-500">
+    <div className={`flex-1 min-w-[120px] rounded-xl px-4 py-4 text-center ${s.card}`}>
+      <div className={`text-3xl font-bold tabular-nums leading-none ${s.value}`}>{value}</div>
+      <div className={`mt-1.5 text-[11px] font-medium uppercase tracking-wider ${s.label}`}>
         {label}
       </div>
     </div>
@@ -69,7 +88,7 @@ function Pill({
   tone,
   children,
 }: {
-  tone: "neutral" | "amber" | "green" | "purple" | "red";
+  tone: "neutral" | "amber" | "green" | "purple" | "red" | "blue";
   children: React.ReactNode;
 }) {
   const toneClass: Record<string, string> = {
@@ -78,6 +97,7 @@ function Pill({
     green: "bg-emerald-50 text-emerald-800 ring-emerald-200",
     purple: "bg-violet-50 text-violet-800 ring-violet-200",
     red: "bg-rose-50 text-rose-800 ring-rose-200",
+    blue: "bg-blue-50 text-blue-800 ring-blue-200",
   };
   return (
     <span
@@ -207,16 +227,16 @@ function EventsGrid() {
         </div>
 
         {/* Overview */}
-        <div className="surface-card p-2">
-          <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <div className="surface-card p-4">
+          <div className="px-1 pb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             Overview
           </div>
-          <div className="flex items-stretch divide-x divide-slate-100">
+          <div className="flex flex-wrap items-stretch gap-3">
             <Stat label="Events" value={stats.events} tone="neutral" />
-            <Stat label="Speakers" value={stats.speakers} tone="neutral" />
+            <Stat label="Attendees" value={stats.speakers} tone="neutral" />
             <Stat label="New" value={stats.contacted} tone="amber" />
             <Stat label="Confirmed" value={stats.confirmed} tone="green" />
-            <Stat label="Responded" value={stats.responded} tone="purple" />
+            <Stat label="Reconfirmed" value={stats.responded} tone="violet" />
             <Stat label="Declined" value={stats.declined} tone="red" />
           </div>
         </div>
@@ -307,12 +327,9 @@ function EventsGrid() {
                     </div>
 
                     <div className="mt-4 flex items-center gap-2 flex-wrap">
-                      <Pill tone="neutral">{counts.total} speakers</Pill>
+                      <Pill tone="neutral">{counts.total} attendees</Pill>
                       {counts.contacted > 0 && (
-                        <Pill tone="amber">{counts.contacted} contacted</Pill>
-                      )}
-                      {counts.responded > 0 && (
-                        <Pill tone="purple">{counts.responded} responded</Pill>
+                        <Pill tone="amber">{counts.contacted} registered</Pill>
                       )}
                       {counts.confirmed > 0 && (
                         <Pill tone="green">{counts.confirmed} confirmed</Pill>
@@ -321,7 +338,7 @@ function EventsGrid() {
                         <Pill tone="red">{counts.declined} declined</Pill>
                       )}
                       {s.bannersSent > 0 && (
-                        <Pill tone="purple">{s.bannersSent} banners live</Pill>
+                        <Pill tone="blue">{s.bannersSent} speakers/sponsors</Pill>
                       )}
                     </div>
                   </div>
