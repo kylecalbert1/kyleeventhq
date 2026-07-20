@@ -242,17 +242,17 @@ function EventDetail() {
                     <InfoItem
                       icon={<Users className="h-4 w-4" />}
                       label="Capacity"
-                      value={e.capacity ? String(e.capacity) : "—"}
+                      value={(e as any).capacity ? String((e as any).capacity) : "—"}
                     />
                     <InfoItem
                       icon={<AtSign className="h-4 w-4" />}
                       label="Emails from"
-                      value={e.emails_from || e.owner || "—"}
+                      value={(e as any).emails_from || e.owner || "—"}
                     />
                     <InfoItem
                       icon={<Clock className="h-4 w-4" />}
                       label="Timezone"
-                      value={e.timezone || "—"}
+                      value={(e as any).timezone || "—"}
                     />
                   </div>
                 </div>
