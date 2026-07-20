@@ -13,16 +13,6 @@ import {
   ChevronRight,
   Sparkles,
   Search,
-  FileDown,
-  Upload,
-  Bell,
-  Copy,
-  BarChart3,
-  CalendarDays,
-  MapPin,
-  Users,
-  Clock,
-  AtSign,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -200,135 +190,69 @@ function EventDetail() {
         </Button>
       </div>
 
-      {/* ─── Header info card ─── */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+            {e.code}
+            <StatusPill className={pillClass.businessLine[e.business_line as "AIAI" | "CSC"]}>
+              {e.business_line}
+            </StatusPill>
+            <span className="text-muted-foreground">
+              · {labels.format[e.format as "in_person" | "virtual"]}
+            </span>
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight mt-1">{e.name}</h1>
+          <div className="text-sm text-muted-foreground mt-1">
+            {e.venue ? `${e.venue} · ` : ""}
+            {e.event_date ? new Date(e.event_date).toLocaleDateString() : "Date TBC"}
+            {e.owner ? ` · Owner: ${e.owner}` : ""}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <StatusPill className={pillClass.website[e.website_status as never]}>
+            {labels.website[e.website_status as never]}
+          </StatusPill>
+          <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-1.5" />
+            Sync
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setEditingEvent(true)}>
+            <Pencil className="h-4 w-4 mr-1.5" />
+            Edit
+          </Button>
+        </div>
+      </div>
+
+      {/* Top-level search — filters the Speakers, Outreach, Banners lists below */}
+      <div className="relative max-w-xl">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          className="pl-9 h-10"
+          placeholder="Search speakers by name, company, email…"
+          value={speakerQ}
+          onChange={(ev) => setSpeakerQ(ev.target.value)}
+        />
+      </div>
+
+      {/* ─── Stat pills ─── */}
       {(() => {
         const all = (speakers.data ?? []) as any[];
         const total = all.length;
-        const registered = all.filter((s) => s.status === "contacted").length;
         const confirmed = all.filter((s) => s.status === "confirmed").length;
-        const reconfirmed = all.filter((s) => s.status === "responded").length;
-        const eventDate = e.event_date ?? e.launch_date;
-        const dateLabel = eventDate
-          ? new Date(eventDate).toLocaleDateString("en-GB", {
-              weekday: "short",
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })
-          : "Date TBC";
-        const isVirtual = e.format === "virtual";
+        const responded = all.filter((s) => s.status === "responded").length;
+        const contacted = all.filter((s) => s.status === "contacted").length;
+        const bannersLive = ((sponsors.data ?? []) as any[]).filter(
+          (s) => s.banner_status === "confirmed_live",
+        ).length +
+          all.filter((s) => s.banner_status === "confirmed_live").length;
         return (
-          <>
-            <div className="surface-card p-6">
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-                    <span className="pill pill-slate">{e.code}</span>
-                    <StatusPill className={pillClass.businessLine[e.business_line as "AIAI" | "CSC"]}>
-                      {e.business_line}
-                    </StatusPill>
-                    <span className="text-muted-foreground">
-                      · {labels.format[e.format as "in_person" | "virtual"]}
-                    </span>
-                  </div>
-                  <h1 className="text-2xl font-semibold tracking-tight mt-2 text-slate-900">{e.name}</h1>
-                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-3 text-sm">
-                    <InfoItem icon={<CalendarDays className="h-4 w-4" />} label="Date" value={dateLabel} />
-                    <InfoItem
-                      icon={<MapPin className="h-4 w-4" />}
-                      label="Venue"
-                      value={isVirtual ? "Virtual event" : e.venue || "TBC"}
-                    />
-                    <InfoItem
-                      icon={<Users className="h-4 w-4" />}
-                      label="Capacity"
-                      value={(e as any).capacity ? String((e as any).capacity) : "—"}
-                    />
-                    <InfoItem
-                      icon={<AtSign className="h-4 w-4" />}
-                      label="Emails from"
-                      value={(e as any).emails_from || e.owner || "—"}
-                    />
-                    <InfoItem
-                      icon={<Clock className="h-4 w-4" />}
-                      label="Timezone"
-                      value={(e as any).timezone || "—"}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Action button row */}
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setEditingEvent(true)}>
-                  <Pencil className="h-4 w-4 mr-1.5" /> Edit Event
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => toast.info("Export CSV coming soon")}>
-                  <FileDown className="h-4 w-4 mr-1.5" /> Export CSV
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => toast.info("Upload Attendance coming soon")}>
-                  <Upload className="h-4 w-4 mr-1.5" /> Upload Attendance
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => toast.info("Slack Alert coming soon")}>
-                  <Bell className="h-4 w-4 mr-1.5" /> Slack Alert
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => toast.info("Duplicate coming soon")}>
-                  <Copy className="h-4 w-4 mr-1.5" /> Duplicate
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 hover:text-violet-800"
-                  onClick={() => toast.info("Sales Report coming soon")}
-                >
-                  <BarChart3 className="h-4 w-4 mr-1.5" /> Sales Report
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
-                  onClick={() => toast.info("Custom Send coming soon")}
-                >
-                  <Send className="h-4 w-4 mr-1.5" /> Custom Send
-                </Button>
-                <div className="ml-auto flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                    onClick={() => setSyncOpen(true)}
-                  >
-                    <Sparkles className="h-4 w-4 mr-1.5" /> Sync from Tito
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => setSpeakerEdit({ open: true })}
-                  >
-                    <Plus className="h-4 w-4 mr-1.5" /> Add Attendee
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Top-level search — filters the Speakers list below */}
-            <div className="relative max-w-xl">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-9 h-10"
-                placeholder="Search speakers by name, company, email…"
-                value={speakerQ}
-                onChange={(ev) => setSpeakerQ(ev.target.value)}
-              />
-            </div>
-
-            {/* ─── Status pills (no banners) ─── */}
-            <div className="flex flex-wrap gap-2">
-              <span className="pill pill-slate">Attendees · {total}</span>
-              <span className="pill pill-amber">Registered · {registered}</span>
-              <span className="pill pill-green">Confirmed · {confirmed}</span>
-              <span className="pill pill-purple">Reconfirmed · {reconfirmed}</span>
-            </div>
-          </>
+          <div className="flex flex-wrap gap-2">
+            <span className="pill pill-blue">Speakers · {total}</span>
+            <span className="pill pill-amber">Contacted · {contacted}</span>
+            <span className="pill pill-purple">Responded · {responded}</span>
+            <span className="pill pill-green">Confirmed · {confirmed}</span>
+            <span className="pill pill-slate">Banners live · {bannersLive}</span>
+          </div>
         );
       })()}
 
@@ -678,18 +602,6 @@ function EventDetail() {
         />
       )}
       <SyncDialog open={syncOpen} onOpenChange={setSyncOpen} defaultEventId={eventId} />
-    </div>
-  );
-}
-
-function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      <div className="text-slate-400 mt-0.5">{icon}</div>
-      <div className="min-w-0">
-        <div className="text-[11px] font-medium uppercase tracking-wider text-slate-500">{label}</div>
-        <div className="text-sm text-slate-900 truncate">{value}</div>
-      </div>
     </div>
   );
 }
