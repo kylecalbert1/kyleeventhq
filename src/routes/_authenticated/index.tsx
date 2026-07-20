@@ -226,16 +226,16 @@ function EventsGrid() {
         </div>
 
         {/* Overview */}
-        <div className="surface-card p-2">
-          <div className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <div className="surface-card p-4">
+          <div className="px-1 pb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             Overview
           </div>
-          <div className="flex items-stretch divide-x divide-slate-100">
+          <div className="flex flex-wrap items-stretch gap-3">
             <Stat label="Events" value={stats.events} tone="neutral" />
-            <Stat label="Speakers" value={stats.speakers} tone="neutral" />
+            <Stat label="Attendees" value={stats.speakers} tone="neutral" />
             <Stat label="New" value={stats.contacted} tone="amber" />
             <Stat label="Confirmed" value={stats.confirmed} tone="green" />
-            <Stat label="Responded" value={stats.responded} tone="purple" />
+            <Stat label="Reconfirmed" value={stats.responded} tone="violet" />
             <Stat label="Declined" value={stats.declined} tone="red" />
           </div>
         </div>
