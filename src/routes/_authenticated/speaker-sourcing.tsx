@@ -806,6 +806,20 @@ function SpeakerSourcingPage() {
             if (!v) setDetailAttendee(null);
           }}
         />
+
+        <BulkEmailDialog
+          open={composeOpen}
+          onOpenChange={setComposeOpen}
+          speakers={results
+            .filter((r) => selected.has(r.id))
+            .map((r) => ({
+              id: r.id,
+              name: r.name ?? "Unknown",
+              email: r.email ?? null,
+              company: r.company_name ?? null,
+            }))}
+          initialTemplate="custom"
+        />
       </div>
     </div>
   );
