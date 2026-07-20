@@ -17,7 +17,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SpeakerListCard } from "@/components/speakers/SpeakerListCard";
 
@@ -49,8 +48,6 @@ import {
   type BannerRow,
 } from "@/components/banners/EventBannerGroup";
 import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
-import { OutreachHub } from "@/components/outreach/OutreachHub";
-import { AgendaTab } from "@/components/agenda/AgendaTab";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
@@ -237,30 +234,32 @@ function EventDetail() {
         />
       </div>
 
-      <Tabs defaultValue="speakers">
-        <TabsList>
-          <TabsTrigger value="speakers">Speakers</TabsTrigger>
-          <TabsTrigger value="outreach">Outreach</TabsTrigger>
-          <TabsTrigger value="agenda">Agenda</TabsTrigger>
-          <TabsTrigger value="banners">Banners</TabsTrigger>
-          <TabsTrigger value="website">Website</TabsTrigger>
-          <TabsTrigger value="email">Email</TabsTrigger>
-          <TabsTrigger value="milestones">Kickoff & Washup</TabsTrigger>
-        </TabsList>
+      {/* ─── Stat pills ─── */}
+      {(() => {
+        const all = (speakers.data ?? []) as any[];
+        const total = all.length;
+        const confirmed = all.filter((s) => s.status === "confirmed").length;
+        const responded = all.filter((s) => s.status === "responded").length;
+        const contacted = all.filter((s) => s.status === "contacted").length;
+        const bannersLive = ((sponsors.data ?? []) as any[]).filter(
+          (s) => s.banner_status === "confirmed_live",
+        ).length +
+          all.filter((s) => s.banner_status === "confirmed_live").length;
+        return (
+          <div className="flex flex-wrap gap-2">
+            <span className="pill pill-blue">Speakers · {total}</span>
+            <span className="pill pill-amber">Contacted · {contacted}</span>
+            <span className="pill pill-purple">Responded · {responded}</span>
+            <span className="pill pill-green">Confirmed · {confirmed}</span>
+            <span className="pill pill-slate">Banners live · {bannersLive}</span>
+          </div>
+        );
+      })()}
 
-        <TabsContent value="outreach" className="mt-4">
-          <OutreachHub eventId={eventId} />
-        </TabsContent>
-
-        <TabsContent value="agenda" className="mt-4">
-          <AgendaTab eventId={eventId} eventFormat={e.format} />
-        </TabsContent>
-
-        <TabsContent value="email" className="mt-4 space-y-4">
-          <EmailSection eventId={eventId} speakers={speakers.data ?? []} />
-        </TabsContent>
-
-        <TabsContent value="speakers" className="mt-4 space-y-3">
+      {/* ─── Speakers (most-used, visible by default) ─── */}
+      <section className="space-y-3">
+        <div>
+          <div className="accent-bar mb-2" />
           {(() => {
             const term = speakerQ.trim().toLowerCase();
             const all = (speakers.data ?? []) as any[];
@@ -314,228 +313,246 @@ function EventDetail() {
               </>
             );
           })()}
-        </TabsContent>
+        </div>
+      </section>
 
+      {/* ─── Email schedule ─── */}
+      <section className="space-y-3">
+        <div className="accent-bar mb-2" />
+        <EmailSection eventId={eventId} speakers={speakers.data ?? []} />
+      </section>
 
-        <TabsContent value="banners" className="mt-4 space-y-6">
-          <EventBannerGroup
-            event={e}
-            rows={bannerRows}
-            onPatchRow={(row, patch) => patchRow.mutate({ row, patch })}
-            onPatchEvent={(patch) => patchEvent.mutate({ patch })}
-            compact
-          />
-          <div>
-            <SectionHeader title="Sponsors" onAdd={() => setSponsorEdit({ open: true })} />
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Sponsor</TableHead>
-                    <TableHead>Tier</TableHead>
-                    <TableHead>Session</TableHead>
-                    <TableHead>Banner</TableHead>
-                    <TableHead>LinkedIn post</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(sponsors.data ?? []).map((s: any) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell>{s.spend_tier}</TableCell>
-                      <TableCell>{s.session_type}</TableCell>
-                      <TableCell>
-                        <StatusPill className={pillClass.banner[s.banner_status as never]}>
-                          {labels.banner[s.banner_status as never]}
-                        </StatusPill>
-                      </TableCell>
-                      <TableCell>{s.linkedin_post_confirmed ? "✓" : "—"}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSponsorEdit({ open: true, sponsor: s })}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(sponsors.data ?? []).length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
-                        No sponsors yet.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="website" className="mt-4 space-y-3">
-          <SectionHeader title="Website tasks" onAdd={() => setTaskEdit({ open: true })} />
-          {(tasks.data ?? []).length === 0 ? (
-            <Card className="p-8 text-center text-sm text-muted-foreground">
-              No website tasks yet.
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {(tasks.data ?? []).map((t: any) => {
-                const stages = [
-                  { key: "buddy_proof" as const, label: "1st proof (buddy)", done: t.buddy_proof_done, date: t.buddy_proof_date },
-                  { key: "marketer_proof" as const, label: "2nd proof (marketing)", done: t.marketer_proof_done, date: t.marketer_proof_date },
-                  { key: "amendments_actioned" as const, label: "Amendments actioned", done: t.amendments_actioned_done, date: t.amendments_actioned_date },
-                  { key: "final_signoff" as const, label: "Final sign-off", done: t.final_signoff_done, date: t.final_signoff_date },
-                ];
-                return (
-                  <Card
-                    key={t.id}
-                    className="p-4 hover:shadow-sm transition-shadow cursor-pointer bg-white rounded-2xl border-slate-200/70"
-                    onClick={() => setTaskEdit({ open: true, task: t })}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {t.protected && <Lock className="h-3.5 w-3.5 text-amber-600" />}
-                          <div className="font-semibold text-sm truncate">
-                            {t.title || "Website task"}
-                          </div>
-                          <StatusPill className={pillClass.website[t.status as never]}>
-                            {labels.website[t.status as never]}
-                          </StatusPill>
-                          {t.due_date && (
-                            <span className="text-[11px] text-muted-foreground">
-                              Due {new Date(t.due_date).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                          {stages.map((st) => {
-                            const asanaDue = asanaDues?.[st.key] ?? null;
-                            return (
-                              <span
-                                key={st.label}
-                                className={
-                                  "text-[11px] px-2 py-0.5 rounded-full ring-1 " +
-                                  (st.done
-                                    ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                                    : "bg-slate-50 text-slate-500 ring-slate-200")
-                                }
-                              >
-                                {st.done ? "✓ " : "○ "}
-                                {st.label}
-                                {st.done && st.date ? ` · ${new Date(st.date).toLocaleDateString()}` : ""}
-                                {asanaDue ? ` · Asana ${new Date(asanaDue).toLocaleDateString()}` : ""}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      {t.markup_url && (
-                        <a
-                          href={t.markup_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(evt) => evt.stopPropagation()}
-                          className="shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-sky-50 text-sky-700 ring-1 ring-sky-200 hover:bg-sky-100"
-                        >
-                          Markup <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-
-
-        <TabsContent value="milestones" className="mt-4 space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-sm font-semibold">Kickoff & Washup</h2>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMilestoneEdit({ open: true, type: "kickoff" })}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Kickoff
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMilestoneEdit({ open: true, type: "washup" })}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Washup
-              </Button>
-            </div>
-          </div>
-          <div className="grid gap-3">
-            {(milestones.data ?? []).map((m: any) => (
-              <Card key={m.id} className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm">
-                        {labels.milestoneType[m.type as never]}
-                      </span>
-                      <StatusPill className={pillClass.milestoneStatus[m.status as never]}>
-                        {labels.milestoneStatus[m.status as never]}
+      {/* ─── Banners & Sponsors ─── */}
+      <section className="space-y-6">
+        <div className="accent-bar mb-2" />
+        <h2 className="text-sm font-semibold">Banners</h2>
+        <EventBannerGroup
+          event={e}
+          rows={bannerRows}
+          onPatchRow={(row, patch) => patchRow.mutate({ row, patch })}
+          onPatchEvent={(patch) => patchEvent.mutate({ patch })}
+          compact
+        />
+        <div>
+          <SectionHeader title="Sponsors" onAdd={() => setSponsorEdit({ open: true })} />
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Sponsor</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead>Session</TableHead>
+                  <TableHead>Banner</TableHead>
+                  <TableHead>LinkedIn post</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(sponsors.data ?? []).map((s: any) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium">{s.name}</TableCell>
+                    <TableCell>{s.spend_tier}</TableCell>
+                    <TableCell>{s.session_type}</TableCell>
+                    <TableCell>
+                      <StatusPill className={pillClass.banner[s.banner_status as never]}>
+                        {labels.banner[s.banner_status as never]}
                       </StatusPill>
-                      <span className="text-xs text-muted-foreground">
-                        {m.scheduled_date ? new Date(m.scheduled_date).toLocaleDateString() : "—"}
-                      </span>
+                    </TableCell>
+                    <TableCell>{s.linkedin_post_confirmed ? "✓" : "—"}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSponsorEdit({ open: true, sponsor: s })}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {(sponsors.data ?? []).length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                      No sponsors yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </div>
+      </section>
+
+      {/* ─── Website tasks ─── */}
+      <section className="space-y-3">
+        <div className="accent-bar mb-2" />
+        <SectionHeader title="Website tasks" onAdd={() => setTaskEdit({ open: true })} />
+        {(tasks.data ?? []).length === 0 ? (
+          <Card className="p-8 text-center text-sm text-muted-foreground">
+            No website tasks yet.
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {(tasks.data ?? []).map((t: any) => {
+              const stages = [
+                { key: "buddy_proof" as const, label: "1st proof (buddy)", done: t.buddy_proof_done, date: t.buddy_proof_date },
+                { key: "marketer_proof" as const, label: "2nd proof (marketing)", done: t.marketer_proof_done, date: t.marketer_proof_date },
+                { key: "amendments_actioned" as const, label: "Amendments actioned", done: t.amendments_actioned_done, date: t.amendments_actioned_date },
+                { key: "final_signoff" as const, label: "Final sign-off", done: t.final_signoff_done, date: t.final_signoff_date },
+              ];
+              return (
+                <Card
+                  key={t.id}
+                  className="p-4 hover:shadow-sm transition-shadow cursor-pointer bg-card rounded-2xl border-slate-200/70"
+                  onClick={() => setTaskEdit({ open: true, task: t })}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {t.protected && <Lock className="h-3.5 w-3.5 text-amber-600" />}
+                        <div className="font-semibold text-sm truncate">
+                          {t.title || "Website task"}
+                        </div>
+                        <StatusPill className={pillClass.website[t.status as never]}>
+                          {labels.website[t.status as never]}
+                        </StatusPill>
+                        {t.due_date && (
+                          <span className="text-[11px] text-muted-foreground">
+                            Due {new Date(t.due_date).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {stages.map((st) => {
+                          const asanaDue = asanaDues?.[st.key] ?? null;
+                          return (
+                            <span
+                              key={st.label}
+                              className={
+                                "text-[11px] px-2 py-0.5 rounded-full ring-1 " +
+                                (st.done
+                                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                                  : "bg-slate-50 text-slate-500 ring-slate-200")
+                              }
+                            >
+                              {st.done ? "✓ " : "○ "}
+                              {st.label}
+                              {st.done && st.date ? ` · ${new Date(st.date).toLocaleDateString()}` : ""}
+                              {asanaDue ? ` · Asana ${new Date(asanaDue).toLocaleDateString()}` : ""}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="flex gap-3 text-xs mt-1">
-                      {m.doc_link && (
-                        <a
-                          className="text-primary hover:underline inline-flex items-center gap-1"
-                          href={m.doc_link}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Doc <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                      {m.recap_link && (
-                        <a
-                          className="text-primary hover:underline inline-flex items-center gap-1"
-                          href={m.recap_link}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Recap <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                    </div>
-                    {m.key_action_items && (
-                      <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
-                        {m.key_action_items}
-                      </p>
+                    {t.markup_url && (
+                      <a
+                        href={t.markup_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(evt) => evt.stopPropagation()}
+                        className="shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-sky-50 text-sky-700 ring-1 ring-sky-200 hover:bg-sky-100"
+                      >
+                        Markup <ExternalLink className="h-3 w-3" />
+                      </a>
                     )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setMilestoneEdit({ open: true, milestone: m })}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </Card>
-            ))}
-            {(milestones.data ?? []).length === 0 && (
-              <Card className="p-8 text-center text-sm text-muted-foreground">No milestones yet.</Card>
-            )}
+                </Card>
+              );
+            })}
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+      </section>
+
+      {/* ─── Kickoff & Washup ─── */}
+      <section className="space-y-4">
+        <div className="accent-bar mb-2" />
+        <div className="flex justify-between items-center">
+          <h2 className="text-sm font-semibold">Kickoff & Washup</h2>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setMilestoneEdit({ open: true, type: "kickoff" })}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Kickoff
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setMilestoneEdit({ open: true, type: "washup" })}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Washup
+            </Button>
+          </div>
+        </div>
+        <div className="grid gap-3">
+          {(milestones.data ?? []).map((m: any) => (
+            <Card key={m.id} className="p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm">
+                      {labels.milestoneType[m.type as never]}
+                    </span>
+                    <StatusPill className={pillClass.milestoneStatus[m.status as never]}>
+                      {labels.milestoneStatus[m.status as never]}
+                    </StatusPill>
+                    <span className="text-xs text-muted-foreground">
+                      {m.scheduled_date ? new Date(m.scheduled_date).toLocaleDateString() : "—"}
+                    </span>
+                  </div>
+                  <div className="flex gap-3 text-xs mt-1">
+                    {m.doc_link && (
+                      <a
+                        className="text-primary hover:underline inline-flex items-center gap-1"
+                        href={m.doc_link}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Doc <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                    {m.recap_link && (
+                      <a
+                        className="text-primary hover:underline inline-flex items-center gap-1"
+                        href={m.recap_link}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Recap <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                  {m.key_action_items && (
+                    <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
+                      {m.key_action_items}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMilestoneEdit({ open: true, milestone: m })}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </Card>
+          ))}
+          {(milestones.data ?? []).length === 0 && (
+            <Card className="p-8 text-center text-sm text-muted-foreground">No milestones yet.</Card>
+          )}
+        </div>
+      </section>
+
+      <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+        Looking for LinkedIn outreach templates or the agenda builder? They now live
+        in their own top-level pages — <Link to="/outreach-templates" className="underline font-medium">Outreach</Link>{" "}
+        and <Link to="/agenda" className="underline font-medium">Agenda</Link> — with an event picker at the top.
+      </div>
+
 
       <EventFormDialog open={editingEvent} onOpenChange={setEditingEvent} event={e as any} />
       {speakerEdit && (

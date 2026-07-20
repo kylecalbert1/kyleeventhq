@@ -1,41 +1,74 @@
-# Punch list plan
 
-Sequenced by dependency, not by list order. Quick wins first, then agenda work, then Asana (which needs your input to link).
+## Scope
 
-## 1. Nav + dashboard cleanup (items 4, 5)
-- Remove "Banners" from left sidebar under Event Delivery (route + underlying data stay, per-event tab stays).
-- Remove "Banners Sent x/y" stat card from the main Events dashboard.
+Seven-item batch. I'll execute them in dependency order (theme first, then structural moves, then UX polish) so nothing gets restyled twice.
 
-## 2. Editable speaker target per event (item 6)
-- Migration: add `speaker_target int not null default 15` to `events`.
-- Expose in Event form dialog (number input).
-- Update every "Speakers Confirmed X/Y" surface (dashboard, per-event header, anywhere else) to use `event.speaker_target` as denominator.
+### 1. "Compose email" button (Sourcing + per-event Tito page)
+Add a second button next to "Draft outreach" on `speaker-sourcing.tsx` and `tito.$slug.tsx`. It opens `BulkEmailDialog` directly with the selected attendees — no AI step. Enabled when ≥1 selected. Uses the existing template/`{{firstName}}`/per-row Send flow already in `BulkEmailDialog`.
 
-## 3. Merge bio + headshot into one status (item 3)
-- Migration: add `bio_and_headshot_received boolean not null default false` on `speakers`; backfill = `bio_received AND headshot_received`. Keep the old columns for now (safer, no data loss) but stop reading/writing them from the UI.
-- Speaker form dialog: replace the two checkboxes with one "Bio & headshot received".
-- Speaker Pipeline cards, per-event Speakers tab, detail dialog, anywhere pills render: single "Bio & headshot" pill (received / missing).
+### 2. Split sourced candidates out of Speaker pipeline
+In `speakers.tsx`, partition the list:
+- **Main pipeline feed** (current single-column layout): only speakers whose `status` is one of `contacted / responded / confirmed / declined` **and** who are not "sourced-but-untouched" (i.e. exclude rows where `source = 'tito'` AND status is still the default `contacted` AND `last_message_at IS NULL` — the state a freshly tagged candidate lands in).
+- **New "Potential speakers" collapsible section** above or below the pipeline, grouped by event with headers like `Potential speakers — <event name>`. Each row uses the same card but with a lighter treatment and a "Move to pipeline" affordance (set `last_message_at = now()` or flip a flag so it graduates into the main feed).
 
-## 4. Agenda read-only running-order view + Edit toggle (item 2)
-- Agenda tab shows a clean running-order sheet by default (grouped rows, session-type badges, times, speakers, AV notes) with **Edit** and **Export CSV** buttons top right.
-- **Edit** flips to the existing spreadsheet builder with **Save** / **Cancel**.
-- New events with no agenda land straight in edit mode.
+Assumption to confirm: the graduation trigger is "user actually sends/records first outreach" — I'll use `last_message_at IS NOT NULL` as the signal, since that's already what other views key off. If you'd rather have an explicit "Move to pipeline" button that just marks it, that's a one-line change.
 
-## 5. Agenda import from .xlsx / .csv / .docx (item 1)
-- "Import" button on the Agenda tab, opens a file picker.
-- **.xlsx / .csv**: parse client-side with `xlsx` (SheetJS). Expect columns Start / End / Mins / Session Type / Session Title / Speaker(s) / AV Requirements; tolerate reordering + missing columns; map session-type text to enum by fuzzy match.
-- **.docx**: parse client-side with `mammoth` → HTML → read first `<table>`. Best-effort; if no table found, show a clear error and suggest xlsx/csv.
-- Speaker matching: split the Speaker(s) cell on `,` / `&` / `and`, match each name case-insensitively against existing speakers for this event; matched → `speaker_ids`, unmatched → concatenated into `speaker_extra` text.
-- Preview parsed rows in a dialog before committing (so you can spot bad rows), then **Import** replaces the current agenda via the existing bulk-replace server fn.
+### 3. Theme + event detail restructure
+**3a. Theme (site-wide).** Update `src/styles.css` design tokens only — no per-component rewrites:
+- `--background`: soft light gray (was likely white)
+- Card surface stays white with `--shadow-soft` (subtle) and rounded-xl
+- Add semantic pill tokens: `--pill-amber`, `--pill-green`, `--pill-purple`, `--pill-red` (bg + fg pairs) and expose as `.pill-amber` etc. utilities via `@utility`
+- Add `--accent-bar` gradient for the thin colored bar under section headers
+- Keep current font stack unless you want a specific swap (say the word and I'll wire Inter Tight or similar)
 
-## 6. Asana proofing sync (item 7)
-Asana isn't linked to the workspace yet. Two-step:
-- **You**: connect Asana in Lovable → Connectors, then tell me the Asana project (or a section) that holds the website proofing tasks and how you name tasks per stage (e.g. "Buddy proof — CCO SF", or three tasks per event tagged by stage).
-- **Me**, once linked: extend the existing Sync run to pull tasks from that project via the connector gateway, match each task to `(event, stage)` by title/tag rule you confirm, and stash `asana_due_date` per stage on `website_tasks`. Website tracker + per-event Website tab render the Asana due date next to each stage chip, read-only, with a "last synced" timestamp. No write-back, no alerts.
+Because `StatusPill`, cards, and shells already read from tokens, the visual shift propagates without touching each component. I'll spot-fix any hardcoded `bg-white` / `bg-slate-50` I find that fights the new page bg.
 
-If you'd rather I stub this behind a feature flag now and wire it fully once Asana is linked, say so — otherwise I'll do items 1–5 this pass and pause before 6 for the connector + naming rules.
+**3b. Event detail page (`events.$eventId.tsx`) — flatten.**
+Replace the tab interface with a single scrollable page:
+- **Header**: event name, date, venue, owner
+- **Accent bar** (thin colored strip)
+- **Action row**: Edit Event, Sync from Tito, Add Speaker, Export CSV (keep the buttons that already exist; drop ones we don't have backing for rather than stubbing)
+- **Stat pills**: registered / confirmed speakers / banners live / etc. using the new pill tokens
+- **Speakers section** rendered directly (most-used, no click needed)
+- **Banners**, **Website**, **Kickoff & Washup** as lighter-weight sections stacked below
+- **Outreach** and **Agenda** are removed from this page (see item 7)
 
-## Out of scope this pass
-- Docx generation of the running order (you said CSV is fine).
-- Alerting on Asana date drift.
-- Any change to banner data model or the per-event Banners tab beyond nav removal.
+### 4. Two-CSV company filter
+Replace the single upload + include/exclude toggle in `CompaniesCsvPanel` with two side-by-side slots:
+- **Include list** upload (only these)
+- **Exclude list** upload (never these)
+Each shows filename, count, clear button. Both applied together when both loaded. Backend `Filters` schema already has `companies_include` / `companies_exclude` — just wire both from the UI.
+
+### 5. Rename "Speaker Sourcing" → "Speaker Prospecting"
+- Nav link label in `AppShell.tsx`
+- Page `<h1>` and any breadcrumbs ("Back to Speaker Sourcing" on `tito.$slug.tsx`)
+- Route path stays `/speaker-sourcing` to avoid breaking bookmarks (URL rename is unnecessary risk; label change achieves the disambiguation goal). If you want the URL changed too, tell me and I'll add a redirect.
+
+### 6. Speaker pipeline filter cleanup
+In `speakers.tsx`, keep visible: Search box, Event picker, Business line (AIAI/CSC).
+Move into "More filters" collapsible: Sort, Channels, Attention, "Bio & headshot missing".
+
+### 7. Promote Outreach & Agenda to top-level pages
+- New route `src/routes/_authenticated/outreach-templates.tsx` (renaming to avoid collision with existing `/outreach` weekly outreach page — I'll confirm which is which before picking the final path). Wraps `OutreachHub` with an event picker at the top.
+- New route `src/routes/_authenticated/agenda.tsx`. Wraps `AgendaTab` with an event picker at the top.
+- Add both to `AppShell.tsx` nav under "Event delivery".
+- Remove the "Outreach" and "Agenda" tabs from the event detail page (already gone as part of item 3b flattening).
+
+Assumption to confirm: the existing `/outreach` nav link ("Weekly Outreach" → `outreach.tsx`) is a *different* feature (the weekly outreach hub). I'll place the new one at `/outreach-templates` or `/speaker-outreach` — will pick the clearer of the two once I read `OutreachHub.tsx`.
+
+## Order of execution
+
+1. Theme tokens (3a) — everything downstream inherits.
+2. New top-level Outreach + Agenda pages (7) — needed before flattening event page.
+3. Flatten event detail (3b).
+4. Speakers page: partition tagged candidates (2) + collapse filters (6).
+5. Sourcing page: Compose button (1), two-CSV panel (4), rename to Prospecting (5).
+6. `tito.$slug.tsx`: Compose button (1) + breadcrumb rename (5).
+
+## What I won't do without a signal from you
+
+- Change the URL path for Sourcing → Prospecting (label change only, per above)
+- Add net-new stats to the event page that don't have data behind them (I'll use what's already queried)
+- Introduce a new font family (current stack stays unless you name one)
+
+Confirm and I'll execute end-to-end and give you the per-item summary at the finish.
