@@ -88,7 +88,7 @@ function Pill({
   tone,
   children,
 }: {
-  tone: "neutral" | "amber" | "green" | "purple" | "red";
+  tone: "neutral" | "amber" | "green" | "purple" | "red" | "blue";
   children: React.ReactNode;
 }) {
   const toneClass: Record<string, string> = {
@@ -97,6 +97,7 @@ function Pill({
     green: "bg-emerald-50 text-emerald-800 ring-emerald-200",
     purple: "bg-violet-50 text-violet-800 ring-violet-200",
     red: "bg-rose-50 text-rose-800 ring-rose-200",
+    blue: "bg-blue-50 text-blue-800 ring-blue-200",
   };
   return (
     <span
