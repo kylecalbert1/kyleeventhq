@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import {
@@ -13,16 +13,6 @@ import {
   ChevronRight,
   Sparkles,
   Search,
-  FileDown,
-  Upload,
-  Bell,
-  Copy,
-  BarChart3,
-  CalendarDays,
-  MapPin,
-  Users,
-  Clock,
-  AtSign,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -40,9 +30,6 @@ import {
   emailSendsQuery,
 } from "@/lib/queries";
 import { labels, pillClass } from "@/lib/status";
-import { updateSpeaker } from "@/lib/speakers.functions";
-import { updateSponsor } from "@/lib/sponsors.functions";
-import { updateEvent } from "@/lib/events.functions";
 import { getAsanaProofingDueDates } from "@/lib/asana.functions";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
@@ -53,10 +40,7 @@ import { MilestoneFormDialog } from "@/components/dialogs/MilestoneFormDialog";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { SendHistoryPanel } from "@/components/SendHistoryPanel";
-import {
-  EventBannerGroup,
-  type BannerRow,
-} from "@/components/banners/EventBannerGroup";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { firstNameOf } from "@/lib/gmail";
@@ -94,9 +78,6 @@ function EventDetail() {
   });
   const asanaDues = asanaQuery.data?.dues;
 
-  const upSpeaker = useServerFn(updateSpeaker);
-  const upSponsor = useServerFn(updateSponsor);
-  const upEvent = useServerFn(updateEvent);
 
   const [editingEvent, setEditingEvent] = useState(false);
   const [speakerEdit, setSpeakerEdit] = useState<null | { open: boolean; speaker?: any }>(null);
@@ -141,50 +122,10 @@ function EventDetail() {
     }
   }
 
-  const bannerRows = useMemo<BannerRow[]>(() => {
-    return [
-      ...((speakers.data ?? []) as any[]).map((s) => ({
-        kind: "speaker" as const,
-        id: s.id,
-        event_id: s.event_id,
-        name: s.name,
-        banner_status: s.banner_status,
-        linkedin_post_confirmed: s.linkedin_post_confirmed,
-      })),
-      ...((sponsors.data ?? []) as any[]).map((s) => ({
-        kind: "sponsor" as const,
-        id: s.id,
-        event_id: s.event_id,
-        name: s.name,
-        banner_status: s.banner_status,
-        linkedin_post_confirmed: s.linkedin_post_confirmed,
-      })),
-    ];
-  }, [speakers.data, sponsors.data]);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
 
-  const patchRow = useMutation({
-    mutationFn: async ({ row, patch }: { row: BannerRow; patch: any }) => {
-      if (row.kind === "speaker") return upSpeaker({ data: { id: row.id, patch } });
-      return upSponsor({ data: { id: row.id, patch } });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["speakers"] });
-      qc.invalidateQueries({ queryKey: ["sponsors"] });
-      qc.invalidateQueries({ queryKey: ["eventSummaries"] });
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
 
-  const patchEvent = useMutation({
-    mutationFn: async ({ patch }: { patch: any }) => upEvent({ data: { id: eventId, patch } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["event", eventId] });
-      qc.invalidateQueries({ queryKey: ["events"] });
-      qc.invalidateQueries({ queryKey: ["eventSummaries"] });
-      toast.success("Saved");
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
 
   if (!event.data) return null;
   const e = event.data;
@@ -200,135 +141,70 @@ function EventDetail() {
         </Button>
       </div>
 
-      {/* ─── Header info card ─── */}
+      <Card className="p-5 rounded-2xl border-slate-200/70">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+              {e.code}
+              <StatusPill className={pillClass.businessLine[e.business_line as "AIAI" | "CSC"]}>
+                {e.business_line}
+              </StatusPill>
+              <span className="text-muted-foreground">
+                · {labels.format[e.format as "in_person" | "virtual"]}
+              </span>
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight mt-1">{e.name}</h1>
+            <div className="text-sm text-muted-foreground mt-1">
+              {e.venue ? `${e.venue} · ` : ""}
+              {e.event_date ? new Date(e.event_date).toLocaleDateString() : "Date TBC"}
+              {e.owner ? ` · Owner: ${e.owner}` : ""}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <StatusPill className={pillClass.website[e.website_status as never]}>
+              {labels.website[e.website_status as never]}
+            </StatusPill>
+            <Button variant="outline" size="sm" onClick={() => setEditingEvent(true)}>
+              <Pencil className="h-4 w-4 mr-1.5" />
+              Edit Event
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              Sync from Tito
+            </Button>
+            <Button size="sm" onClick={() => setSpeakerEdit({ open: true })}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add Attendee
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Top-level search — filters the Speakers, Outreach, Banners lists below */}
+      <div className="relative max-w-xl">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          className="pl-9 h-10"
+          placeholder="Search speakers by name, company, email…"
+          value={speakerQ}
+          onChange={(ev) => setSpeakerQ(ev.target.value)}
+        />
+      </div>
+
+      {/* ─── Stat pills ─── */}
       {(() => {
         const all = (speakers.data ?? []) as any[];
         const total = all.length;
-        const registered = all.filter((s) => s.status === "contacted").length;
         const confirmed = all.filter((s) => s.status === "confirmed").length;
-        const reconfirmed = all.filter((s) => s.status === "responded").length;
-        const eventDate = e.event_date ?? e.launch_date;
-        const dateLabel = eventDate
-          ? new Date(eventDate).toLocaleDateString("en-GB", {
-              weekday: "short",
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })
-          : "Date TBC";
-        const isVirtual = e.format === "virtual";
+        const responded = all.filter((s) => s.status === "responded").length;
+        const contacted = all.filter((s) => s.status === "contacted").length;
         return (
-          <>
-            <div className="surface-card p-6">
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-                    <span className="pill pill-slate">{e.code}</span>
-                    <StatusPill className={pillClass.businessLine[e.business_line as "AIAI" | "CSC"]}>
-                      {e.business_line}
-                    </StatusPill>
-                    <span className="text-muted-foreground">
-                      · {labels.format[e.format as "in_person" | "virtual"]}
-                    </span>
-                  </div>
-                  <h1 className="text-2xl font-semibold tracking-tight mt-2 text-slate-900">{e.name}</h1>
-                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-3 text-sm">
-                    <InfoItem icon={<CalendarDays className="h-4 w-4" />} label="Date" value={dateLabel} />
-                    <InfoItem
-                      icon={<MapPin className="h-4 w-4" />}
-                      label="Venue"
-                      value={isVirtual ? "Virtual event" : e.venue || "TBC"}
-                    />
-                    <InfoItem
-                      icon={<Users className="h-4 w-4" />}
-                      label="Capacity"
-                      value={(e as any).capacity ? String((e as any).capacity) : "—"}
-                    />
-                    <InfoItem
-                      icon={<AtSign className="h-4 w-4" />}
-                      label="Emails from"
-                      value={(e as any).emails_from || e.owner || "—"}
-                    />
-                    <InfoItem
-                      icon={<Clock className="h-4 w-4" />}
-                      label="Timezone"
-                      value={(e as any).timezone || "—"}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Action button row */}
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setEditingEvent(true)}>
-                  <Pencil className="h-4 w-4 mr-1.5" /> Edit Event
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => toast.info("Export CSV coming soon")}>
-                  <FileDown className="h-4 w-4 mr-1.5" /> Export CSV
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => toast.info("Upload Attendance coming soon")}>
-                  <Upload className="h-4 w-4 mr-1.5" /> Upload Attendance
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => toast.info("Slack Alert coming soon")}>
-                  <Bell className="h-4 w-4 mr-1.5" /> Slack Alert
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => toast.info("Duplicate coming soon")}>
-                  <Copy className="h-4 w-4 mr-1.5" /> Duplicate
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 hover:text-violet-800"
-                  onClick={() => toast.info("Sales Report coming soon")}
-                >
-                  <BarChart3 className="h-4 w-4 mr-1.5" /> Sales Report
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
-                  onClick={() => toast.info("Custom Send coming soon")}
-                >
-                  <Send className="h-4 w-4 mr-1.5" /> Custom Send
-                </Button>
-                <div className="ml-auto flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                    onClick={() => setSyncOpen(true)}
-                  >
-                    <Sparkles className="h-4 w-4 mr-1.5" /> Sync from Tito
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => setSpeakerEdit({ open: true })}
-                  >
-                    <Plus className="h-4 w-4 mr-1.5" /> Add Attendee
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Top-level search — filters the Speakers list below */}
-            <div className="relative max-w-xl">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-9 h-10"
-                placeholder="Search speakers by name, company, email…"
-                value={speakerQ}
-                onChange={(ev) => setSpeakerQ(ev.target.value)}
-              />
-            </div>
-
-            {/* ─── Status pills (no banners) ─── */}
-            <div className="flex flex-wrap gap-2">
-              <span className="pill pill-slate">Attendees · {total}</span>
-              <span className="pill pill-amber">Registered · {registered}</span>
-              <span className="pill pill-green">Confirmed · {confirmed}</span>
-              <span className="pill pill-purple">Reconfirmed · {reconfirmed}</span>
-            </div>
-          </>
+          <div className="flex flex-wrap gap-2">
+            <span className="pill pill-blue">Speakers · {total}</span>
+            <span className="pill pill-amber">Contacted · {contacted}</span>
+            <span className="pill pill-purple">Responded · {responded}</span>
+            <span className="pill pill-green">Confirmed · {confirmed}</span>
+          </div>
         );
       })()}
 
@@ -345,6 +221,10 @@ function EventDetail() {
                   return hay.includes(term);
                 })
               : all;
+            const selectedIds = Object.keys(selected).filter((k) => selected[k]);
+            const selectedSpeakers = filtered.filter((s) => selected[s.id]);
+            const allVisibleChecked =
+              filtered.length > 0 && filtered.every((s) => selected[s.id]);
             return (
               <>
                 <SectionHeader
@@ -355,6 +235,45 @@ function EventDetail() {
                   }
                   onAdd={() => setSpeakerEdit({ open: true })}
                 />
+
+                {filtered.length > 0 && (
+                  <div className="flex items-center gap-3 mb-3 px-1">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer px-2 py-1 rounded-md hover:bg-muted/60 transition-colors">
+                      <Checkbox
+                        checked={allVisibleChecked}
+                        onCheckedChange={(v) => {
+                          const next = { ...selected };
+                          if (v) filtered.forEach((s) => (next[s.id] = true));
+                          else filtered.forEach((s) => delete next[s.id]);
+                          setSelected(next);
+                        }}
+                      />
+                      Select all visible
+                    </label>
+                  </div>
+                )}
+
+                <div
+                  className={`overflow-hidden transition-all duration-300 ease-out ${
+                    selectedIds.length > 0 ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 shadow-sm">
+                    <div className="text-sm font-medium">
+                      {selectedIds.length} speaker{selectedIds.length === 1 ? "" : "s"} selected
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button size="sm" variant="outline" onClick={() => setSelected({})}>
+                        Clear
+                      </Button>
+                      <Button size="sm" onClick={() => setBulkEmailOpen(true)}>
+                        <Mail className="h-4 w-4 mr-1.5" />
+                        Compose email
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
                 {all.length === 0 ? (
                   <Card className="p-8 text-center text-sm text-muted-foreground">
                     No speakers yet.
@@ -371,6 +290,10 @@ function EventDetail() {
                         s={s}
                         ev={e}
                         showEventChip={false}
+                        selected={!!selected[s.id]}
+                        onToggleSelect={(v) =>
+                          setSelected({ ...selected, [s.id]: v })
+                        }
                         onOpenDetail={() => setDetailSpeaker(s)}
                         onEmail={() => emailOne(s, e)}
                         onCopyLink={async () => {
@@ -386,11 +309,19 @@ function EventDetail() {
                     ))}
                   </div>
                 )}
+
+                <BulkEmailDialog
+                  open={bulkEmailOpen}
+                  onOpenChange={setBulkEmailOpen}
+                  speakers={selectedSpeakers}
+                  eventId={eventId}
+                />
               </>
             );
           })()}
         </div>
       </section>
+
 
       {/* ─── Email schedule ─── */}
       <section className="space-y-3">
@@ -678,18 +609,6 @@ function EventDetail() {
         />
       )}
       <SyncDialog open={syncOpen} onOpenChange={setSyncOpen} defaultEventId={eventId} />
-    </div>
-  );
-}
-
-function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      <div className="text-slate-400 mt-0.5">{icon}</div>
-      <div className="min-w-0">
-        <div className="text-[11px] font-medium uppercase tracking-wider text-slate-500">{label}</div>
-        <div className="text-sm text-slate-900 truncate">{value}</div>
-      </div>
     </div>
   );
 }
