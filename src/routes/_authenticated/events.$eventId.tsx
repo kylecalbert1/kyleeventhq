@@ -129,17 +129,16 @@ function EventDetail() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
 
-
-  const patchEvent = useMutation({
+  // Retained: writeback for future in-place event edits.
+  void useMutation({
     mutationFn: async ({ patch }: { patch: any }) => upEvent({ data: { id: eventId, patch } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["event", eventId] });
       qc.invalidateQueries({ queryKey: ["events"] });
       qc.invalidateQueries({ queryKey: ["eventSummaries"] });
-      toast.success("Saved");
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+
 
   if (!event.data) return null;
   const e = event.data;
