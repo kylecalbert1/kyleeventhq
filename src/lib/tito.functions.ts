@@ -620,7 +620,7 @@ export const speakerSourcingStats = createServerFn({ method: "GET" })
     const speakers = sp.data ?? [];
     const byStatus = (s: string) => speakers.filter((r) => r.status === s).length;
     const newProfiles = speakers.filter(
-      (r) => r.source === "tito_candidate" && r.status === "contacted",
+      (r) => r.source === "tito_candidate" && (r.status === "new" || r.status === "contacted"),
     ).length;
     return {
       unified_events: ev.count ?? 0,
@@ -1158,7 +1158,7 @@ export const tagAsSpeakerCandidates = createServerFn({ method: "POST" })
         company: t.company_name,
         title: t.job_title,
         email: t.email,
-        status: "contacted" as const,
+        status: "new" as const,
         banner_status: "not_started" as const,
         linkedin_post_confirmed: false,
         source: "tito_candidate",
