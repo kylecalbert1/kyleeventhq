@@ -214,17 +214,12 @@ function EventDetail() {
         const confirmed = all.filter((s) => s.status === "confirmed").length;
         const responded = all.filter((s) => s.status === "responded").length;
         const contacted = all.filter((s) => s.status === "contacted").length;
-        const bannersLive = ((sponsors.data ?? []) as any[]).filter(
-          (s) => s.banner_status === "confirmed_live",
-        ).length +
-          all.filter((s) => s.banner_status === "confirmed_live").length;
         return (
           <div className="flex flex-wrap gap-2">
             <span className="pill pill-blue">Speakers · {total}</span>
             <span className="pill pill-amber">Contacted · {contacted}</span>
             <span className="pill pill-purple">Responded · {responded}</span>
             <span className="pill pill-green">Confirmed · {confirmed}</span>
-            <span className="pill pill-slate">Banners live · {bannersLive}</span>
           </div>
         );
       })()}
@@ -242,6 +237,10 @@ function EventDetail() {
                   return hay.includes(term);
                 })
               : all;
+            const selectedIds = Object.keys(selected).filter((k) => selected[k]);
+            const selectedSpeakers = filtered.filter((s) => selected[s.id]);
+            const allVisibleChecked =
+              filtered.length > 0 && filtered.every((s) => selected[s.id]);
             return (
               <>
                 <SectionHeader
@@ -252,6 +251,45 @@ function EventDetail() {
                   }
                   onAdd={() => setSpeakerEdit({ open: true })}
                 />
+
+                {filtered.length > 0 && (
+                  <div className="flex items-center gap-3 mb-3 px-1">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer px-2 py-1 rounded-md hover:bg-muted/60 transition-colors">
+                      <Checkbox
+                        checked={allVisibleChecked}
+                        onCheckedChange={(v) => {
+                          const next = { ...selected };
+                          if (v) filtered.forEach((s) => (next[s.id] = true));
+                          else filtered.forEach((s) => delete next[s.id]);
+                          setSelected(next);
+                        }}
+                      />
+                      Select all visible
+                    </label>
+                  </div>
+                )}
+
+                <div
+                  className={`overflow-hidden transition-all duration-300 ease-out ${
+                    selectedIds.length > 0 ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 shadow-sm">
+                    <div className="text-sm font-medium">
+                      {selectedIds.length} speaker{selectedIds.length === 1 ? "" : "s"} selected
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button size="sm" variant="outline" onClick={() => setSelected({})}>
+                        Clear
+                      </Button>
+                      <Button size="sm" onClick={() => setBulkEmailOpen(true)}>
+                        <Mail className="h-4 w-4 mr-1.5" />
+                        Compose email
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
                 {all.length === 0 ? (
                   <Card className="p-8 text-center text-sm text-muted-foreground">
                     No speakers yet.
@@ -268,6 +306,10 @@ function EventDetail() {
                         s={s}
                         ev={e}
                         showEventChip={false}
+                        selected={!!selected[s.id]}
+                        onToggleSelect={(v) =>
+                          setSelected({ ...selected, [s.id]: v })
+                        }
                         onOpenDetail={() => setDetailSpeaker(s)}
                         onEmail={() => emailOne(s, e)}
                         onCopyLink={async () => {
@@ -283,11 +325,19 @@ function EventDetail() {
                     ))}
                   </div>
                 )}
+
+                <BulkEmailDialog
+                  open={bulkEmailOpen}
+                  onOpenChange={setBulkEmailOpen}
+                  speakers={selectedSpeakers}
+                  eventId={eventId}
+                />
               </>
             );
           })()}
         </div>
       </section>
+
 
       {/* ─── Email schedule ─── */}
       <section className="space-y-3">
