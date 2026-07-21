@@ -424,31 +424,7 @@ function SpeakerBoard() {
         </div>
       </div>
 
-      {/* Primary Status filter — reference-style select */}
-      <div className="mb-3">
-        <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
-          <SelectTrigger
-            className="h-11 w-full sm:w-[420px] bg-white border-slate-200 shadow-sm rounded-xl px-4 text-sm font-medium"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                Status
-              </span>
-              <SelectValue />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses ({totalPreStage})</SelectItem>
-            {COLUMNS.map((c) => (
-              <SelectItem key={c.key} value={c.key}>
-                {c.title} ({stageCounts[c.key]})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Full-width search */}
+      {/* One search bar. One filter row. Consistent across every page. */}
       <div className="mb-4 relative">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
@@ -459,9 +435,20 @@ function SpeakerBoard() {
         />
       </div>
 
-      {/* Primary filters: Event + Business line (always visible) */}
       <Card className="p-3 mb-4 rounded-xl border-slate-200/70 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
+          <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
+            <SelectTrigger className="w-48 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses ({totalPreStage})</SelectItem>
+              {COLUMNS.map((c) => (
+                <SelectItem key={c.key} value={c.key}>
+                  {c.title} ({stageCounts[c.key]})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <SearchableSelect
             triggerClassName="w-56 h-9"
             placeholder="Event"
@@ -477,96 +464,83 @@ function SpeakerBoard() {
           />
 
           <Select value={lineFilter} onValueChange={setLineFilter}>
-            <SelectTrigger className="w-40 h-9">
-              <SelectValue placeholder="Business line" />
-            </SelectTrigger>
+            <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Business line" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All business lines</SelectItem>
+              <SelectItem value="all">All lines</SelectItem>
               <SelectItem value="AIAI">AIAI</SelectItem>
               <SelectItem value="CSC">CSC</SelectItem>
             </SelectContent>
           </Select>
 
-          <button
-            type="button"
-            onClick={() => setShowMoreFilters((v) => !v)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md px-2 py-1"
-          >
-            {showMoreFilters ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-            More filters
-            {(sortKey !== "stalest" || channelFilter !== "all" || attentionFilter !== "all" || missingBH) && (
-              <span className="ml-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5">
-                {[sortKey !== "stalest", channelFilter !== "all", attentionFilter !== "all", missingBH].filter(Boolean).length}
-              </span>
-            )}
-          </button>
+          <Select value={channelFilter} onValueChange={setChannelFilter}>
+            <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Channel" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All channels</SelectItem>
+              <SelectItem value="untagged">Untagged</SelectItem>
+              {OUTREACH_CHANNELS.map((c) => (
+                <SelectItem key={c} value={c}>{labels.outreachChannel[c as OutreachChannel]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={attentionFilter} onValueChange={(v) => setAttentionFilter(v as any)}>
+            <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Attention" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any attention</SelectItem>
+              <SelectItem value="any">Needs attention</SelectItem>
+              <SelectItem value="reply">Reply needed</SelectItem>
+              <SelectItem value="follow_up">Follow up</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+            <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="stalest">Sort: Stalest</SelectItem>
+              <SelectItem value="name">Sort: Name</SelectItem>
+              <SelectItem value="event">Sort: Event</SelectItem>
+              <SelectItem value="status">Sort: Status</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
+            <Checkbox checked={missingBH} onCheckedChange={(v) => setMissingBH(!!v)} /> Bio/headshot missing
+          </label>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
+            <Checkbox checked={callScheduledOnly} onCheckedChange={(v) => setCallScheduledOnly(!!v)} /> Call scheduled
+          </label>
 
           {hasFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8">
               <X className="h-3.5 w-3.5 mr-1" /> Clear
             </Button>
           )}
-          <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground cursor-pointer px-2 py-1 rounded-md hover:bg-muted/60 transition-colors">
-            <Checkbox
-              checked={pipelineSorted.length > 0 && pipelineSorted.every((s: any) => selected[s.id])}
-              onCheckedChange={(v) => {
-                if (v) {
-                  const next = { ...selected };
-                  pipelineSorted.forEach((s: any) => (next[s.id] = true));
-                  setSelected(next);
-                } else {
-                  const next = { ...selected };
-                  pipelineSorted.forEach((s: any) => delete next[s.id]);
-                  setSelected(next);
-                }
-              }}
-            />
-            Select all visible
-          </label>
-          <div className="text-xs text-muted-foreground tabular-nums">
-            {pipelineSorted.length} shown
+
+          <div className="ml-auto flex items-center gap-3">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+              <Checkbox
+                checked={pipelineSorted.length > 0 && pipelineSorted.every((s: any) => selected[s.id])}
+                onCheckedChange={(v) => {
+                  if (v) {
+                    const next = { ...selected };
+                    pipelineSorted.forEach((s: any) => (next[s.id] = true));
+                    setSelected(next);
+                  } else {
+                    const next = { ...selected };
+                    pipelineSorted.forEach((s: any) => delete next[s.id]);
+                    setSelected(next);
+                  }
+                }}
+              />
+              Select all
+            </label>
+            <div className="text-xs text-muted-foreground tabular-nums">
+              {pipelineSorted.length} shown
+            </div>
           </div>
         </div>
-
-        {showMoreFilters && (
-          <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100">
-            <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-              <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Sort by" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="stalest">Sort: Stalest contact</SelectItem>
-                <SelectItem value="name">Sort: Name A–Z</SelectItem>
-                <SelectItem value="event">Sort: Event</SelectItem>
-                <SelectItem value="status">Sort: Status</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={channelFilter} onValueChange={setChannelFilter}>
-              <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Channels" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All channels</SelectItem>
-                <SelectItem value="untagged">Untagged</SelectItem>
-                {OUTREACH_CHANNELS.map((c) => (
-                  <SelectItem key={c} value={c}>{labels.outreachChannel[c as OutreachChannel]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={attentionFilter} onValueChange={(v) => setAttentionFilter(v as any)}>
-              <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Attention" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Attention: all</SelectItem>
-                <SelectItem value="any">Needs attention</SelectItem>
-                <SelectItem value="reply">Reply needed</SelectItem>
-                <SelectItem value="follow_up">Follow up</SelectItem>
-              </SelectContent>
-            </Select>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
-              <Checkbox checked={missingBH} onCheckedChange={(v) => setMissingBH(!!v)} /> Bio &amp; headshot missing
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
-              <Checkbox checked={callScheduledOnly} onCheckedChange={(v) => setCallScheduledOnly(!!v)} /> Call scheduled
-            </label>
-          </div>
-        )}
       </Card>
+
 
       <div className="mb-4">
         <SendHistoryPanel />

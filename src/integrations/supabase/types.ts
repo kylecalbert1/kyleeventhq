@@ -841,6 +841,7 @@ export type Database = {
       }
       tito_events: {
         Row: {
+          business_line: string
           created_at: string
           end_date: string | null
           id: string
@@ -852,6 +853,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_line?: string
           created_at?: string
           end_date?: string | null
           id?: string
@@ -863,6 +865,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_line?: string
           created_at?: string
           end_date?: string | null
           id?: string
