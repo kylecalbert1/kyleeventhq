@@ -38,7 +38,8 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { SendHistoryPanel } from "@/components/SendHistoryPanel";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
-import { bulkMarkBannerSent, updateSpeaker } from "@/lib/speakers.functions";
+import { bulkMarkBannerSent, updateSpeaker, copySpeakerToEvent } from "@/lib/speakers.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   labels,
   OUTREACH_CHANNELS,
