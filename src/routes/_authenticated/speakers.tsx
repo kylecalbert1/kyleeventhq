@@ -997,7 +997,6 @@ function CopyPastSpeakerDialog({
   const qc = useQueryClient();
   const events = useQuery(eventsQuery);
   const [target, setTarget] = useState("");
-  const { copySpeakerToEvent } = require("@/lib/speakers.functions") as typeof import("@/lib/speakers.functions");
   const copyFn = useServerFn(copySpeakerToEvent);
   const mut = useMutation({
     mutationFn: () =>
@@ -1011,15 +1010,13 @@ function CopyPastSpeakerDialog({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
-  const CopyDialog = require("@/components/ui/dialog") as typeof import("@/components/ui/dialog");
-
   if (!speaker) return null;
   return (
-    <CopyDialog.Dialog open={!!speaker} onOpenChange={onOpenChange}>
-      <CopyDialog.DialogContent>
-        <CopyDialog.DialogHeader>
-          <CopyDialog.DialogTitle>Copy {speaker.name} to a new event</CopyDialog.DialogTitle>
-        </CopyDialog.DialogHeader>
+    <Dialog open={!!speaker} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Copy {speaker.name} to a new event</DialogTitle>
+        </DialogHeader>
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
             Creates a new prospect record on the selected event, linked back to this one so history stays intact.
@@ -1037,7 +1034,7 @@ function CopyPastSpeakerDialog({
             }))}
           />
         </div>
-        <CopyDialog.DialogFooter>
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             onClick={() => mut.mutate()}
@@ -1045,8 +1042,8 @@ function CopyPastSpeakerDialog({
           >
             {mut.isPending ? "Copying…" : "Copy"}
           </Button>
-        </CopyDialog.DialogFooter>
-      </CopyDialog.DialogContent>
-    </CopyDialog.Dialog>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
