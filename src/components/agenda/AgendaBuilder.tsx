@@ -413,20 +413,16 @@ export function AgendaBuilder({
 
   // Ensure `days` array matches dayCount (add/remove day 2 when toggling).
   useEffect(() => {
-    if (!days) return;
-    if (isVirtual && days.length !== 1) {
-      setDays([days[0] ?? []]);
-      setActiveDay(0);
-      return;
-    }
-    if (!isVirtual && dayCount === 1 && days.length !== 1) {
-      setDays([days[0] ?? []]);
-      setActiveDay(0);
-    }
-    if (!isVirtual && dayCount === 2 && days.length !== 2) {
-      setDays([days[0] ?? [], days[1] ?? []]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setDays((prev) => {
+      if (!prev) return prev;
+      if (isVirtual || dayCount === 1) {
+        if (prev.length === 1) return prev;
+        return [prev[0] ?? []];
+      }
+      if (prev.length === 2) return prev;
+      return [prev[0] ?? [], prev[1] ?? []];
+    });
+    if (isVirtual || dayCount === 1) setActiveDay(0);
   }, [dayCount, isVirtual]);
 
   // Derived: retimed rows per day.
