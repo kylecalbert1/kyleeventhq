@@ -46,6 +46,7 @@ import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions"
 import { sendGmailEmail } from "@/lib/email.functions";
 import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
+import { TitoEventPanel } from "@/components/events/TitoEventPanel";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
@@ -185,6 +186,9 @@ function EventDetail() {
           </div>
         </div>
       </Card>
+
+      <TitoEventPanel eventId={eventId} hasTitoSlug={Boolean((e as any).tito_slug)} />
+
 
       {/* Top-level search — filters the Speakers, Outreach, Banners lists below */}
       <div className="relative max-w-xl">

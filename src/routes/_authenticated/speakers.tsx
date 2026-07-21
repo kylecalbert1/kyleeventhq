@@ -38,7 +38,8 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { SendHistoryPanel } from "@/components/SendHistoryPanel";
 import { speakersQuery, eventsQuery } from "@/lib/queries";
-import { bulkMarkBannerSent, updateSpeaker } from "@/lib/speakers.functions";
+import { bulkMarkBannerSent, updateSpeaker, copySpeakerToEvent } from "@/lib/speakers.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   labels,
   OUTREACH_CHANNELS,
@@ -611,31 +612,17 @@ function SpeakerBoard() {
       </div>
 
       {view === "list" ? (
-        <div className="space-y-3">
-          {sorted.length === 0 ? (
-            <Card className="p-10 text-center text-sm text-muted-foreground rounded-2xl">
-              No speakers match these filters.
-            </Card>
-          ) : (
-            sorted.map((s: any) => {
-              const ev = eventById[s.event_id];
-              return (
-                <SpeakerListCard
-                  key={s.id}
-                  s={s}
-                  ev={ev}
-                  selected={!!selected[s.id]}
-                  onToggleSelect={(v) => setSelected({ ...selected, [s.id]: v })}
-                  onOpenDetail={() => setDetailSpeaker(s)}
-                  onEmail={() => emailOne(s, ev)}
-                  onCopyLink={() => copyLink(s)}
-                  onEdit={() => setEditing({ open: true, speaker: s })}
-                  history={lookupHistory(s.email)}
-                />
-              );
-            })
-          )}
-        </div>
+        <LifecycleSections
+          sorted={sorted}
+          eventById={eventById}
+          selected={selected}
+          setSelected={setSelected}
+          lookupHistory={lookupHistory}
+          onOpenDetail={(s) => setDetailSpeaker(s)}
+          onEmail={(s) => emailOne(s, eventById[s.event_id])}
+          onCopyLink={copyLink}
+          onEdit={(s) => setEditing({ open: true, speaker: s })}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           {COLUMNS.map((col) => (
@@ -833,5 +820,230 @@ function SpeakerBoardCard({
         </div>
       </div>
     </div>
+  );
+}
+
+/* --------------------------- Lifecycle sections (list view) --------------------------- */
+// Groups a filtered speaker list into three independently-selectable sections:
+//   • Prospective — recruiting (new/contacted/responded/…), future events
+//   • Current     — confirmed for a future event (or event with unknown date)
+//   • Past        — event date has passed (kept visible for re-recruitment)
+// Each section has its own select-all header and Compose email button.
+
+function classifyLifecycle(s: any, ev: any): "prospective" | "current" | "past" {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = ev?.event_date ? new Date(ev.event_date) : null;
+  if (d && d.getTime() < today.getTime()) return "past";
+  if (s.status === "confirmed") return "current";
+  return "prospective";
+}
+
+function LifecycleSections({
+  sorted,
+  eventById,
+  selected,
+  setSelected,
+  lookupHistory,
+  onOpenDetail,
+  onEmail,
+  onCopyLink,
+  onEdit,
+}: {
+  sorted: any[];
+  eventById: Record<string, any>;
+  selected: Record<string, boolean>;
+  setSelected: (v: Record<string, boolean>) => void;
+  lookupHistory: (email: string | null) => any;
+  onOpenDetail: (s: any) => void;
+  onEmail: (s: any) => void;
+  onCopyLink: (s: any) => void;
+  onEdit: (s: any) => void;
+}) {
+  const [copyTarget, setCopyTarget] = useState<any | null>(null);
+  const [bulkOpen, setBulkOpen] = useState<null | "prospective" | "current" | "past">(null);
+
+  const groups = useMemo(() => {
+    const g: Record<"prospective" | "current" | "past", any[]> = {
+      prospective: [], current: [], past: [],
+    };
+    for (const s of sorted) g[classifyLifecycle(s, eventById[s.event_id])].push(s);
+    return g;
+  }, [sorted, eventById]);
+
+  if (sorted.length === 0) {
+    return (
+      <Card className="p-10 text-center text-sm text-muted-foreground rounded-2xl">
+        No speakers match these filters.
+      </Card>
+    );
+  }
+
+  const bulkGroup = bulkOpen ? groups[bulkOpen] : [];
+  const bulkSelected = bulkGroup.filter((s) => selected[s.id]);
+
+  return (
+    <div className="space-y-8">
+      {(["prospective", "current", "past"] as const).map((key) => {
+        const rows = groups[key];
+        const title = key === "prospective" ? "Prospective" : key === "current" ? "Current" : "Past";
+        const help =
+          key === "prospective"
+            ? "Being recruited — not yet confirmed."
+            : key === "current"
+            ? "Confirmed speakers for upcoming events."
+            : "Events already ran. Kept visible for re-recruitment.";
+        const selectedInGroup = rows.filter((s) => selected[s.id]);
+        const allChecked = rows.length > 0 && rows.every((s) => selected[s.id]);
+        return (
+          <section key={key} className="space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <div className="accent-bar mb-2" />
+                <h2 className="text-sm font-semibold">
+                  {title} <span className="text-muted-foreground">({rows.length})</span>
+                </h2>
+                <p className="text-xs text-muted-foreground">{help}</p>
+              </div>
+              {rows.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                    <Checkbox
+                      checked={allChecked}
+                      onCheckedChange={(v) => {
+                        const next = { ...selected };
+                        if (v) rows.forEach((s) => (next[s.id] = true));
+                        else rows.forEach((s) => delete next[s.id]);
+                        setSelected(next);
+                      }}
+                    />
+                    Select all
+                  </label>
+                  <Button
+                    size="sm"
+                    variant={selectedInGroup.length > 0 ? "default" : "outline"}
+                    disabled={selectedInGroup.length === 0}
+                    onClick={() => setBulkOpen(key)}
+                  >
+                    <Mail className="h-3.5 w-3.5 mr-1.5" />
+                    Compose email ({selectedInGroup.length})
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {rows.length === 0 ? (
+              <Card className="p-6 text-center text-xs text-muted-foreground rounded-2xl">
+                Nothing here.
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {rows.map((s: any) => {
+                  const ev = eventById[s.event_id];
+                  return (
+                    <div key={s.id} className="space-y-1">
+                      <SpeakerListCard
+                        s={s}
+                        ev={ev}
+                        selected={!!selected[s.id]}
+                        onToggleSelect={(v) => setSelected({ ...selected, [s.id]: v })}
+                        onOpenDetail={() => onOpenDetail(s)}
+                        onEmail={() => onEmail(s)}
+                        onCopyLink={() => onCopyLink(s)}
+                        onEdit={() => onEdit(s)}
+                        history={lookupHistory(s.email)}
+                      />
+                      {key === "past" && (
+                        <div className="pl-3">
+                          <button
+                            type="button"
+                            onClick={() => setCopyTarget(s)}
+                            className="text-[11px] text-primary hover:underline"
+                          >
+                            Copy to a new event →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        );
+      })}
+
+      <BulkEmailDialog
+        open={bulkOpen != null}
+        onOpenChange={(o) => !o && setBulkOpen(null)}
+        speakers={bulkSelected}
+        eventId={null}
+      />
+      <CopyPastSpeakerDialog
+        speaker={copyTarget}
+        onOpenChange={(o) => !o && setCopyTarget(null)}
+      />
+    </div>
+  );
+}
+
+function CopyPastSpeakerDialog({
+  speaker,
+  onOpenChange,
+}: {
+  speaker: any | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const qc = useQueryClient();
+  const events = useQuery(eventsQuery);
+  const [target, setTarget] = useState("");
+  const copyFn = useServerFn(copySpeakerToEvent);
+  const mut = useMutation({
+    mutationFn: () =>
+      copyFn({ data: { source_speaker_id: speaker!.id, target_event_id: target } }),
+    onSuccess: () => {
+      toast.success(`Copied ${speaker?.name} as a prospect`);
+      qc.invalidateQueries({ queryKey: ["speakers"] });
+      onOpenChange(false);
+      setTarget("");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  if (!speaker) return null;
+  return (
+    <Dialog open={!!speaker} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Copy {speaker.name} to a new event</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Creates a new prospect record on the selected event, linked back to this one so history stays intact.
+          </p>
+          <SearchableSelect
+            triggerClassName="w-full h-10"
+            placeholder="Pick an event…"
+            searchPlaceholder="Search events…"
+            value={target}
+            onValueChange={setTarget}
+            options={(events.data ?? []).map((e) => ({
+              value: e.id,
+              label: `${e.code} — ${e.name}`,
+              keywords: e.name,
+            }))}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button
+            onClick={() => mut.mutate()}
+            disabled={!target || mut.isPending}
+          >
+            {mut.isPending ? "Copying…" : "Copy"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

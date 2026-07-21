@@ -1,15 +1,16 @@
-import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { toast } from "sonner";
 import { createEvent, updateEvent, deleteEvent } from "@/lib/events.functions";
 import { BUSINESS_LINES, EVENT_FORMATS, WEBSITE_STAGES, SELF_STATUSES, labels } from "@/lib/status";
-import { qk } from "@/lib/queries";
+import { qk, titoEventsPickerQuery } from "@/lib/queries";
 
 function parseAsanaGid(input: string): string | null {
   const v = input.trim();
@@ -47,6 +48,29 @@ type EventRow = {
   asana_project_gid?: string | null;
   speaker_target?: number | null;
   external_agenda_url?: string | null;
+  tito_slug?: string | null;
+};
+
+const initial = {
+  code: "",
+  name: "",
+  business_line: "AIAI" as "AIAI" | "CSC",
+  format: "in_person" as "in_person" | "virtual",
+  event_date: "",
+  venue: "",
+  kickoff_date: "",
+  washup_date: "",
+  website_status: "draft" as EventRow["website_status"],
+  launch_date: "",
+  owner: "",
+  proof1_due: "",
+  proof2_due: "",
+  final_signoff_due: "",
+  self_status: "on_track" as "on_track" | "needs_attention" | "off_track",
+  asana_link: "",
+  speaker_target: 15,
+  external_agenda_url: "",
+  tito_slug: "",
 };
 
 export function EventFormDialog({
@@ -62,27 +86,9 @@ export function EventFormDialog({
   const create = useServerFn(createEvent);
   const update = useServerFn(updateEvent);
   const del = useServerFn(deleteEvent);
+  const titoEvents = useQuery({ ...titoEventsPickerQuery, enabled: open });
 
-  const [form, setForm] = useState({
-    code: "",
-    name: "",
-    business_line: "AIAI" as "AIAI" | "CSC",
-    format: "in_person" as "in_person" | "virtual",
-    event_date: "",
-    venue: "",
-    kickoff_date: "",
-    washup_date: "",
-    website_status: "draft" as EventRow["website_status"],
-    launch_date: "",
-    owner: "",
-    proof1_due: "",
-    proof2_due: "",
-    final_signoff_due: "",
-    self_status: "on_track" as "on_track" | "needs_attention" | "off_track",
-    asana_link: "",
-    speaker_target: 15,
-    external_agenda_url: "",
-  });
+  const [form, setForm] = useState(initial);
 
   useEffect(() => {
     if (event) {
@@ -105,28 +111,10 @@ export function EventFormDialog({
         asana_link: event.asana_project_gid ?? "",
         speaker_target: event.speaker_target ?? 15,
         external_agenda_url: event.external_agenda_url ?? "",
+        tito_slug: event.tito_slug ?? "",
       });
     } else {
-      setForm({
-        code: "",
-        name: "",
-        business_line: "AIAI",
-        format: "in_person",
-        event_date: "",
-        venue: "",
-        kickoff_date: "",
-        washup_date: "",
-        website_status: "draft",
-        launch_date: "",
-        owner: "",
-        proof1_due: "",
-        proof2_due: "",
-        final_signoff_due: "",
-        self_status: "on_track",
-        asana_link: "",
-        speaker_target: 15,
-        external_agenda_url: "",
-      });
+      setForm(initial);
     }
   }, [event, open]);
 
@@ -147,6 +135,7 @@ export function EventFormDialog({
         asana_project_gid: parseAsanaGid(asana_link),
         speaker_target: Number(form.speaker_target) || 15,
         external_agenda_url: form.external_agenda_url.trim() || null,
+        tito_slug: form.tito_slug.trim() || null,
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
@@ -175,9 +164,28 @@ export function EventFormDialog({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  const titoOptions = useMemo(() => {
+    const rows = titoEvents.data ?? [];
+    // Rank: future events first, then most recent past.
+    const now = Date.now();
+    const sorted = [...rows].sort((a, b) => {
+      const ad = a.start_date ? new Date(a.start_date).getTime() : 0;
+      const bd = b.start_date ? new Date(b.start_date).getTime() : 0;
+      const aFuture = ad >= now ? 0 : 1;
+      const bFuture = bd >= now ? 0 : 1;
+      if (aFuture !== bFuture) return aFuture - bFuture;
+      return bd - ad;
+    });
+    return sorted.map((e) => ({
+      value: e.slug,
+      label: e.title,
+      keywords: `${e.slug} ${e.start_date ?? ""}`,
+    }));
+  }, [titoEvents.data]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{event ? "Edit event" : "New event"}</DialogTitle>
         </DialogHeader>
@@ -260,6 +268,32 @@ export function EventFormDialog({
           </Field>
           <Field label="Final sign-off due" full>
             <Input type="date" value={form.final_signoff_due} onChange={(e) => setForm({ ...form, final_signoff_due: e.target.value })} />
+          </Field>
+          <Field label="Tito event (optional — leave empty for virtual events)" full>
+            <div className="flex items-center gap-2">
+              <SearchableSelect
+                triggerClassName="flex-1 h-10"
+                placeholder="Search Tito events…"
+                searchPlaceholder="Search by name or slug…"
+                value={form.tito_slug}
+                onValueChange={(v) => setForm({ ...form, tito_slug: v })}
+                allOption={{ value: "", label: "— Not linked —" }}
+                options={titoOptions}
+              />
+              {form.tito_slug && (
+                <a
+                  href={`https://ti.to/sequel-media/${form.tito_slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-primary underline whitespace-nowrap"
+                >
+                  Open in Tito
+                </a>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Links this event to its Tito registration so releases, ticket counts and reconciliation show up on the event page.
+            </p>
           </Field>
           <Field label="Asana Timeline project link (optional)" full>
             <Input

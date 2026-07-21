@@ -1263,3 +1263,395 @@ export const generateOutreachDrafts = createServerFn({ method: "POST" })
     });
     return { drafts };
   });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PER-EVENT SYNC + RECONCILIATION (Phase 2/3 rework)
+//
+// The account-wide `syncTito` above stays as a discovery mechanism, but all
+// day-to-day operations flow through mapped events. Every tracker event that
+// has a `tito_slug` gets synced individually and reconciled against the
+// tracker's speakers.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type TitoRelease = {
+  id?: number | string;
+  slug?: string;
+  title?: string;
+  state?: string;
+  quantity?: number | null;
+  tickets_count?: number | null;
+  // Tito exposes a shareable registration URL under a few possible names
+  // depending on API version — we pick whichever is present.
+  registration_url?: string | null;
+  share_url?: string | null;
+  url?: string | null;
+};
+
+async function fetchAllReleases(account: string, eventSlug: string, token: string) {
+  const releases: TitoRelease[] = [];
+  let page = 1;
+  while (true) {
+    const body = (await titoFetch(`/${account}/${eventSlug}/releases`, token, {
+      page,
+      per_page: 100,
+    })) as { releases?: TitoRelease[]; meta?: { next_page?: number | null } };
+    const batch = body.releases ?? [];
+    releases.push(...batch);
+    const next = body.meta?.next_page;
+    if (!next || batch.length === 0) break;
+    page = Number(next);
+  }
+  return releases;
+}
+
+function releaseRegistrationUrl(r: TitoRelease, account: string, eventSlug: string): string | null {
+  const explicit = r.registration_url ?? r.share_url ?? r.url ?? null;
+  if (explicit) return explicit;
+  // Tito's public registration URL pattern when no explicit share link is present.
+  if (r.slug) return `https://ti.to/${account}/${eventSlug}/with/${r.slug}`;
+  return null;
+}
+
+async function syncSingleEventBySlug(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  token: string,
+  eventSlug: string,
+) {
+  // 1) Event metadata
+  const evBody = (await titoFetch(`/${ACCOUNT}/${eventSlug}`, token)) as { event?: TitoEvent };
+  const ev = evBody.event;
+  if (!ev || !ev.slug) throw new Error(`Tito event ${eventSlug} not found.`);
+
+  await supabase
+    .from("tito_events")
+    .upsert(
+      {
+        slug: ev.slug,
+        title: ev.title ?? ev.slug,
+        start_date: ev.start_date ?? null,
+        end_date: ev.end_date ?? null,
+        is_past: Boolean(ev.end_date && new Date(ev.end_date) < new Date()),
+        last_synced_at: new Date().toISOString(),
+      },
+      { onConflict: "slug" },
+    );
+
+  // 2) Releases
+  const releases = await fetchAllReleases(ACCOUNT, ev.slug, token);
+  if (releases.length) {
+    const releaseRows = releases
+      .filter((r) => r.id != null)
+      .map((r) => ({
+        tito_release_id: String(r.id),
+        event_slug: ev.slug,
+        slug: r.slug ?? null,
+        title: r.title ?? r.slug ?? "Release",
+        state: r.state ?? null,
+        quantity: typeof r.quantity === "number" ? r.quantity : null,
+        tickets_count: typeof r.tickets_count === "number" ? r.tickets_count : null,
+        registration_url: releaseRegistrationUrl(r, ACCOUNT, ev.slug),
+        raw: r as unknown as import("@/integrations/supabase/types").Json,
+      }));
+    const dedup = new Map<string, (typeof releaseRows)[number]>();
+    for (const r of releaseRows) dedup.set(r.tito_release_id, r);
+    const { error: relErr } = await supabase
+      .from("tito_releases")
+      .upsert(Array.from(dedup.values()), { onConflict: "tito_release_id" });
+    if (relErr) throw new Error(`tito_releases upsert: ${relErr.message}`);
+  }
+
+  // 3) Tickets — mirror syncTitoByUrl loop but scoped to this slug.
+  let newCount = 0;
+  let updatedCount = 0;
+  const { data: existingRows } = await supabase
+    .from("tito_tickets")
+    .select("tito_ticket_id")
+    .eq("event_slug", ev.slug);
+  const existingIds = new Set((existingRows ?? []).map((r: { tito_ticket_id: string }) => r.tito_ticket_id));
+
+  let page = 1;
+  while (true) {
+    const body = (await titoFetch(`/${ACCOUNT}/${ev.slug}/tickets`, token, {
+      page,
+      per_page: 100,
+      view: "extended",
+    })) as { tickets?: TitoTicket[]; meta?: { next_page?: number | null } };
+    const tickets = body.tickets ?? [];
+    if (tickets.length === 0) break;
+
+    const rows = tickets
+      .filter((t) => t.id != null)
+      .map((t) => {
+        const releaseTitle = t.release_title ?? t.release?.title ?? null;
+        const releaseSlug = t.release_slug ?? t.release?.slug ?? null;
+        const releaseId = t.release_id ?? t.release?.id ?? null;
+        return {
+          tito_ticket_id: String(t.id),
+          event_slug: ev.slug,
+          event_title: ev.title ?? ev.slug,
+          name: t.name ?? ([t.first_name, t.last_name].filter(Boolean).join(" ").trim() || null),
+          first_name: t.first_name ?? null,
+          last_name: t.last_name ?? null,
+          email: t.email ?? null,
+          company_name: t.company_name ?? null,
+          job_title: normalizeJobTitle(t),
+          location: normalizeLocation(t),
+          release_id: releaseId ? String(releaseId) : null,
+          release_slug: releaseSlug,
+          release_title: releaseTitle,
+          registration_id: t.registration_id != null ? String(t.registration_id) : null,
+          state: t.state ?? null,
+          raw: t as unknown as import("@/integrations/supabase/types").Json,
+        };
+      });
+    const uniqueRows = new Map<string, (typeof rows)[number]>();
+    for (const r of rows) uniqueRows.set(r.tito_ticket_id, r);
+    const deduped = Array.from(uniqueRows.values());
+
+    for (const r of deduped) {
+      if (existingIds.has(r.tito_ticket_id)) updatedCount++;
+      else {
+        newCount++;
+        existingIds.add(r.tito_ticket_id);
+      }
+    }
+
+    if (deduped.length) {
+      const { data: upserted, error } = await supabase
+        .from("tito_tickets")
+        .upsert(deduped, { onConflict: "tito_ticket_id" })
+        .select("id, tito_ticket_id");
+      if (error) throw new Error(`tito_tickets upsert: ${error.message}`);
+      const idMap = new Map((upserted ?? []).map((r: { id: string; tito_ticket_id: string }) => [r.tito_ticket_id, r.id]));
+      const ticketDbIds = Array.from(idMap.values());
+      if (ticketDbIds.length) {
+        await supabase.from("tito_answers").delete().in("ticket_id", ticketDbIds as string[]);
+      }
+      const answerRows: Array<{
+        ticket_id: string;
+        question_id: string | null;
+        question_title: string | null;
+        response: string | null;
+      }> = [];
+      for (const t of tickets) {
+        const dbId = idMap.get(String(t.id));
+        if (!dbId) continue;
+        for (const a of t.answers ?? []) {
+          const qTitle = (a.question?.title ?? a.question_title ?? a.title ?? null) as string | null;
+          const qId = (a.question?.id ?? a.question_id ?? null) as string | number | null;
+          const resp = Array.isArray(a.response)
+            ? a.response.join(", ")
+            : ((a.humanized_response ?? a.response ?? "") as string);
+          if (!qTitle && !resp) continue;
+          answerRows.push({
+            ticket_id: dbId as string,
+            question_id: qId != null ? String(qId) : null,
+            question_title: qTitle,
+            response: resp ? String(resp) : null,
+          });
+        }
+      }
+      if (answerRows.length) await supabase.from("tito_answers").insert(answerRows);
+    }
+    const next = body.meta?.next_page;
+    if (!next) break;
+    page = Number(next);
+  }
+
+  return { ok: true, event_slug: ev.slug, releases: releases.length, new: newCount, updated: updatedCount };
+}
+
+export const syncEventFromTito = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ event_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const token = process.env.TITO_API_TOKEN;
+    if (!token) throw new Error("Missing TITO_API_TOKEN — add it in Project Settings → Secrets.");
+    const { data: ev, error } = await context.supabase
+      .from("events")
+      .select("id, tito_slug")
+      .eq("id", data.event_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!ev?.tito_slug) {
+      throw new Error("This event has no Tito event linked. Set a Tito event in Edit Event first.");
+    }
+    return syncSingleEventBySlug(context.supabase, token, ev.tito_slug);
+  });
+
+export const listTitoEventsForPicker = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("tito_events")
+      .select("slug, title, start_date, end_date")
+      .order("start_date", { ascending: false, nullsFirst: false })
+      .limit(2000);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<{
+      slug: string; title: string; start_date: string | null; end_date: string | null;
+    }>;
+  });
+
+export const listEventReleases = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ event_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: ev, error: evErr } = await context.supabase
+      .from("events")
+      .select("tito_slug")
+      .eq("id", data.event_id)
+      .maybeSingle();
+    if (evErr) throw new Error(evErr.message);
+    if (!ev?.tito_slug) return [];
+    const { data: rows, error } = await context.supabase
+      .from("tito_releases")
+      .select("id, tito_release_id, slug, title, state, quantity, tickets_count, registration_url")
+      .eq("event_slug", ev.tito_slug)
+      .order("title");
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+// Convenience for template-variable resolution when composing emails.
+export const getEventTitoLinks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ event_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: ev } = await context.supabase
+      .from("events").select("tito_slug").eq("id", data.event_id).maybeSingle();
+    if (!ev?.tito_slug) return { speaker_pass_link: "", guest_pass_link: "" };
+    const { data: rows } = await context.supabase
+      .from("tito_releases")
+      .select("title, registration_url")
+      .eq("event_slug", ev.tito_slug);
+    let sp = "", gp = "";
+    for (const r of rows ?? []) {
+      const t = (r.title ?? "").toLowerCase();
+      if (!sp && t.includes("speaker pass")) sp = r.registration_url ?? "";
+      if (!gp && (t.includes("speaker guest") || t.includes("guest pass"))) gp = r.registration_url ?? "";
+    }
+    return { speaker_pass_link: sp, guest_pass_link: gp };
+  });
+
+export const getEventReconciliation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ event_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { reconcile } = await import("@/lib/tito-matching");
+
+    const { data: ev, error: evErr } = await context.supabase
+      .from("events")
+      .select("id, tito_slug, speaker_target")
+      .eq("id", data.event_id)
+      .maybeSingle();
+    if (evErr) throw new Error(evErr.message);
+    if (!ev) throw new Error("Event not found.");
+
+    const [spkRes, tktRes, relRes] = await Promise.all([
+      context.supabase
+        .from("speakers")
+        .select("id, name, email, company, status, source_ticket_id")
+        .eq("event_id", data.event_id),
+      ev.tito_slug
+        ? context.supabase
+            .from("tito_tickets")
+            .select("id, name, first_name, last_name, email, company_name, job_title, release_title, release_slug")
+            .eq("event_slug", ev.tito_slug)
+        : Promise.resolve({ data: [], error: null }),
+      ev.tito_slug
+        ? context.supabase
+            .from("tito_releases")
+            .select("title, registration_url")
+            .eq("event_slug", ev.tito_slug)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    if (spkRes.error) throw new Error(spkRes.error.message);
+    if (tktRes.error) throw new Error(tktRes.error.message);
+
+    const speakers = (spkRes.data ?? []) as any[];
+    const tickets = (tktRes.data ?? []) as any[];
+    const releases = (relRes.data ?? []) as any[];
+
+    let speakerPassLink: string | null = null;
+    let guestPassLink: string | null = null;
+    for (const r of releases) {
+      const t = (r.title ?? "").toLowerCase();
+      if (!speakerPassLink && t.includes("speaker pass")) speakerPassLink = r.registration_url;
+      if (!guestPassLink && (t.includes("speaker guest") || t.includes("guest pass")))
+        guestPassLink = r.registration_url;
+    }
+
+    const match = reconcile(speakers, tickets);
+
+    // Breakdown counts: speaker pass / guest / delegate / total
+    let speakerPass = 0, speakerGuest = 0, delegate = 0;
+    for (const t of tickets) {
+      const rt = (t.release_title ?? "").toLowerCase();
+      if (rt.includes("speaker pass")) speakerPass++;
+      else if (rt.includes("speaker guest") || rt.includes("guest pass")) speakerGuest++;
+      else delegate++;
+    }
+
+    return {
+      has_tito_slug: Boolean(ev.tito_slug),
+      tito_slug: ev.tito_slug,
+      confirmed_count: speakers.filter((s) => s.status === "confirmed").length,
+      speaker_target: ev.speaker_target ?? null,
+      breakdown: { speakerPass, speakerGuest, delegate, total: tickets.length },
+      links: { speaker_pass_link: speakerPassLink, guest_pass_link: guestPassLink },
+      ...match,
+    };
+  });
+
+export const linkSpeakerToTicket = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ speaker_id: z.string().uuid(), ticket_id: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("speakers")
+      .update({ source: "tito", source_ticket_id: data.ticket_id })
+      .eq("id", data.speaker_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const backfillSpeakerFromTicket = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ event_id: z.string().uuid(), ticket_id: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: t, error: tErr } = await context.supabase
+      .from("tito_tickets")
+      .select("id, name, first_name, last_name, email, company_name, job_title")
+      .eq("id", data.ticket_id)
+      .maybeSingle();
+    if (tErr) throw new Error(tErr.message);
+    if (!t) throw new Error("Ticket not found");
+
+    const name =
+      t.name ??
+      ([t.first_name, t.last_name].filter(Boolean).join(" ").trim() || "Unnamed attendee");
+
+    const { data: row, error } = await context.supabase
+      .from("speakers")
+      .insert({
+        event_id: data.event_id,
+        name,
+        email: t.email ?? null,
+        company: t.company_name ?? null,
+        title: t.job_title ?? null,
+        status: "confirmed",
+        banner_status: "not_started",
+        linkedin_post_confirmed: false,
+        source: "tito",
+        source_ticket_id: data.ticket_id,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });

@@ -24,6 +24,9 @@ const SpeakerInput = z.object({
   linkedin_post_confirmed: z.boolean(),
   outreach_channel: z.enum(["linkedin_connect","group_message","old_attendee_list","warm_intro","cold_email"]).nullable().optional(),
   gmail_thread_id: z.string().nullable().optional(),
+  source: z.string().nullable().optional(),
+  source_ticket_id: z.string().uuid().nullable().optional(),
+  copied_from_speaker_id: z.string().uuid().nullable().optional(),
 });
 
 export const listSpeakers = createServerFn({ method: "GET" })
@@ -120,4 +123,46 @@ export const listSpeakerActivity = createServerFn({ method: "GET" })
       note: string | null;
       created_at: string;
     }>;
+  });
+
+// Duplicate a speaker into a new event as a fresh prospect. Keeps a link
+// back to the original via copied_from_speaker_id so history is preserved.
+export const copySpeakerToEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      source_speaker_id: z.string().uuid(),
+      target_event_id: z.string().uuid(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: src, error: srcErr } = await context.supabase
+      .from("speakers")
+      .select("name, email, company, title, linkedin_url, notes, session_format")
+      .eq("id", data.source_speaker_id)
+      .maybeSingle();
+    if (srcErr) throw new Error(srcErr.message);
+    if (!src) throw new Error("Source speaker not found");
+
+    const { data: row, error } = await context.supabase
+      .from("speakers")
+      .insert({
+        event_id: data.target_event_id,
+        name: src.name,
+        email: src.email,
+        company: src.company,
+        title: src.title,
+        linkedin_url: src.linkedin_url,
+        notes: src.notes ? `Copied from past speaker.\n\n${src.notes}` : "Copied from past speaker.",
+        session_format: src.session_format,
+        status: "new",
+        banner_status: "not_started",
+        linkedin_post_confirmed: false,
+        copied_from_speaker_id: data.source_speaker_id,
+        source: "recurring",
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
   });

@@ -13,6 +13,7 @@ import { listOutreachAccounts, listTeamChecklist } from "@/lib/outreach.function
 import { listEmailSends } from "@/lib/email-sends.functions";
 import { getEventOutreach } from "@/lib/outreach-hub.functions";
 import { listAgendaItems, listAgendaTemplates } from "@/lib/agenda.functions";
+import { listEventReleases, getEventReconciliation, getEventTitoLinks, listTitoEventsForPicker } from "@/lib/tito.functions";
 
 export const qk = {
   eventSummaries: () => ["eventSummaries"] as const,
@@ -97,3 +98,26 @@ export const teamChecklistQuery = (week: string) =>
     queryKey: qk.teamChecklist(week),
     queryFn: () => listTeamChecklist({ data: { week_start: week } }),
   });
+
+export const eventReleasesQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: ["eventReleases", eventId],
+    queryFn: () => listEventReleases({ data: { event_id: eventId } }),
+  });
+
+export const eventReconciliationQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: ["eventReconciliation", eventId],
+    queryFn: () => getEventReconciliation({ data: { event_id: eventId } }),
+  });
+
+export const eventTitoLinksQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: ["eventTitoLinks", eventId],
+    queryFn: () => getEventTitoLinks({ data: { event_id: eventId } }),
+  });
+
+export const titoEventsPickerQuery = queryOptions({
+  queryKey: ["titoEventsPicker"],
+  queryFn: () => listTitoEventsForPicker(),
+});

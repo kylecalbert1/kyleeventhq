@@ -26,6 +26,7 @@ import { sendGmailEmail, checkGmailConnected } from "@/lib/email.functions";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { BulkConfirmSendDialog } from "@/components/BulkConfirmSendDialog";
 import { logEmailSend } from "@/lib/email-sends.functions";
+import { eventTitoLinksQuery } from "@/lib/queries";
 
 type TemplateKey =
   | "custom"
@@ -152,10 +153,25 @@ export function BulkEmailDialog({
   });
   const connected = connQuery.data?.connected ?? false;
 
+  // Load Tito registration links so templates can reference {{speaker_pass_link}}
+  // and {{guest_pass_link}} without the user hunting them down manually.
+  const titoLinksQ = useQuery({
+    ...eventTitoLinksQuery(eventId ?? ""),
+    enabled: !!eventId,
+  });
+  const speakerPassLink = titoLinksQ.data?.speaker_pass_link ?? "";
+  const guestPassLink = titoLinksQ.data?.guest_pass_link ?? "";
+
   const rows = useMemo(() => {
     return speakers.map((s) => {
       const firstName = firstNameOf(s.name);
-      const vars = { firstName, name: s.name, company: s.company ?? "" };
+      const vars = {
+        firstName,
+        name: s.name,
+        company: s.company ?? "",
+        speaker_pass_link: speakerPassLink,
+        guest_pass_link: guestPassLink,
+      };
       const override = perRecipientDrafts?.[s.id];
       return {
         ...s,
@@ -165,7 +181,7 @@ export function BulkEmailDialog({
         hasCustomDraft: !!override,
       };
     });
-  }, [speakers, subject, body, perRecipientDrafts]);
+  }, [speakers, subject, body, perRecipientDrafts, speakerPassLink, guestPassLink]);
 
   const missingEmail = rows.filter((r) => !r.email).length;
   const sendable = rows.filter((r) => r.email);
