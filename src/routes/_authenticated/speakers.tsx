@@ -611,31 +611,17 @@ function SpeakerBoard() {
       </div>
 
       {view === "list" ? (
-        <div className="space-y-3">
-          {sorted.length === 0 ? (
-            <Card className="p-10 text-center text-sm text-muted-foreground rounded-2xl">
-              No speakers match these filters.
-            </Card>
-          ) : (
-            sorted.map((s: any) => {
-              const ev = eventById[s.event_id];
-              return (
-                <SpeakerListCard
-                  key={s.id}
-                  s={s}
-                  ev={ev}
-                  selected={!!selected[s.id]}
-                  onToggleSelect={(v) => setSelected({ ...selected, [s.id]: v })}
-                  onOpenDetail={() => setDetailSpeaker(s)}
-                  onEmail={() => emailOne(s, ev)}
-                  onCopyLink={() => copyLink(s)}
-                  onEdit={() => setEditing({ open: true, speaker: s })}
-                  history={lookupHistory(s.email)}
-                />
-              );
-            })
-          )}
-        </div>
+        <LifecycleSections
+          sorted={sorted}
+          eventById={eventById}
+          selected={selected}
+          setSelected={setSelected}
+          lookupHistory={lookupHistory}
+          onOpenDetail={(s) => setDetailSpeaker(s)}
+          onEmail={(s) => emailOne(s, eventById[s.event_id])}
+          onCopyLink={copyLink}
+          onEdit={(s) => setEditing({ open: true, speaker: s })}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           {COLUMNS.map((col) => (
