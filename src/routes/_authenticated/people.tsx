@@ -131,7 +131,7 @@ function PeoplePage() {
         return false;
       if (terms.length) {
         const hay = `${p.name} ${p.companies.join(" ")} ${p.emails.join(" ")} ${p.job_titles.join(" ")}`.toLowerCase();
-        if (!terms.every((t) => hay.includes(t))) return false;
+        if (!terms.every((t: string) => hay.includes(t))) return false;
       }
       return true;
     });
@@ -179,7 +179,7 @@ function PeoplePage() {
 
   const patch = (k: string, v: string | null) => {
     navigate({
-      search: (prev) => {
+      search: (prev: any) => {
         const next = { ...prev } as any;
         if (!v) delete next[k];
         else next[k] = v;
