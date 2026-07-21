@@ -2,6 +2,7 @@ import { Link, Outlet, useRouter } from "@tanstack/react-router";
 import {
   LayoutGrid,
   Users,
+  UserSquare2,
   Globe,
   CalendarDays,
   LogOut,
