@@ -341,6 +341,7 @@ export type Database = {
           self_status: Database["public"]["Enums"]["self_status"]
           signoff_done: boolean
           speaker_target: number
+          tito_slug: string | null
           updated_at: string
           venue: string | null
           washup_date: string | null
@@ -368,6 +369,7 @@ export type Database = {
           self_status?: Database["public"]["Enums"]["self_status"]
           signoff_done?: boolean
           speaker_target?: number
+          tito_slug?: string | null
           updated_at?: string
           venue?: string | null
           washup_date?: string | null
@@ -395,6 +397,7 @@ export type Database = {
           self_status?: Database["public"]["Enums"]["self_status"]
           signoff_done?: boolean
           speaker_target?: number
+          tito_slug?: string | null
           updated_at?: string
           venue?: string | null
           washup_date?: string | null
@@ -532,6 +535,7 @@ export type Database = {
           call_scheduled: boolean
           call_scheduled_at: string | null
           company: string | null
+          copied_from_speaker_id: string | null
           created_at: string
           dropbox_link: string | null
           email: string | null
@@ -565,6 +569,7 @@ export type Database = {
           call_scheduled?: boolean
           call_scheduled_at?: string | null
           company?: string | null
+          copied_from_speaker_id?: string | null
           created_at?: string
           dropbox_link?: string | null
           email?: string | null
@@ -598,6 +603,7 @@ export type Database = {
           call_scheduled?: boolean
           call_scheduled_at?: string | null
           company?: string | null
+          copied_from_speaker_id?: string | null
           created_at?: string
           dropbox_link?: string | null
           email?: string | null
@@ -624,6 +630,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "speakers_copied_from_speaker_id_fkey"
+            columns: ["copied_from_speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "speakers_event_id_fkey"
             columns: ["event_id"]
@@ -858,6 +871,51 @@ export type Database = {
           slug?: string
           start_date?: string | null
           title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tito_releases: {
+        Row: {
+          created_at: string
+          event_slug: string
+          id: string
+          quantity: number | null
+          raw: Json | null
+          registration_url: string | null
+          slug: string | null
+          state: string | null
+          tickets_count: number | null
+          title: string
+          tito_release_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_slug: string
+          id?: string
+          quantity?: number | null
+          raw?: Json | null
+          registration_url?: string | null
+          slug?: string | null
+          state?: string | null
+          tickets_count?: number | null
+          title: string
+          tito_release_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_slug?: string
+          id?: string
+          quantity?: number | null
+          raw?: Json | null
+          registration_url?: string | null
+          slug?: string | null
+          state?: string | null
+          tickets_count?: number | null
+          title?: string
+          tito_release_id?: string
           updated_at?: string
         }
         Relationships: []
