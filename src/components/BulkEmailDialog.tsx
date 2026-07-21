@@ -26,6 +26,7 @@ import { sendGmailEmail, checkGmailConnected } from "@/lib/email.functions";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { BulkConfirmSendDialog } from "@/components/BulkConfirmSendDialog";
 import { logEmailSend } from "@/lib/email-sends.functions";
+import { eventTitoLinksQuery } from "@/lib/queries";
 
 type TemplateKey =
   | "custom"
