@@ -46,6 +46,7 @@ import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions"
 import { sendGmailEmail } from "@/lib/email.functions";
 import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
+import { TitoEventPanel } from "@/components/events/TitoEventPanel";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
