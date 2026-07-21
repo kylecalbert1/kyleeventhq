@@ -24,6 +24,9 @@ const SpeakerInput = z.object({
   linkedin_post_confirmed: z.boolean(),
   outreach_channel: z.enum(["linkedin_connect","group_message","old_attendee_list","warm_intro","cold_email"]).nullable().optional(),
   gmail_thread_id: z.string().nullable().optional(),
+  source: z.string().nullable().optional(),
+  source_ticket_id: z.string().uuid().nullable().optional(),
+  copied_from_speaker_id: z.string().uuid().nullable().optional(),
 });
 
 export const listSpeakers = createServerFn({ method: "GET" })
