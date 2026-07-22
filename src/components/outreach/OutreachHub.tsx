@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Copy, Plus, Trash2, ExternalLink, Save } from "lucide-react";
+import { Copy, Plus, Trash2, ExternalLink, Save, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { eventOutreachQuery } from "@/lib/queries";
 import {
