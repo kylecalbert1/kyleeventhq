@@ -6,13 +6,14 @@ import {
   Search,
   CalendarDays,
   MapPin,
-  RefreshCw,
+  Sparkles,
   Settings as SettingsIcon,
   FileBarChart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
+import { SyncDialog } from "@/components/SyncDialog";
 import { eventSummariesQuery, speakersQuery } from "@/lib/queries";
 import { daysBetween } from "@/lib/status";
 
