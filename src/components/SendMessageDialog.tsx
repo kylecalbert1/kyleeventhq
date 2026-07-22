@@ -197,8 +197,8 @@ export function SendMessageDialog({
       })
     : "";
   const venue = evQ.data?.venue ?? "";
-  const speakerPassLink = titoLinksQ.data?.speaker_pass_url ?? "";
-  const guestPassLink = titoLinksQ.data?.guest_pass_url ?? "";
+  const speakerPassLink = titoLinksQ.data?.speaker_pass_link ?? "";
+  const guestPassLink = titoLinksQ.data?.guest_pass_link ?? "";
 
   const speakerRecipients = useMemo<Recipient[]>(() => {
     return speakers
