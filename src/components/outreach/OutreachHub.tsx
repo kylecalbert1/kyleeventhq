@@ -228,12 +228,30 @@ export function OutreachHub({ eventId }: { eventId: string }) {
           <div className="text-xs text-slate-500 py-4 text-center">No saved searches yet.</div>
         )}
         <div className="space-y-2">
-          {(q.data?.searches ?? []).map((s: any) => (
+          {(q.data?.searches ?? []).map((s: any, idx: number, arr: any[]) => (
             <SearchRow
               key={s.id}
               row={s}
               onPatch={(patch) => patchSearch.mutate({ id: s.id, patch })}
               onDelete={() => removeSearch.mutate(s.id)}
+              onMoveUp={
+                idx === 0
+                  ? undefined
+                  : () => {
+                      const prev = arr[idx - 1];
+                      patchSearch.mutate({ id: s.id, patch: { position: prev.position } });
+                      patchSearch.mutate({ id: prev.id, patch: { position: s.position } });
+                    }
+              }
+              onMoveDown={
+                idx === arr.length - 1
+                  ? undefined
+                  : () => {
+                      const next = arr[idx + 1];
+                      patchSearch.mutate({ id: s.id, patch: { position: next.position } });
+                      patchSearch.mutate({ id: next.id, patch: { position: s.position } });
+                    }
+              }
             />
           ))}
         </div>
