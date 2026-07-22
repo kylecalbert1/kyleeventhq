@@ -761,9 +761,9 @@ function EventDetail() {
       </section>
 
       <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
-        Looking for LinkedIn outreach templates or the agenda builder? They now live
-        in their own top-level pages - <Link to="/outreach-templates" className="underline font-medium">Outreach</Link>{" "}
-        and <Link to="/agenda" className="underline font-medium">Agenda</Link> - with an event picker at the top.
+        Prefer the multi-event view? Every event's kit is also grouped on{" "}
+        <Link to="/outreach" className="underline font-medium">Outreach</Link>, and the agenda builder lives on{" "}
+        <Link to="/agenda" className="underline font-medium">Agenda</Link>.
       </div>
 
 
