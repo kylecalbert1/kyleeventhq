@@ -11,6 +11,7 @@ import {
   FileBarChart,
   ChevronDown,
   ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,46 @@ import { SyncDialog } from "@/components/SyncDialog";
 import { eventSummariesQuery, speakersQuery } from "@/lib/queries";
 import { daysBetween } from "@/lib/status";
 import { isPastEvent } from "@/lib/event-lifecycle";
+import { getSyncHealth } from "@/lib/sync-health.functions";
+
+function SyncStalenessBanner() {
+  const { data } = useQuery({
+    queryKey: ["sync-health"],
+    queryFn: () => getSyncHealth(),
+    refetchInterval: 60_000,
+  });
+  const stale = useMemo(() => {
+    const health = data?.health ?? {};
+    const items: string[] = [];
+    const check = (kind: string, label: string, requiredSecret?: boolean) => {
+      if (requiredSecret === false) return; // skip when integration not configured
+      const row = (health as any)[kind];
+      if (!row) return items.push(label);
+      const ageH = (Date.now() - new Date(row.last_run_at).getTime()) / 3_600_000;
+      if (ageH > 48 || row.ok === false) items.push(label);
+    };
+    check("tito_full", "Tito reconcile", data?.secrets?.TITO_API_TOKEN);
+    check("asana", "Asana milestones", data?.secrets?.ASANA_PAT);
+    return items;
+  }, [data]);
+
+  if (!data || stale.length === 0) return null;
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <AlertTriangle className="h-4 w-4 shrink-0" />
+      <div className="flex-1">
+        <span className="font-semibold">Sync stale:</span>{" "}
+        {stale.join(", ")} hasn't run in the last 48 hours.
+      </div>
+      <Link
+        to="/settings"
+        className="text-xs font-semibold text-amber-900 underline underline-offset-2"
+      >
+        Open settings →
+      </Link>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/")({
   loader: ({ context }) =>
