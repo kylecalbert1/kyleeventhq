@@ -67,6 +67,7 @@ import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDi
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
 import { JobTitleFilter, parseKeywordList, matchesJobTitleFilters } from "@/components/tito/JobTitleFilter";
+import { isPastEvent } from "@/lib/event-lifecycle";
 
 // Rendered as an embedded view inside /speakers when "Find new candidates" mode is on.
 
