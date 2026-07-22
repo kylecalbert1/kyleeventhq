@@ -31,7 +31,7 @@ export const getSyncHealth = createServerFn({ method: "GET" })
     const secrets = {
       TITO_API_TOKEN: !!process.env.TITO_API_TOKEN,
       TITO_WEBHOOK_SECRET: !!process.env.TITO_WEBHOOK_SECRET,
-      ASANA_PAT: !!process.env.ASANA_PAT,
+      ASANA_CONNECTED: !!process.env.LOVABLE_API_KEY && !!process.env.ASANA_API_KEY,
       GOLDCAST_API_TOKEN: !!process.env.GOLDCAST_API_TOKEN,
     };
 
