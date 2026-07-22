@@ -283,8 +283,16 @@ export function SpeakerListCard({
           )}
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            {s.email && <span className="text-sm text-slate-600 truncate">{s.email}</span>}
-            {s.linkedin_url && (
+            {s.email && (
+              <a
+                href={`mailto:${s.email}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-sm text-slate-600 hover:text-indigo-700 hover:underline truncate"
+              >
+                {s.email}
+              </a>
+            )}
+            {s.linkedin_url ? (
               <a
                 href={s.linkedin_url}
                 target="_blank"
@@ -295,7 +303,20 @@ export function SpeakerListCard({
                 <Linkedin className="h-3 w-3" />
                 LinkedIn
               </a>
+            ) : (
+              <a
+                href={linkedinSearchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-slate-600 ring-1 ring-slate-200 text-[11px] font-medium transition-colors"
+                title="Search LinkedIn"
+              >
+                <SearchIcon className="h-3 w-3" />
+                Search LinkedIn
+              </a>
             )}
+
             {s.outreach_channel && (
               <span
                 className={cn(
