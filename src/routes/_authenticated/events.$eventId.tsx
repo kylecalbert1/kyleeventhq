@@ -183,6 +183,10 @@ function EventDetail() {
               <Sparkles className="h-4 w-4 mr-1.5" />
               Sync from Tito
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setSendOpen({})}>
+              <Send className="h-4 w-4 mr-1.5" />
+              Send message
+            </Button>
             <Button size="sm" onClick={() => setSpeakerEdit({ open: true })}>
               <Plus className="h-4 w-4 mr-1.5" />
               Add Attendee
