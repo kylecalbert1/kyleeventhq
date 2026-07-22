@@ -113,15 +113,28 @@ export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasT
               </a>
             )}
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => syncMut.mutate()}
-            disabled={syncMut.isPending}
-          >
-            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-            {syncMut.isPending ? "Syncing…" : "Sync from Tito"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full ring-1 ${
+                staleInfo.stale
+                  ? "bg-amber-50 text-amber-800 ring-amber-200"
+                  : "bg-slate-50 text-slate-600 ring-slate-200"
+              }`}
+              title={lastSyncedAt ?? undefined}
+            >
+              {staleInfo.stale && <AlertTriangle className="h-3 w-3" />}
+              {staleInfo.label}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => syncMut.mutate()}
+              disabled={syncMut.isPending}
+            >
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+              {syncMut.isPending ? "Syncing…" : "Sync from Tito"}
+            </Button>
+          </div>
         </div>
 
         {breakdown && (
