@@ -61,6 +61,8 @@ import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
 import { TitoEventPanel } from "@/components/events/TitoEventPanel";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
+import { EventPrioritiesStrip } from "@/components/EventPrioritiesStrip";
+import { AsanaTasksCard } from "@/components/AsanaTasksCard";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { toast } from "sonner";
 
@@ -369,6 +371,15 @@ function EventDetail() {
       </Card>
 
       <TitoEventPanel eventId={eventId} hasTitoSlug={Boolean((e as any).tito_slug)} />
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <EventPrioritiesStrip eventId={eventId} />
+        <AsanaTasksCard
+          eventId={eventId}
+          eventCode={(e as any).code}
+          asanaProjectGid={(e as any).asana_project_gid}
+        />
+      </div>
 
       <OutreachKitCard eventId={eventId} />
 
