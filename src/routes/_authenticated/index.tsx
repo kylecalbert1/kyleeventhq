@@ -308,6 +308,8 @@ function EventsGrid() {
           </div>
         </div>
 
+        <MyPrioritiesWidget />
+
         {/* Search */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
