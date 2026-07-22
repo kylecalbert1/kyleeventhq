@@ -17,6 +17,7 @@ import {
   getSyncHealth,
   runTitoNightlyNow,
   runAsanaNightlyNow,
+  testAsanaConnection,
 } from "@/lib/sync-health.functions";
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -60,6 +61,15 @@ function SettingsPage() {
       qc.invalidateQueries({ queryKey: ["sync-health"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Sync failed"),
+  });
+
+  const testAsana = useMutation({
+    mutationFn: () => testAsanaConnection(),
+    onSuccess: (r) => {
+      if (r.ok) toast.success(r.message);
+      else toast.error(r.message);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Test failed"),
   });
 
   const [copied, setCopied] = useState(false);
