@@ -22,6 +22,7 @@ import { Route as AuthenticatedProofingRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedOutreachRouteImport } from './routes/_authenticated/outreach'
 import { Route as AuthenticatedMilestonesRouteImport } from './routes/_authenticated/milestones'
 import { Route as AuthenticatedBannersRouteImport } from './routes/_authenticated/banners'
+import { Route as AuthenticatedAsanaRouteImport } from './routes/_authenticated/asana'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as AuthenticatedTitoSlugRouteImport } from './routes/_authenticated/tito.$slug'
 import { Route as AuthenticatedSpeakersSpeakerIdRouteImport } from './routes/_authenticated/speakers.$speakerId'
@@ -97,6 +98,11 @@ const AuthenticatedBannersRoute = AuthenticatedBannersRouteImport.update({
   path: '/banners',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAsanaRoute = AuthenticatedAsanaRouteImport.update({
+  id: '/asana',
+  path: '/asana',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
   id: '/agenda',
   path: '/agenda',
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/agenda': typeof AuthenticatedAgendaRoute
+  '/asana': typeof AuthenticatedAsanaRoute
   '/banners': typeof AuthenticatedBannersRoute
   '/milestones': typeof AuthenticatedMilestonesRoute
   '/outreach': typeof AuthenticatedOutreachRoute
@@ -162,6 +169,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/agenda': typeof AuthenticatedAgendaRoute
+  '/asana': typeof AuthenticatedAsanaRoute
   '/banners': typeof AuthenticatedBannersRoute
   '/milestones': typeof AuthenticatedMilestonesRoute
   '/outreach': typeof AuthenticatedOutreachRoute
@@ -185,6 +193,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
+  '/_authenticated/asana': typeof AuthenticatedAsanaRoute
   '/_authenticated/banners': typeof AuthenticatedBannersRoute
   '/_authenticated/milestones': typeof AuthenticatedMilestonesRoute
   '/_authenticated/outreach': typeof AuthenticatedOutreachRoute
@@ -209,6 +218,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/agenda'
+    | '/asana'
     | '/banners'
     | '/milestones'
     | '/outreach'
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
   to:
     | '/auth'
     | '/agenda'
+    | '/asana'
     | '/banners'
     | '/milestones'
     | '/outreach'
@@ -251,6 +262,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/agenda'
+    | '/_authenticated/asana'
     | '/_authenticated/banners'
     | '/_authenticated/milestones'
     | '/_authenticated/outreach'
@@ -371,6 +383,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBannersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/asana': {
+      id: '/_authenticated/asana'
+      path: '/asana'
+      fullPath: '/asana'
+      preLoaderRoute: typeof AuthenticatedAsanaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/agenda': {
       id: '/_authenticated/agenda'
       path: '/agenda'
@@ -438,6 +457,7 @@ const AuthenticatedSpeakersRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
+  AuthenticatedAsanaRoute: typeof AuthenticatedAsanaRoute
   AuthenticatedBannersRoute: typeof AuthenticatedBannersRoute
   AuthenticatedMilestonesRoute: typeof AuthenticatedMilestonesRoute
   AuthenticatedOutreachRoute: typeof AuthenticatedOutreachRoute
@@ -455,6 +475,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
+  AuthenticatedAsanaRoute: AuthenticatedAsanaRoute,
   AuthenticatedBannersRoute: AuthenticatedBannersRoute,
   AuthenticatedMilestonesRoute: AuthenticatedMilestonesRoute,
   AuthenticatedOutreachRoute: AuthenticatedOutreachRoute,
