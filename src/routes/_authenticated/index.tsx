@@ -203,11 +203,9 @@ function EventsGrid() {
             <p className="text-sm text-slate-500 mt-0.5">Admin Dashboard</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" size="sm" asChild className="h-9">
-              <Link to="/speaker-sourcing">
-                <RefreshCw className="h-4 w-4 mr-1.5" />
-                Sync from Tito
-              </Link>
+            <Button variant="outline" size="sm" className="h-9" onClick={() => setScanOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              Scan Gmail & Calendar
             </Button>
             <Button variant="outline" size="sm" className="h-9" disabled>
               <FileBarChart className="h-4 w-4 mr-1.5" />
