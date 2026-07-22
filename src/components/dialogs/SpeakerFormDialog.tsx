@@ -55,6 +55,7 @@ export function SpeakerFormDialog({
   const del = useServerFn(deleteSpeaker);
   const events = useQuery(eventsQuery);
 
+  const [showPastEvents, setShowPastEvents] = useState(false);
   const [form, setForm] = useState({
     event_id: defaultEventId ?? "",
     name: "",
