@@ -9,6 +9,8 @@ import { listSponsors } from "@/lib/sponsors.functions";
 import { listWebsiteTasks } from "@/lib/website-tasks.functions";
 import { listMilestones } from "@/lib/milestones.functions";
 import { listWeeklyPriorities } from "@/lib/weekly-priorities.functions";
+import { listMyPriorities, listPrioritiesForEvent } from "@/lib/priorities.functions";
+import { listAsanaTasks, getOverdueWebsiteAsanaCount } from "@/lib/asana-tasks.functions";
 import { listOutreachAccounts, listTeamChecklist } from "@/lib/outreach.functions";
 import { listEmailSends } from "@/lib/email-sends.functions";
 import { getEventOutreach } from "@/lib/outreach-hub.functions";
@@ -137,4 +139,27 @@ export const eventTitoLinksQuery = (eventId: string) =>
 export const titoEventsPickerQuery = queryOptions({
   queryKey: ["titoEventsPicker"],
   queryFn: () => listTitoEventsForPicker(),
+});
+
+export const myPrioritiesQuery = queryOptions({
+  queryKey: ["myPriorities"],
+  queryFn: () => listMyPriorities(),
+});
+
+export const eventPrioritiesQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: ["eventPriorities", eventId],
+    queryFn: () => listPrioritiesForEvent({ data: { event_id: eventId } }),
+  });
+
+export const asanaTasksQuery = (params: { event_id?: string | null; website_only?: boolean; hide_completed?: boolean } = {}) =>
+  queryOptions({
+    queryKey: ["asanaTasks", params],
+    queryFn: () => listAsanaTasks({ data: params }),
+  });
+
+export const overdueWebsiteAsanaQuery = queryOptions({
+  queryKey: ["overdueWebsiteAsana"],
+  queryFn: () => getOverdueWebsiteAsanaCount(),
+  refetchInterval: 5 * 60_000,
 });
