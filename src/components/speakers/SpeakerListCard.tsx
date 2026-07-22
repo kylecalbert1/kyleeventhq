@@ -152,6 +152,7 @@ export function SpeakerListCard({
   onEmail,
   onCopyLink,
   onEdit,
+  onStatusChange,
   showEventChip = true,
   history,
 }: {
@@ -163,6 +164,7 @@ export function SpeakerListCard({
   onEmail: () => void;
   onCopyLink: () => void;
   onEdit: () => void;
+  onStatusChange?: (next: SpeakerStatus) => void;
   showEventChip?: boolean;
   history?: { count: number; last_sent_at: string | null } | null;
 }) {
@@ -174,6 +176,18 @@ export function SpeakerListCard({
   const historyShort = fmtShort(history?.last_sent_at ?? null);
   const dir = s.last_message_direction as string | null;
   const titleAtCompany = [s.title, s.company].filter(Boolean).join(" at ");
+
+  const missingFields: string[] = [];
+  if (!s.email) missingFields.push("email");
+  if (!s.bio && !s.bio_received) missingFields.push("bio");
+  if (!s.headshot_url && !s.headshot_received) missingFields.push("headshot");
+  if (!s.session_title) missingFields.push("session title");
+  if (!s.linkedin_url) missingFields.push("LinkedIn");
+
+  const linkedinSearchUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
+    [s.name, s.company].filter(Boolean).join(" "),
+  )}`;
+
 
   return (
     <div className={cn(softCard, "p-5")}>
