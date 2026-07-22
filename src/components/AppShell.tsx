@@ -9,6 +9,7 @@ import {
   Reply,
   ListChecks,
   CalendarDays,
+  Megaphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,6 +19,7 @@ const NAV_PRIMARY: NavItem[] = [
   { to: "/", label: "Events", icon: LayoutGrid, exact: true },
   { to: "/speakers", label: "Speakers", icon: Users },
   { to: "/agenda", label: "Agenda", icon: ListChecks },
+  { to: "/outreach", label: "Outreach", icon: Megaphone },
   { to: "/website", label: "Website", icon: Globe },
   { to: "/reply-needed", label: "Reply needed", icon: Reply },
 ];

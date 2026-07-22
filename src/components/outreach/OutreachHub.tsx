@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Copy, Plus, Trash2, ExternalLink, Save } from "lucide-react";
+import { Copy, Plus, Trash2, ExternalLink, Save, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { eventOutreachQuery } from "@/lib/queries";
 import {
@@ -228,12 +228,30 @@ export function OutreachHub({ eventId }: { eventId: string }) {
           <div className="text-xs text-slate-500 py-4 text-center">No saved searches yet.</div>
         )}
         <div className="space-y-2">
-          {(q.data?.searches ?? []).map((s: any) => (
+          {(q.data?.searches ?? []).map((s: any, idx: number, arr: any[]) => (
             <SearchRow
               key={s.id}
               row={s}
               onPatch={(patch) => patchSearch.mutate({ id: s.id, patch })}
               onDelete={() => removeSearch.mutate(s.id)}
+              onMoveUp={
+                idx === 0
+                  ? undefined
+                  : () => {
+                      const prev = arr[idx - 1];
+                      patchSearch.mutate({ id: s.id, patch: { position: prev.position } });
+                      patchSearch.mutate({ id: prev.id, patch: { position: s.position } });
+                    }
+              }
+              onMoveDown={
+                idx === arr.length - 1
+                  ? undefined
+                  : () => {
+                      const next = arr[idx + 1];
+                      patchSearch.mutate({ id: s.id, patch: { position: next.position } });
+                      patchSearch.mutate({ id: next.id, patch: { position: s.position } });
+                    }
+              }
             />
           ))}
         </div>
@@ -246,10 +264,14 @@ function SearchRow({
   row,
   onPatch,
   onDelete,
+  onMoveUp,
+  onMoveDown,
 }: {
   row: { id: string; label: string; url: string | null };
   onPatch: (patch: { label?: string; url?: string }) => void;
   onDelete: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
   const [label, setLabel] = useState(row.label);
   const [url, setUrl] = useState(row.url ?? "");
@@ -259,6 +281,14 @@ function SearchRow({
   }, [row.label, row.url]);
   return (
     <div className="flex items-center gap-2 p-2 rounded-lg border border-slate-200/70 bg-white">
+      <div className="flex flex-col">
+        <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={onMoveUp} disabled={!onMoveUp}>
+          <ArrowUp className="h-3 w-3" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={onMoveDown} disabled={!onMoveDown}>
+          <ArrowDown className="h-3 w-3" />
+        </Button>
+      </div>
       <Input
         value={label}
         onChange={(e) => setLabel(e.target.value)}
