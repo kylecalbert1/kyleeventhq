@@ -58,6 +58,9 @@ export function getAsanaGatewayCreds(): AsanaCreds | null {
 
 // Exported so the "Run now" server function can reuse it.
 export async function runAsanaSync(admin: any, creds: AsanaCreds) {
+  const { TRACKED_TASK_PATTERNS, normalizeAsanaName } = await import(
+    "@/lib/asana-tasks.functions"
+  );
   const { data: events, error } = await admin
     .from("events")
     .select("id, format, asana_project_gid, kickoff_date, launch_date")
@@ -67,6 +70,7 @@ export async function runAsanaSync(admin: any, creds: AsanaCreds) {
   let checked = 0;
   let updated = 0;
   let failures = 0;
+  let tasksSynced = 0;
   const details: Array<{ event_id: string; ok: boolean; changes?: string[]; error?: string }> = [];
 
   for (const ev of events ?? []) {
@@ -98,6 +102,36 @@ export async function runAsanaSync(admin: any, creds: AsanaCreds) {
       const { error: uErr } = await admin.from("events").update(patch).eq("id", ev.id);
       if (uErr) throw new Error(uErr.message);
 
+      // Sync tracked milestone tasks into asana_tasks
+      const matched = tasks.filter((t) => {
+        if (t.resource_subtype === "section") return false;
+        const n = normalizeAsanaName(t.name ?? "");
+        return TRACKED_TASK_PATTERNS.some((p) => p.test(n));
+      });
+      const nowIso = new Date().toISOString();
+      const rows = matched.map((t) => ({
+        event_id: ev.id,
+        asana_gid: t.gid,
+        name: t.name,
+        due_on: t.due_on,
+        completed: t.completed,
+        completed_at: t.completed ? ((t as any).completed_at ?? null) : null,
+        last_synced_at: nowIso,
+      }));
+      if (rows.length) {
+        const { error: upErr } = await admin
+          .from("asana_tasks")
+          .upsert(rows, { onConflict: "asana_gid" });
+        if (upErr) throw new Error(upErr.message);
+      }
+      // Remove rows for this event whose task disappeared from Asana
+      const keepGids = rows.map((r) => r.asana_gid);
+      let delQ = admin.from("asana_tasks").delete().eq("event_id", ev.id);
+      if (keepGids.length) delQ = delQ.not("asana_gid", "in", `(${keepGids.map((g) => `"${g}"`).join(",")})`);
+      const { error: delErr } = await delQ;
+      if (delErr) throw new Error(delErr.message);
+      tasksSynced += rows.length;
+
       if (changes.length) updated++;
       details.push({ event_id: ev.id, ok: true, changes });
     } catch (err: any) {
@@ -107,7 +141,7 @@ export async function runAsanaSync(admin: any, creds: AsanaCreds) {
     }
   }
 
-  return { checked, updated, failures, details };
+  return { checked, updated, failures, tasksSynced, details };
 }
 
 type AsanaTask = {
@@ -123,7 +157,7 @@ async function fetchAsanaTasks(projectGid: string, creds: AsanaCreds): Promise<A
   let offset: string | undefined = undefined;
   for (let page = 0; page < 20; page++) {
     const url = new URL(`${ASANA_GATEWAY}/projects/${projectGid}/tasks`);
-    url.searchParams.set("opt_fields", "name,due_on,completed,resource_subtype");
+    url.searchParams.set("opt_fields", "name,due_on,completed,completed_at,resource_subtype");
     url.searchParams.set("limit", "100");
     if (offset) url.searchParams.set("offset", offset);
     const res = await fetch(url.toString(), {
