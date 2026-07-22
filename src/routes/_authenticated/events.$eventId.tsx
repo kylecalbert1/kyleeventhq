@@ -146,6 +146,16 @@ function EventDetail() {
 
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
+  const [filterKey, setFilterKey] = useState<
+    | "all"
+    | "confirmed"
+    | "prospective"
+    | "needs_chasing"
+    | "missing_assets"
+    | "not_registered"
+    | "registered"
+    | "declined"
+  >("all");
 
 
 
