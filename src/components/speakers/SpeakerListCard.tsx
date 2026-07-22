@@ -219,9 +219,37 @@ export function SpeakerListCard({
               >
                 {s.name}
               </button>
-              <StatusPill className={cn(stage.cls, "text-[11px] px-2.5 py-1 font-semibold")}>
-                {stage.label}
-              </StatusPill>
+              {onStatusChange ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" title="Change status">
+                      <StatusPill
+                        className={cn(
+                          stage.cls,
+                          "text-[11px] px-2.5 py-1 font-semibold cursor-pointer hover:opacity-90",
+                        )}
+                      >
+                        {stage.label}
+                      </StatusPill>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {STATUS_OPTIONS.map((opt) => (
+                      <DropdownMenuItem
+                        key={opt.value}
+                        onSelect={() => onStatusChange(opt.value)}
+                      >
+                        {opt.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <StatusPill className={cn(stage.cls, "text-[11px] px-2.5 py-1 font-semibold")}>
+                  {stage.label}
+                </StatusPill>
+              )}
+
               {showEventChip && ev?.code && (
                 <StatusPill className={cn(eventChipCls, "text-[11px]")}>
                   {ev.code}
