@@ -10,9 +10,11 @@ import {
   Lock,
   Mail,
   Send,
-  ChevronRight,
   Sparkles,
   Search,
+  CalendarDays,
+  MapPin,
+  Users as UsersIcon,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,13 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SpeakerListCard } from "@/components/speakers/SpeakerListCard";
 import { useContactHistory } from "@/hooks/use-contact-history";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { StatusPill } from "@/components/StatusPill";
 import {
@@ -29,6 +38,7 @@ import {
   websiteTasksQuery,
   milestonesQuery,
   emailSendsQuery,
+  eventReconciliationQuery,
 } from "@/lib/queries";
 import { labels, pillClass } from "@/lib/status";
 import { getAsanaProofingDueDates } from "@/lib/asana.functions";
@@ -44,6 +54,7 @@ import { SendHistoryPanel } from "@/components/SendHistoryPanel";
 import { SendMessageDialog } from "@/components/SendMessageDialog";
 import { EmailTemplateManagerDialog } from "@/components/EmailTemplateManagerDialog";
 import { Checkbox } from "@/components/ui/checkbox";
+
 
 import { sendGmailEmail } from "@/lib/email.functions";
 import { firstNameOf } from "@/lib/gmail";
