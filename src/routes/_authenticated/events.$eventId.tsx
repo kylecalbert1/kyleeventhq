@@ -847,3 +847,52 @@ function SectionHeader({ title, onAdd }: { title: string; onAdd?: () => void }) 
     </div>
   );
 }
+
+const chipTones = {
+  emerald: "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100",
+  sky: "bg-sky-50 text-sky-800 border-sky-200 hover:bg-sky-100",
+  violet: "bg-violet-50 text-violet-800 border-violet-200 hover:bg-violet-100",
+  amber: "bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100",
+} as const;
+
+const chipToneActive = {
+  emerald: "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-600",
+  sky: "bg-sky-600 text-white border-sky-600 hover:bg-sky-600",
+  violet: "bg-violet-600 text-white border-violet-600 hover:bg-violet-600",
+  amber: "bg-amber-600 text-white border-amber-600 hover:bg-amber-600",
+} as const;
+
+function FilterChip({
+  label,
+  count,
+  active,
+  onClick,
+  tone,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+  tone: keyof typeof chipTones;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+        active ? chipToneActive[tone] : chipTones[tone]
+      }`}
+    >
+      {label}
+      <span
+        className={`inline-flex items-center justify-center rounded-full text-[10px] font-bold px-1.5 min-w-[1.25rem] ${
+          active ? "bg-white/20 text-white" : "bg-white/70 text-current"
+        }`}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+}
