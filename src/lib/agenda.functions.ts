@@ -237,7 +237,7 @@ function parseAgendaHtml(html: string): ImportedAgendaRow[] {
   const text = stripTags(html);
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
 
-  const timeRe = /^(\d{1,2}[:.]\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm))(?:\s*[-–-to]+\s*(\d{1,2}[:.]\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm)))?\b/i;
+  const timeRe = /^(\d{1,2}[:.]\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm))(?:\s*[-–to]+\s*(\d{1,2}[:.]\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm)))?\b/i;
   const speakerRe = /^(speaker[s]?|presenter[s]?|panelist[s]?|moderator|with)[:\s]/i;
   const trackRe = /^(track|stream|room|stage)[:\s-]+(.+)$/i;
 
@@ -256,7 +256,7 @@ function parseAgendaHtml(html: string): ImportedAgendaRow[] {
     if (m) {
       const start = parseTimeToken(m[1]);
       const end = m[2] ? parseTimeToken(m[2]) : null;
-      const remainder = line.slice(m[0].length).trim().replace(/^[-–-:]\s*/, "");
+      const remainder = line.slice(m[0].length).trim().replace(/^[-–:]\s*/, "");
       cur = { start, end, buffer: remainder ? [remainder] : [], track: currentTrack };
       blocks.push(cur);
     } else if (cur) {
