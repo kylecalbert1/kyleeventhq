@@ -394,11 +394,3 @@ function EventCard({
   );
 }
 
-function _KeepFooter() {
-  return null;
-
-      <EventFormDialog open={creating} onOpenChange={setCreating} />
-      <SyncDialog open={scanOpen} onOpenChange={setScanOpen} />
-    </div>
-  );
-}
