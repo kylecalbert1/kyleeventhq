@@ -356,6 +356,7 @@ export type Database = {
       }
       events: {
         Row: {
+          asana_last_synced_at: string | null
           asana_project_gid: string | null
           banner_dropbox_link: string | null
           business_line: Database["public"]["Enums"]["business_line"]
@@ -384,6 +385,7 @@ export type Database = {
           website_status: Database["public"]["Enums"]["website_stage"]
         }
         Insert: {
+          asana_last_synced_at?: string | null
           asana_project_gid?: string | null
           banner_dropbox_link?: string | null
           business_line: Database["public"]["Enums"]["business_line"]
@@ -412,6 +414,7 @@ export type Database = {
           website_status?: Database["public"]["Enums"]["website_stage"]
         }
         Update: {
+          asana_last_synced_at?: string | null
           asana_project_gid?: string | null
           banner_dropbox_link?: string | null
           business_line?: Database["public"]["Enums"]["business_line"]
@@ -852,6 +855,36 @@ export type Database = {
           },
         ]
       }
+      sync_health: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          last_run_at: string
+          note: string | null
+          ok: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          last_run_at?: string
+          note?: string | null
+          ok?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          last_run_at?: string
+          note?: string | null
+          ok?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       team_checklist_items: {
         Row: {
           category: Database["public"]["Enums"]["checklist_category"]
@@ -952,6 +985,7 @@ export type Database = {
           id: string
           is_past: boolean
           last_synced_at: string | null
+          last_webhook_at: string | null
           slug: string
           start_date: string | null
           title: string
@@ -964,6 +998,7 @@ export type Database = {
           id?: string
           is_past?: boolean
           last_synced_at?: string | null
+          last_webhook_at?: string | null
           slug: string
           start_date?: string | null
           title: string
@@ -976,6 +1011,7 @@ export type Database = {
           id?: string
           is_past?: boolean
           last_synced_at?: string | null
+          last_webhook_at?: string | null
           slug?: string
           start_date?: string | null
           title?: string
