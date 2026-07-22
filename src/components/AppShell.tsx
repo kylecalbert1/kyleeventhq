@@ -5,11 +5,9 @@ import {
   Globe,
   CalendarDays,
   LogOut,
-  Target,
   ClipboardCheck,
   Inbox,
   Reply,
-  MessageSquare,
   ListChecks,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,17 +18,15 @@ type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boo
 const NAV_PRIMARY: NavItem[] = [
   { to: "/", label: "Events", icon: LayoutGrid, exact: true },
   { to: "/speakers", label: "Speakers", icon: Users },
-  { to: "/outreach-templates", label: "Outreach", icon: MessageSquare },
   { to: "/agenda", label: "Agenda", icon: ListChecks },
   { to: "/website", label: "Website", icon: Globe },
+  { to: "/reply-needed", label: "Reply needed", icon: Reply },
 ];
 
 const NAV_OPS: NavItem[] = [
-  { to: "/milestones", label: "Kickoff & Washup", icon: CalendarDays },
-  { to: "/outreach", label: "Weekly Outreach", icon: Target },
-  { to: "/reply-needed", label: "Reply Needed", icon: Reply },
+  { to: "/milestones", label: "Kickoff & washup", icon: CalendarDays },
   { to: "/proofing", label: "Proofing", icon: ClipboardCheck },
-  { to: "/sponsor-inbox", label: "Sponsor Inbox", icon: Inbox },
+  { to: "/sponsor-inbox", label: "Sponsor inbox", icon: Inbox },
 ];
 
 function NavLink({ item }: { item: NavItem }) {
