@@ -5,17 +5,12 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition.
+ * Design system — "Alliance Reconfirm" look.
  *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * Font: Poppins. Page background: warm off-white rgb(249,248,245).
+ * Ink: near-black rgb(17,24,23). Cards: pure white, 12px radius, subtle border.
+ * Buttons/chips: 12px font / 500 weight, 6px 12px padding, 2px borders, 12px radius.
+ * Status chips: soft tinted bg + 2px border of same hue + darker text.
  */
 
 @theme inline {
@@ -26,6 +21,7 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  --font-sans: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -62,70 +58,82 @@
 }
 
 :root {
-  --radius: 0.75rem;
-  /* Warm off-white/cream page background (Alliance/Reconfirm reference). Cards stay pure white. */
-  --background: oklch(0.982 0.006 85);
-  --foreground: oklch(0.129 0.042 264.695);
+  --radius: 0.75rem; /* 12px */
+  /* Warm off-white page background (rgb(249,248,245) = ~oklch(0.976 0.005 90)) */
+  --background: oklch(0.976 0.005 90);
+  /* Near-black ink (rgb(17,24,23)) */
+  --foreground: oklch(0.205 0.006 180);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: var(--foreground);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --popover-foreground: var(--foreground);
+  /* Saturated primary reserved for main action (Send / Sync). Emerald-teal. */
+  --primary: oklch(0.55 0.14 175);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.965 0.006 90);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.965 0.006 90);
+  --muted-foreground: oklch(0.48 0.01 180);
+  --accent: oklch(0.955 0.008 90);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.55 0.19 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.92 0.008 90);
+  --input: oklch(0.92 0.008 90);
+  --ring: oklch(0.55 0.14 175);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.955 0.008 90);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 
-  /* Soft elevation for card surfaces */
-  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04);
-  --shadow-soft-hover: 0 2px 4px rgba(15, 23, 42, 0.06), 0 10px 28px rgba(15, 23, 42, 0.07);
-
-  /* Colored accent bar (thin strip under section headers, Alliance-style) */
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.03);
+  --shadow-soft-hover: 0 1px 3px rgba(15, 23, 42, 0.06);
   --accent-bar: linear-gradient(90deg, oklch(0.62 0.19 268) 0%, oklch(0.70 0.17 220) 50%, oklch(0.72 0.15 175) 100%);
 }
 
-/* Pill utility tokens — colorful stat badges (amber/green/purple/red/blue/slate). */
-@utility pill {
+/* ---------- Chip utilities (Reconfirm pastel status chips) ----------
+ * Soft tinted bg + 2px border of same hue + darker text of same hue.
+ * 12px radius, 12px font, 500 weight.
+ */
+@utility chip {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   padding: 0.125rem 0.5rem;
-  border-radius: 9999px;
+  border-radius: 0.75rem;
   font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.1;
+  font-weight: 500;
+  line-height: 1.2;
+  border-width: 2px;
+  border-style: solid;
   white-space: nowrap;
-  ring: 1px inset;
 }
-@utility pill-amber   { background: oklch(0.965 0.06 85);  color: oklch(0.42 0.14 60);  box-shadow: inset 0 0 0 1px oklch(0.90 0.10 75); }
-@utility pill-green   { background: oklch(0.960 0.055 155); color: oklch(0.40 0.14 155); box-shadow: inset 0 0 0 1px oklch(0.88 0.11 150); }
-@utility pill-purple  { background: oklch(0.960 0.045 300); color: oklch(0.42 0.18 300); box-shadow: inset 0 0 0 1px oklch(0.88 0.08 300); }
-@utility pill-red     { background: oklch(0.960 0.045 20);  color: oklch(0.48 0.19 20);  box-shadow: inset 0 0 0 1px oklch(0.88 0.10 20);  }
-@utility pill-blue    { background: oklch(0.960 0.035 250); color: oklch(0.44 0.16 258); box-shadow: inset 0 0 0 1px oklch(0.88 0.06 250); }
-@utility pill-slate   { background: oklch(0.965 0.005 250); color: oklch(0.42 0.02 250); box-shadow: inset 0 0 0 1px oklch(0.90 0.008 250);}
+@utility chip-amber   { background: oklch(0.965 0.06 85);   color: oklch(0.42 0.14 60);  border-color: oklch(0.86 0.12 75); }
+@utility chip-green   { background: oklch(0.960 0.055 155); color: oklch(0.40 0.14 155); border-color: oklch(0.84 0.12 150); }
+@utility chip-purple  { background: oklch(0.960 0.045 300); color: oklch(0.42 0.18 300); border-color: oklch(0.84 0.10 300); }
+@utility chip-blue    { background: oklch(0.960 0.035 250); color: oklch(0.44 0.16 258); border-color: oklch(0.84 0.08 250); }
+@utility chip-red     { background: oklch(0.960 0.045 20);  color: oklch(0.48 0.19 20);  border-color: oklch(0.84 0.12 20);  }
+@utility chip-slate   { background: oklch(0.965 0.005 250); color: oklch(0.42 0.02 250); border-color: oklch(0.90 0.010 250);}
+@utility chip-cream   { background: oklch(0.975 0.02 85);   color: oklch(0.42 0.14 60);  border-color: oklch(0.90 0.06 75); }
 
-/* Thin colored accent bar under section headers. */
+/* Back-compat aliases: previous `pill*` utilities still used across the app. */
+@utility pill         { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.125rem 0.5rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 500; line-height: 1.2; border-width: 2px; border-style: solid; white-space: nowrap; }
+@utility pill-amber   { background: oklch(0.965 0.06 85);   color: oklch(0.42 0.14 60);  border-color: oklch(0.86 0.12 75); }
+@utility pill-green   { background: oklch(0.960 0.055 155); color: oklch(0.40 0.14 155); border-color: oklch(0.84 0.12 150); }
+@utility pill-purple  { background: oklch(0.960 0.045 300); color: oklch(0.42 0.18 300); border-color: oklch(0.84 0.10 300); }
+@utility pill-red     { background: oklch(0.960 0.045 20);  color: oklch(0.48 0.19 20);  border-color: oklch(0.84 0.12 20);  }
+@utility pill-blue    { background: oklch(0.960 0.035 250); color: oklch(0.44 0.16 258); border-color: oklch(0.84 0.08 250); }
+@utility pill-slate   { background: oklch(0.965 0.005 250); color: oklch(0.42 0.02 250); border-color: oklch(0.90 0.010 250);}
+
 @utility accent-bar {
   height: 3px;
   width: 3rem;
@@ -133,13 +141,35 @@
   background: var(--accent-bar);
 }
 
-/* Soft card surface (matches Alliance/Reconfirm look). */
+/* Card surface — pure white, 12px radius, subtle border, no heavy shadow. */
 @utility surface-card {
   background: var(--color-card);
-  border: 1px solid oklch(0.94 0.005 250);
-  border-radius: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
   box-shadow: var(--shadow-soft);
 }
+
+/* Reconfirm-style secondary buttons: tinted pastel bg + 2px border + darker text of same hue. */
+@utility btn-tint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  border-width: 2px;
+  border-style: solid;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+@utility btn-tint-cream  { background: oklch(0.975 0.02 85);   color: oklch(0.42 0.14 60);  border-color: oklch(0.88 0.10 75); }
+@utility btn-tint-green  { background: oklch(0.965 0.045 155); color: oklch(0.40 0.14 155); border-color: oklch(0.84 0.12 150); }
+@utility btn-tint-blue   { background: oklch(0.965 0.03 250);  color: oklch(0.44 0.16 258); border-color: oklch(0.84 0.08 250); }
+@utility btn-tint-purple { background: oklch(0.965 0.04 300);  color: oklch(0.42 0.18 300); border-color: oklch(0.84 0.10 300); }
+@utility btn-tint-slate  { background: oklch(0.965 0.005 250); color: oklch(0.35 0.02 250); border-color: oklch(0.88 0.010 250); }
 
 .dark {
   --background: oklch(0.129 0.042 264.695);
@@ -148,8 +178,8 @@
   --card-foreground: oklch(0.984 0.003 247.858);
   --popover: oklch(0.208 0.042 265.755);
   --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
+  --primary: oklch(0.55 0.14 175);
+  --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.279 0.041 260.031);
   --secondary-foreground: oklch(0.984 0.003 247.858);
   --muted: oklch(0.279 0.041 260.031);
@@ -181,8 +211,21 @@
     border-color: var(--color-border);
   }
 
+  html, body {
+    font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-size: 13px;
+    line-height: 1.5;
   }
+
+  /* Page headings — 20/700 per Reconfirm. */
+  h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 1rem;    font-weight: 700; letter-spacing: -0.01em; }
+  h3 { font-size: 0.875rem; font-weight: 600; }
 }
