@@ -329,8 +329,8 @@ function SpeakerBoard() {
     setConfirmEmail({
       to: s.email,
       recipientName: firstName,
-      subject: `${code} — quick check-in`,
-      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+      subject: `${code} - quick check-in`,
+      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us - happy to help move things forward.\n\nThanks!`,
       templateType: "custom",
       eventId: s.event_id ?? null,
       speakerId: s.id,
@@ -384,7 +384,7 @@ function SpeakerBoard() {
           <p className="text-sm text-muted-foreground mt-1">
             {view === "board"
               ? "Drag cards to move speakers between stages."
-              : "One-column feed — filter by stage above, switch to Board to drag between stages."}
+              : "One-column feed - filter by stage above, switch to Board to drag between stages."}
           </p>
         </div>
 
@@ -803,9 +803,9 @@ function SpeakerBoardCard({
 
 /* --------------------------- Lifecycle sections (list view) --------------------------- */
 // Groups a filtered speaker list into three independently-selectable sections:
-//   • Prospective — recruiting (new/contacted/responded/…), future events
-//   • Current     — confirmed for a future event (or event with unknown date)
-//   • Past        — event date has passed (kept visible for re-recruitment)
+//   • Prospective - recruiting (new/contacted/responded/…), future events
+//   • Current     - confirmed for a future event (or event with unknown date)
+//   • Past        - event date has passed (kept visible for re-recruitment)
 // Each section has its own select-all header and Compose email button.
 
 function classifyLifecycle(s: any, ev: any): "prospective" | "current" | "past" {
@@ -867,7 +867,7 @@ function LifecycleSections({
         const title = key === "prospective" ? "Prospective" : key === "current" ? "Current" : "Past";
         const help =
           key === "prospective"
-            ? "Being recruited — not yet confirmed."
+            ? "Being recruited - not yet confirmed."
             : key === "current"
             ? "Confirmed speakers for upcoming events."
             : "Events already ran. Kept visible for re-recruitment.";
@@ -1007,7 +1007,7 @@ function CopyPastSpeakerDialog({
             onValueChange={setTarget}
             options={(events.data ?? []).map((e) => ({
               value: e.id,
-              label: `${e.code} — ${e.name}`,
+              label: `${e.code} - ${e.name}`,
               keywords: e.name,
             }))}
           />

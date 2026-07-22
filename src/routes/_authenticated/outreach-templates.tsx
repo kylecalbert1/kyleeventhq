@@ -52,7 +52,7 @@ function OutreachTemplatesPage() {
           onValueChange={setEventId}
           options={sorted.map((e: any) => ({
             value: e.id,
-            label: `${e.code ? `${e.code} — ` : ""}${e.name}`,
+            label: `${e.code ? `${e.code} - ` : ""}${e.name}`,
           }))}
         />
 

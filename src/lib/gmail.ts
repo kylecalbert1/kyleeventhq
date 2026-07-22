@@ -37,7 +37,7 @@ export function openGmailThread(threadId: string) {
     try { (win as Window).opener = null; } catch {}
     return;
   }
-  // Popup blocked — fall back to top-level navigation via a synthetic anchor.
+  // Popup blocked - fall back to top-level navigation via a synthetic anchor.
   const a = document.createElement("a");
   a.href = url;
   a.target = "_blank";

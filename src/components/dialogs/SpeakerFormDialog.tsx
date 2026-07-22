@@ -152,7 +152,7 @@ export function SpeakerFormDialog({
               <SelectTrigger><SelectValue placeholder="Select event" /></SelectTrigger>
               <SelectContent>
                 {(events.data ?? []).map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.code} — {e.name}</SelectItem>
+                  <SelectItem key={e.id} value={e.id}>{e.code} - {e.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -170,7 +170,7 @@ export function SpeakerFormDialog({
           <F label="Session title" full><Input value={form.session_title} onChange={(e) => setForm({ ...form, session_title: e.target.value })} /></F>
           <F label="Session format">
             <Select value={form.session_format || ""} onValueChange={(v) => setForm({ ...form, session_format: v as never })}>
-              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="-" /></SelectTrigger>
               <SelectContent>{SESSION_FORMATS.map((s) => <SelectItem key={s} value={s}>{labels.sessionFormat[s]}</SelectItem>)}</SelectContent>
             </Select>
           </F>

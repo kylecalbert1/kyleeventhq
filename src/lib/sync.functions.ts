@@ -234,7 +234,7 @@ const ClassifySchema = z.object({
 });
 
 async function classifyThread(threadText: string, lovableKey: string) {
-  const prompt = `You classify a conversation thread with a prospective conference speaker. Use the ENTIRE recent conversation for context, not just the last message — the answer may have been stated earlier and only referenced later.
+  const prompt = `You classify a conversation thread with a prospective conference speaker. Use the ENTIRE recent conversation for context, not just the last message - the answer may have been stated earlier and only referenced later.
 
 Return ONLY a compact JSON object matching this schema:
 {"suggested_status":"confirmed"|"declined"|"needs_approval"|"unclear","confidence":"high"|"medium"|"low","reasoning":"one short sentence","needs":{"bio":boolean,"headshot":boolean,"banner":boolean}}
@@ -243,14 +243,14 @@ Status meanings:
 - "confirmed": they clearly agree to speak (accepting invite, saying yes, confirming a slot, sending bio/headshot to lock it in).
 - "declined": they clearly decline (no thanks, can't make it, not a fit, passing).
 - "needs_approval": they must check with their team/manager/legal/marketing/PR before committing.
-- "unclear": genuinely ambiguous even after reading the full thread — only pure scheduling logistics, generic acknowledgements, or nothing on-topic.
+- "unclear": genuinely ambiguous even after reading the full thread - only pure scheduling logistics, generic acknowledgements, or nothing on-topic.
 
 Confidence:
 - "high": the thread contains an explicit, unambiguous statement matching the status. Auto-applying would be safe.
 - "medium": strong signal but some ambiguity or indirect phrasing.
 - "low": weak signal, mostly inference. Prefer this over guessing.
 
-Do NOT default to "unclear" when the thread actually resolves the question — read it end-to-end first.
+Do NOT default to "unclear" when the thread actually resolves the question - read it end-to-end first.
 
 Set needs.bio/headshot/banner=true only if the thread specifically mentions that item (asking, promising, apologizing for delay).
 
@@ -366,7 +366,7 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
             const cleaned = body
               .split(/\n(?:On .+ wrote:|-----Original Message-----|________________________________)/)[0]
               .trim();
-            return `--- ${d} UTC — From: ${f} ---\n${cleaned}`;
+            return `--- ${d} UTC - From: ${f} ---\n${cleaned}`;
           })
           .filter((chunk) => chunk.length > 0)
           .join("\n\n");
@@ -581,12 +581,12 @@ async function classifyBio(threadText: string, speakerName: string, lovableKey: 
 A bio is a short third-person paragraph (typically 2-6 sentences) describing the speaker's background, current role, and notable achievements. It is NOT a signature block, NOT a scheduling reply, NOT a one-line note, and NOT a headshot.
 
 Return ONLY a compact JSON object matching this schema:
-{"contains_bio":boolean,"confidence":"high"|"medium"|"low","bio_text":"the extracted bio, cleaned of quoted replies/signatures — empty string if contains_bio is false","reasoning":"one short sentence"}
+{"contains_bio":boolean,"confidence":"high"|"medium"|"low","bio_text":"the extracted bio, cleaned of quoted replies/signatures - empty string if contains_bio is false","reasoning":"one short sentence"}
 
 Confidence rules:
 - "high": a clear, standalone bio paragraph is present. Safe to auto-apply.
 - "medium": bio-like text exists but is mixed with other content or partial.
-- "low": weak signal — do not auto-apply.
+- "low": weak signal - do not auto-apply.
 
 Extract bio_text as the cleanest single paragraph (or two) that is the actual bio. Trim signatures ("Best,", phone numbers, email links, disclaimers).
 
@@ -698,7 +698,7 @@ export const fetchBioSuggestions = createServerFn({ method: "POST" })
               const cleaned = body
                 .split(/\n(?:On .+ wrote:|-----Original Message-----|________________________________)/)[0]
                 .trim();
-              return `--- ${d} UTC — From: ${f} ---\n${cleaned}`;
+              return `--- ${d} UTC - From: ${f} ---\n${cleaned}`;
             })
             .filter((chunk) => chunk.length > 0)
             .join("\n\n");

@@ -197,7 +197,7 @@ function AgendaRunningOrder({
       <div key={r.id} className={`border-l-4 ${accent} px-4 py-3 rounded-r-lg`}>
         {!opts.compact && (
           <div className="text-xs font-semibold text-slate-900 tabular-nums">
-            {r.start_time ?? "—"}{end ? ` – ${end}` : ""}
+            {r.start_time ?? "-"}{end ? ` – ${end}` : ""}
             <span className="ml-2 text-[11px] font-normal text-slate-500">{r.duration_min} min</span>
           </div>
         )}
@@ -271,7 +271,7 @@ function AgendaRunningOrder({
                   style={{ gridTemplateColumns: `120px 1fr` }}
                 >
                   <div className="bg-white px-3 py-3 text-xs font-semibold text-slate-700 tabular-nums">
-                    {r.start_time ?? "—"}
+                    {r.start_time ?? "-"}
                     {r.start_time && <div className="text-[10px] font-normal text-slate-400">to {addMinutes(r.start_time, r.duration_min)}</div>}
                   </div>
                   <div className="bg-white px-2 py-2">{renderItem(r, { compact: true })}</div>
@@ -283,7 +283,7 @@ function AgendaRunningOrder({
                   style={{ gridTemplateColumns: `120px repeat(${tracks.length}, minmax(0, 1fr))` }}
                 >
                   <div className="bg-white px-3 py-3 text-xs font-semibold text-slate-700 tabular-nums">
-                    {g.start ?? "—"}
+                    {g.start ?? "-"}
                     {g.start && groupEnd && (
                       <div className="text-[10px] font-normal text-slate-400">to {groupEnd}</div>
                     )}
@@ -293,7 +293,7 @@ function AgendaRunningOrder({
                     return (
                       <div key={tk} className="bg-white px-2 py-2 space-y-2">
                         {cellItems.length === 0 ? (
-                          <div className="text-[11px] text-slate-300 italic px-2">—</div>
+                          <div className="text-[11px] text-slate-300 italic px-2">-</div>
                         ) : (
                           cellItems.map((r) => renderItem(r, { compact: true }))
                         )}

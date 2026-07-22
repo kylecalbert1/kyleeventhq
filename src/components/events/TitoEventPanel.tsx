@@ -136,7 +136,7 @@ export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasT
                 <div key={r.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-100 last:border-0">
                   <span>{r.title} {r.state ? <span className="text-muted-foreground">· {r.state}</span> : null}</span>
                   <span className="tabular-nums text-muted-foreground">
-                    {typeof r.tickets_count === "number" ? `${r.tickets_count} sold` : "—"}
+                    {typeof r.tickets_count === "number" ? `${r.tickets_count} sold` : "-"}
                   </span>
                 </div>
               ))}
@@ -185,7 +185,7 @@ export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasT
                   left={<>
                     <div className="font-medium text-sm">{label}</div>
                     <div className="text-xs text-muted-foreground">
-                      {t.email ?? "—"} · {t.release_title ?? "—"}
+                      {t.email ?? "-"} · {t.release_title ?? "-"}
                     </div>
                   </>}
                   right={
@@ -211,7 +211,7 @@ export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasT
                 left={<>
                   <div className="font-medium text-sm">{m.speaker.name}</div>
                   <div className="text-xs text-muted-foreground">
-                    Tracker: {m.speaker.email ?? "—"} · Tito: {m.ticket.email ?? "—"} · {(m.score * 100).toFixed(0)}% match
+                    Tracker: {m.speaker.email ?? "-"} · Tito: {m.ticket.email ?? "-"} · {(m.score * 100).toFixed(0)}% match
                   </div>
                 </>}
                 right={

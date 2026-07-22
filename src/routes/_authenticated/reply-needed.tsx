@@ -54,9 +54,9 @@ export const Route = createFileRoute("/_authenticated/reply-needed")({
 });
 
 function fmt(iso: string | null | undefined) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -165,8 +165,8 @@ function ReplyNeededPage() {
     setConfirmEmail({
       to: s.email,
       recipientName: firstName,
-      subject: `${code} — quick check-in`,
-      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+      subject: `${code} - quick check-in`,
+      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us - happy to help move things forward.\n\nThanks!`,
       templateType: "custom",
       eventId: s.event_id ?? null,
       speakerId: s.id,
@@ -268,7 +268,7 @@ function ReplyNeededPage() {
         <Card className="p-12 text-center">
           <CheckCircle2 className="h-8 w-8 mx-auto mb-3 text-emerald-500" />
           <p className="text-sm text-muted-foreground">
-            You're all caught up — no speakers need a reply or follow-up.
+            You're all caught up - no speakers need a reply or follow-up.
           </p>
         </Card>
       ) : (

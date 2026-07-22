@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Inbox,
   CalendarCheck,
+  Search as SearchIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,6 +23,23 @@ import {
 } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import { openGmailThread, gmailThreadUrl } from "@/lib/gmail";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+export type SpeakerStatus = "new" | "contacted" | "responded" | "confirmed" | "declined";
+
+const STATUS_OPTIONS: Array<{ value: SpeakerStatus; label: string }> = [
+  { value: "new", label: "New" },
+  { value: "contacted", label: "Contacted" },
+  { value: "responded", label: "Responded" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "declined", label: "Declined" },
+];
+
 
 /* ---------------- shared helpers reused across app ---------------- */
 
@@ -134,6 +152,7 @@ export function SpeakerListCard({
   onEmail,
   onCopyLink,
   onEdit,
+  onStatusChange,
   showEventChip = true,
   history,
 }: {
@@ -145,6 +164,7 @@ export function SpeakerListCard({
   onEmail: () => void;
   onCopyLink: () => void;
   onEdit: () => void;
+  onStatusChange?: (next: SpeakerStatus) => void;
   showEventChip?: boolean;
   history?: { count: number; last_sent_at: string | null } | null;
 }) {
@@ -156,6 +176,18 @@ export function SpeakerListCard({
   const historyShort = fmtShort(history?.last_sent_at ?? null);
   const dir = s.last_message_direction as string | null;
   const titleAtCompany = [s.title, s.company].filter(Boolean).join(" at ");
+
+  const missingFields: string[] = [];
+  if (!s.email) missingFields.push("email");
+  if (!s.bio && !s.bio_received) missingFields.push("bio");
+  if (!s.headshot_url && !s.headshot_received) missingFields.push("headshot");
+  if (!s.session_title) missingFields.push("session title");
+  if (!s.linkedin_url) missingFields.push("LinkedIn");
+
+  const linkedinSearchUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
+    [s.name, s.company].filter(Boolean).join(" "),
+  )}`;
+
 
   return (
     <div className={cn(softCard, "p-5")}>
@@ -187,9 +219,37 @@ export function SpeakerListCard({
               >
                 {s.name}
               </button>
-              <StatusPill className={cn(stage.cls, "text-[11px] px-2.5 py-1 font-semibold")}>
-                {stage.label}
-              </StatusPill>
+              {onStatusChange ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" title="Change status">
+                      <StatusPill
+                        className={cn(
+                          stage.cls,
+                          "text-[11px] px-2.5 py-1 font-semibold cursor-pointer hover:opacity-90",
+                        )}
+                      >
+                        {stage.label}
+                      </StatusPill>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {STATUS_OPTIONS.map((opt) => (
+                      <DropdownMenuItem
+                        key={opt.value}
+                        onSelect={() => onStatusChange(opt.value)}
+                      >
+                        {opt.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <StatusPill className={cn(stage.cls, "text-[11px] px-2.5 py-1 font-semibold")}>
+                  {stage.label}
+                </StatusPill>
+              )}
+
               {showEventChip && ev?.code && (
                 <StatusPill className={cn(eventChipCls, "text-[11px]")}>
                   {ev.code}
@@ -223,8 +283,16 @@ export function SpeakerListCard({
           )}
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            {s.email && <span className="text-sm text-slate-600 truncate">{s.email}</span>}
-            {s.linkedin_url && (
+            {s.email && (
+              <a
+                href={`mailto:${s.email}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-sm text-slate-600 hover:text-indigo-700 hover:underline truncate"
+              >
+                {s.email}
+              </a>
+            )}
+            {s.linkedin_url ? (
               <a
                 href={s.linkedin_url}
                 target="_blank"
@@ -235,7 +303,20 @@ export function SpeakerListCard({
                 <Linkedin className="h-3 w-3" />
                 LinkedIn
               </a>
+            ) : (
+              <a
+                href={linkedinSearchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-slate-600 ring-1 ring-slate-200 text-[11px] font-medium transition-colors"
+                title="Search LinkedIn"
+              >
+                <SearchIcon className="h-3 w-3" />
+                Search LinkedIn
+              </a>
             )}
+
             {s.outreach_channel && (
               <span
                 className={cn(
@@ -273,6 +354,13 @@ export function SpeakerListCard({
               </StatusPill>
             </div>
           )}
+
+          {missingFields.length > 0 && (
+            <div className="mt-1.5 text-[11px] text-slate-400">
+              Missing: {missingFields.join(", ")}
+            </div>
+          )}
+
 
           {(addedShort || lastShort) && (
             <div className="mt-2.5 flex items-center justify-between text-xs text-slate-400">

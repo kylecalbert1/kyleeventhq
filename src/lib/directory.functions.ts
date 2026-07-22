@@ -6,7 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * Past-speakers directory.
  *
  * The purpose of the directory is re-recruiting past speakers, not browsing
- * every delegate ever. We only surface people who *actually spoke* — either a
+ * every delegate ever. We only surface people who *actually spoke* - either a
  * Speaker Pass / Speaker Guest ticket on Tito, or a confirmed tracker record,
  * against a past-dated AIAI or CSC event. Rows without name+email are
  * excluded on principle; we never render an unnameable card.
@@ -119,7 +119,7 @@ export const listPastSpeakers = createServerFn({ method: "GET" })
       return r;
     };
 
-    // 1) Tito tickets — only mapped AIAI/CSC events; never junk rows.
+    // 1) Tito tickets - only mapped AIAI/CSC events; never junk rows.
     for (const t of ticketsRes.data ?? []) {
       if (t.state === "void" || t.state === "cancelled") continue;
       const ev = titoBySlug.get(t.event_slug);
@@ -142,7 +142,7 @@ export const listPastSpeakers = createServerFn({ method: "GET" })
       if (r.name === "" || r.name.length < nm.length) r.name = nm;
       if (!r.company && t.company_name) r.company = t.company_name;
       if (!r.job_title && t.job_title) r.job_title = t.job_title;
-      // LinkedIn URL sometimes stashed in raw.metadata / answers — cheap best-effort scan.
+      // LinkedIn URL sometimes stashed in raw.metadata / answers - cheap best-effort scan.
       if (!r.linkedin_url && t.raw && typeof t.raw === "object") {
         const s = JSON.stringify(t.raw).toLowerCase();
         const m = s.match(/https?:\/\/(?:www\.)?linkedin\.com\/[^\s"'\\]+/i);
@@ -174,7 +174,7 @@ export const listPastSpeakers = createServerFn({ method: "GET" })
       }
     }
 
-    // 2) Tracker speakers — folded in so confirmed-at-past-event counts too.
+    // 2) Tracker speakers - folded in so confirmed-at-past-event counts too.
     for (const s of speakersRes.data ?? []) {
       const nm = (s.name ?? "").trim();
       const email = normEmail(s.email);
@@ -198,7 +198,7 @@ export const listPastSpeakers = createServerFn({ method: "GET" })
         kind: "tracker",
         event_slug: ev?.tito_slug ?? null,
         event_id: s.event_id,
-        event_title: ev ? `${ev.code} — ${ev.name}` : "(unknown event)",
+        event_title: ev ? `${ev.code} - ${ev.name}` : "(unknown event)",
         event_code: ev?.code ?? null,
         event_start: ev?.event_date ?? null,
         business_line: (ev?.business_line ?? null) as DirectoryPerson["appearances"][number]["business_line"],
@@ -215,7 +215,7 @@ export const listPastSpeakers = createServerFn({ method: "GET" })
           : 0;
         if (startMs > curMs) {
           r.most_recent_past_speaker_at = ev?.event_date ?? null;
-          r.most_recent_past_speaker_event = ev ? `${ev.code} — ${ev.name}` : null;
+          r.most_recent_past_speaker_event = ev ? `${ev.code} - ${ev.name}` : null;
           r.most_recent_past_speaker_event_id = s.event_id;
         }
       }

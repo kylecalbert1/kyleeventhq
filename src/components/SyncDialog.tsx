@@ -300,7 +300,7 @@ export function SyncDialog({
         if (r.connected) {
           scanned += r.flagged.length;
           for (const f of r.flagged) {
-            // No confidence from the server — always manual medium.
+            // No confidence from the server - always manual medium.
             collected.push({
               kind: "asset",
               variant: "banner",
@@ -336,7 +336,7 @@ export function SyncDialog({
     qc.invalidateQueries({ queryKey: ["asanaProofingDues"] });
 
     toast.success(
-      `Sync complete — ${autoApplied} auto-applied · ${collected.length} to review`,
+      `Sync complete - ${autoApplied} auto-applied · ${collected.length} to review`,
     );
   }
 
@@ -349,7 +349,7 @@ export function SyncDialog({
     const targetEventId = overrideEventId ?? eventId;
     if (!targetEventId) {
       toast.error(
-        "Pick an event for this lead — use the per-card picker, or set a default at the top.",
+        "Pick an event for this lead - use the per-card picker, or set a default at the top.",
       );
       return;
     }
@@ -466,7 +466,7 @@ export function SyncDialog({
           </DialogTitle>
           <DialogDescription>
             Runs Calendar leads, Gmail status, and Bio + Banner checks together.
-            High-confidence hits are applied automatically — only the ambiguous
+            High-confidence hits are applied automatically - only the ambiguous
             ones land here for your review.
           </DialogDescription>
         </DialogHeader>
@@ -479,7 +479,7 @@ export function SyncDialog({
             </span>
             <SearchableSelect
               triggerClassName="w-52 h-8 text-xs"
-              placeholder="None — pick per lead"
+              placeholder="None - pick per lead"
               searchPlaceholder="Search events…"
               value={eventId ?? ""}
               onValueChange={(v) => setEventId(v || undefined)}
@@ -564,7 +564,7 @@ export function SyncDialog({
               icon={<CheckCircle2 className="h-6 w-6" />}
               text={
                 summary && summary.autoApplied > 0
-                  ? "All caught up — high-confidence items were applied automatically."
+                  ? "All caught up - high-confidence items were applied automatically."
                   : "Nothing needs your review right now."
               }
             />

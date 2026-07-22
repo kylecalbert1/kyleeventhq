@@ -122,7 +122,7 @@ function OutreachPage() {
             <Target className="h-6 w-6 text-primary" />
             Weekly outreach
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Target accounts, actions and team checklists — reset every Monday.</p>
+          <p className="text-sm text-muted-foreground mt-1">Target accounts, actions and team checklists - reset every Monday.</p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -453,14 +453,14 @@ function AccountFormDialog({
               <Label className="text-xs">Event / product</Label>
               <SearchableSelect
                 triggerClassName="w-full"
-                placeholder="— none —"
+                placeholder="- none -"
                 searchPlaceholder="Search events…"
                 value={form.event_id}
                 onValueChange={(v) => setForm({ ...form, event_id: v })}
                 allowClear
                 options={events.map((e) => ({
                   value: e.id,
-                  label: `${e.code} — ${e.name}`,
+                  label: `${e.code} - ${e.name}`,
                 }))}
               />
             </div>
