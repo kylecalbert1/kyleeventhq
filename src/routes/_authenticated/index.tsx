@@ -113,6 +113,7 @@ function EventsGrid() {
   const { data } = useQuery(eventSummariesQuery);
   const { data: speakers } = useQuery(speakersQuery());
   const [creating, setCreating] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [q, setQ] = useState("");
   const [hidePast, setHidePast] = useState(true);
   const summaries = data ?? [];
