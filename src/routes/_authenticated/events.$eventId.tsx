@@ -357,6 +357,8 @@ function EventDetail() {
 
       <TitoEventPanel eventId={eventId} hasTitoSlug={Boolean((e as any).tito_slug)} />
 
+      <OutreachKitCard eventId={eventId} />
+
       {/* Speakers section: one search bar + one filter row */}
       <section className="space-y-3">
         <div className="accent-bar mb-2" />
