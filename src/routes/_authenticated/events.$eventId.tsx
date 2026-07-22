@@ -41,8 +41,10 @@ import { MilestoneFormDialog } from "@/components/dialogs/MilestoneFormDialog";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { SendHistoryPanel } from "@/components/SendHistoryPanel";
+import { SendMessageDialog } from "@/components/SendMessageDialog";
+import { EmailTemplateManagerDialog } from "@/components/EmailTemplateManagerDialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
+
 import { sendGmailEmail } from "@/lib/email.functions";
 import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
@@ -99,6 +101,8 @@ function EventDetail() {
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
   const [speakerQ, setSpeakerQ] = useState("");
+  const [sendOpen, setSendOpen] = useState<null | { seedEmails?: string[]; seedGroup?: "prospective" | "current_confirmed" | "past_speakers" | "confirmed_not_registered" }>(null);
+  const [templateMgrOpen, setTemplateMgrOpen] = useState(false);
   const sendEmail = useServerFn(sendGmailEmail);
 
   function emailOne(s: any, ev: any) {
@@ -178,6 +182,10 @@ function EventDetail() {
             <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)}>
               <Sparkles className="h-4 w-4 mr-1.5" />
               Sync from Tito
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setSendOpen({})}>
+              <Send className="h-4 w-4 mr-1.5" />
+              Send message
             </Button>
             <Button size="sm" onClick={() => setSpeakerEdit({ open: true })}>
               <Plus className="h-4 w-4 mr-1.5" />
@@ -276,9 +284,18 @@ function EventDetail() {
                       <Button size="sm" variant="outline" onClick={() => setSelected({})}>
                         Clear
                       </Button>
-                      <Button size="sm" onClick={() => setBulkEmailOpen(true)}>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          setSendOpen({
+                            seedEmails: selectedSpeakers
+                              .map((s) => s.email)
+                              .filter((e): e is string => !!e),
+                          })
+                        }
+                      >
                         <Mail className="h-4 w-4 mr-1.5" />
-                        Compose email
+                        Send message
                       </Button>
                     </div>
                   </div>
@@ -334,10 +351,28 @@ function EventDetail() {
       </section>
 
 
-      {/* ─── Email schedule ─── */}
+      {/* ─── Messaging ─── */}
       <section className="space-y-3">
         <div className="accent-bar mb-2" />
-        <EmailSection eventId={eventId} speakers={speakers.data ?? []} />
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold flex items-center gap-1.5">
+              <Mail className="h-4 w-4 text-indigo-600" /> Messaging
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              One send flow for every audience. Open Send message to pick a template, edit copy, and choose recipients.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setTemplateMgrOpen(true)}>
+              <Pencil className="h-4 w-4 mr-1.5" /> Manage templates
+            </Button>
+            <Button size="sm" onClick={() => setSendOpen({})}>
+              <Send className="h-4 w-4 mr-1.5" /> Send message
+            </Button>
+          </div>
+        </div>
+        <SendHistoryPanel eventId={eventId} defaultOpen title="Send history (this event)" />
       </section>
 
       {/* ─── Sponsors ─── */}
@@ -620,6 +655,16 @@ function EventDetail() {
         />
       )}
       <SyncDialog open={syncOpen} onOpenChange={setSyncOpen} defaultEventId={eventId} />
+      {sendOpen && (
+        <SendMessageDialog
+          open={!!sendOpen}
+          onOpenChange={(o) => !o && setSendOpen(null)}
+          eventId={eventId}
+          seedRecipientEmails={sendOpen.seedEmails}
+          seedGroup={sendOpen.seedGroup}
+        />
+      )}
+      <EmailTemplateManagerDialog open={templateMgrOpen} onOpenChange={setTemplateMgrOpen} />
     </div>
   );
 }
@@ -634,107 +679,6 @@ function SectionHeader({ title, onAdd }: { title: string; onAdd?: () => void }) 
           Add
         </Button>
       )}
-    </div>
-  );
-}
-
-const TEMPLATE_ORDER: TemplateType[] = [
-  "confirmation",
-  "banner_reminder",
-  "bio_headshot_reminder",
-  "follow_up",
-  "custom",
-];
-
-function EmailSection({ eventId, speakers }: { eventId: string; speakers: any[] }) {
-  const sends = useQuery(emailSendsQuery(eventId));
-  const [composeOpen, setComposeOpen] = useState(false);
-  const [initialTemplate, setInitialTemplate] = useState<TemplateType>("custom");
-
-  const perTemplate = useMemo(() => {
-    const map = new Map<TemplateType, { count: number; latest: string | null }>();
-    for (const t of TEMPLATE_ORDER) map.set(t, { count: 0, latest: null });
-    for (const s of sends.data ?? []) {
-      const cur = map.get(s.template_type) ?? { count: 0, latest: null };
-      cur.count += s.recipient_count;
-      if (!cur.latest || new Date(s.sent_at) > new Date(cur.latest)) {
-        cur.latest = s.sent_at;
-      }
-      map.set(s.template_type, cur);
-    }
-    return map;
-  }, [sends.data]);
-
-  function fmt(iso: string | null) {
-    if (!iso) return "Not sent yet";
-    return new Date(iso).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  }
-
-  function launchCompose(template: TemplateType) {
-    setInitialTemplate(template);
-    setComposeOpen(true);
-  }
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h2 className="text-sm font-semibold flex items-center gap-1.5">
-              <Mail className="h-4 w-4 text-indigo-600" /> Email templates
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Kyle triggers these sends manually based on pipeline status — this is tracking, not automation.
-            </p>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {speakers.length} speaker{speakers.length === 1 ? "" : "s"} on this event
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-          {TEMPLATE_ORDER.map((t) => {
-            const info = perTemplate.get(t)!;
-            return (
-              <Card
-                key={t}
-                className="p-4 rounded-2xl border-slate-200/70 shadow-sm flex flex-col gap-3"
-              >
-                <div>
-                  <div className="text-sm font-semibold text-slate-900">{TEMPLATE_LABELS[t]}</div>
-                  <div className="mt-2 text-xs text-slate-500">
-                    <span className="font-semibold text-slate-700 tabular-nums">{info.count}</span>{" "}
-                    sent all-time
-                  </div>
-                  <div className="text-xs text-slate-500 mt-0.5">Latest: {fmt(info.latest)}</div>
-                </div>
-                <Button
-                  size="sm"
-                  className="rounded-full bg-indigo-600 hover:bg-indigo-700 text-white h-8 mt-auto"
-                  onClick={() => launchCompose(t)}
-                  disabled={speakers.length === 0}
-                >
-                  <Send className="h-3.5 w-3.5 mr-1.5" />
-                  Send now
-                </Button>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-
-      <SendHistoryPanel eventId={eventId} defaultOpen title="Send history (this event)" />
-
-      <BulkEmailDialog
-        open={composeOpen}
-        onOpenChange={setComposeOpen}
-        speakers={speakers}
-        initialTemplate={initialTemplate}
-        eventId={eventId}
-      />
     </div>
   );
 }

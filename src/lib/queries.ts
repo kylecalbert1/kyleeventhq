@@ -14,6 +14,8 @@ import { listEmailSends } from "@/lib/email-sends.functions";
 import { getEventOutreach } from "@/lib/outreach-hub.functions";
 import { listAgendaItems, listAgendaTemplates } from "@/lib/agenda.functions";
 import { listEventReleases, getEventReconciliation, getEventTitoLinks, listTitoEventsForPicker } from "@/lib/tito.functions";
+import { listEmailTemplates } from "@/lib/email-templates.functions";
+import { listPastSpeakers } from "@/lib/directory.functions";
 
 export const qk = {
   eventSummaries: () => ["eventSummaries"] as const,
@@ -27,9 +29,11 @@ export const qk = {
   outreachAccounts: (week: string) => ["outreachAccounts", week] as const,
   teamChecklist: (week: string) => ["teamChecklist", week] as const,
   emailSends: (eventId?: string) => ["emailSends", eventId ?? "all"] as const,
+  emailTemplates: () => ["emailTemplates"] as const,
   eventOutreach: (eventId: string) => ["eventOutreach", eventId] as const,
   agendaItems: (eventId: string) => ["agendaItems", eventId] as const,
   agendaTemplates: () => ["agendaTemplates"] as const,
+  pastSpeakers: (includeAttendees: boolean) => ["pastSpeakers", includeAttendees] as const,
 };
 
 export const eventOutreachQuery = (eventId: string) =>
@@ -51,6 +55,19 @@ export const emailSendsQuery = (eventId?: string) =>
   queryOptions({
     queryKey: qk.emailSends(eventId),
     queryFn: () => listEmailSends({ data: eventId ? { event_id: eventId } : {} }),
+  });
+
+export const emailTemplatesQuery = queryOptions({
+  queryKey: qk.emailTemplates(),
+  queryFn: () => listEmailTemplates(),
+  staleTime: 30_000,
+});
+
+export const pastSpeakersQuery = (includeAttendees: boolean) =>
+  queryOptions({
+    queryKey: qk.pastSpeakers(includeAttendees),
+    queryFn: () => listPastSpeakers({ data: { include_attendees: includeAttendees } }),
+    staleTime: 60_000,
   });
 
 export const eventSummariesQuery = queryOptions({

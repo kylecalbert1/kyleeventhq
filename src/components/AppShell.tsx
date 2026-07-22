@@ -2,7 +2,6 @@ import { Link, Outlet, useRouter } from "@tanstack/react-router";
 import {
   LayoutGrid,
   Users,
-  UserSquare2,
   Globe,
   CalendarDays,
   LogOut,
@@ -10,7 +9,6 @@ import {
   ClipboardCheck,
   Inbox,
   Reply,
-  
   MessageSquare,
   ListChecks,
 } from "lucide-react";
@@ -21,7 +19,6 @@ type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boo
 
 const NAV_PRIMARY: NavItem[] = [
   { to: "/", label: "Events", icon: LayoutGrid, exact: true },
-  { to: "/people", label: "People", icon: UserSquare2 },
   { to: "/speakers", label: "Speakers", icon: Users },
   { to: "/outreach-templates", label: "Outreach", icon: MessageSquare },
   { to: "/agenda", label: "Agenda", icon: ListChecks },

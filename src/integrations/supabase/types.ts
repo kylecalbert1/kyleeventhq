@@ -189,6 +189,42 @@ export type Database = {
           },
         ]
       }
+      email_templates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_archived: boolean
+          is_seed: boolean
+          name: string
+          slug: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          is_seed?: boolean
+          name: string
+          slug: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          is_seed?: boolean
+          name?: string
+          slug?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_milestones: {
         Row: {
           created_at: string

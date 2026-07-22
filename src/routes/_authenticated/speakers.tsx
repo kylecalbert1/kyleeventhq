@@ -62,6 +62,7 @@ import {
 } from "@/components/speakers/SpeakerListCard";
 import { useContactHistory } from "@/hooks/use-contact-history";
 import { DiscoveryView } from "@/components/speakers/DiscoveryView";
+import { PastSpeakersDirectorySection } from "@/components/speakers/PastSpeakersDirectorySection";
 
 const searchSchema = z.object({
   attention: z.enum(["reply", "follow_up", "any"]).optional(),
@@ -586,17 +587,20 @@ function SpeakerBoard() {
       </div>
 
       {view === "list" ? (
-        <LifecycleSections
-          sorted={sorted}
-          eventById={eventById}
-          selected={selected}
-          setSelected={setSelected}
-          lookupHistory={lookupHistory}
-          onOpenDetail={(s) => setDetailSpeaker(s)}
-          onEmail={(s) => emailOne(s, eventById[s.event_id])}
-          onCopyLink={copyLink}
-          onEdit={(s) => setEditing({ open: true, speaker: s })}
-        />
+        <div className="space-y-10">
+          <LifecycleSections
+            sorted={sorted}
+            eventById={eventById}
+            selected={selected}
+            setSelected={setSelected}
+            lookupHistory={lookupHistory}
+            onOpenDetail={(s) => setDetailSpeaker(s)}
+            onEmail={(s) => emailOne(s, eventById[s.event_id])}
+            onCopyLink={copyLink}
+            onEdit={(s) => setEditing({ open: true, speaker: s })}
+          />
+          <PastSpeakersDirectorySection />
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           {COLUMNS.map((col) => (
