@@ -231,7 +231,7 @@ function TagForEventDialog({
           <SearchableSelect
             options={options}
             value={target}
-            onChange={setTarget}
+            onValueChange={setTarget}
             placeholder="Select event…"
           />
         </div>
