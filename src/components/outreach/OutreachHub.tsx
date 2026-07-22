@@ -264,10 +264,14 @@ function SearchRow({
   row,
   onPatch,
   onDelete,
+  onMoveUp,
+  onMoveDown,
 }: {
   row: { id: string; label: string; url: string | null };
   onPatch: (patch: { label?: string; url?: string }) => void;
   onDelete: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
   const [label, setLabel] = useState(row.label);
   const [url, setUrl] = useState(row.url ?? "");
@@ -277,6 +281,14 @@ function SearchRow({
   }, [row.label, row.url]);
   return (
     <div className="flex items-center gap-2 p-2 rounded-lg border border-slate-200/70 bg-white">
+      <div className="flex flex-col">
+        <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={onMoveUp} disabled={!onMoveUp}>
+          <ArrowUp className="h-3 w-3" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={onMoveDown} disabled={!onMoveDown}>
+          <ArrowDown className="h-3 w-3" />
+        </Button>
+      </div>
       <Input
         value={label}
         onChange={(e) => setLabel(e.target.value)}
