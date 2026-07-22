@@ -61,6 +61,7 @@ import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
 import { TitoEventPanel } from "@/components/events/TitoEventPanel";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
+import { isPastEvent } from "@/lib/event-lifecycle";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
@@ -244,6 +245,8 @@ function EventDetail() {
     : tz;
   const speakerTarget = (e as any).speaker_target ?? 0;
 
+  const eventEnded = isPastEvent(e as any);
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex items-center gap-3">
@@ -254,6 +257,13 @@ function EventDetail() {
           </Link>
         </Button>
       </div>
+
+      {eventEnded && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <span className="font-semibold text-slate-700">This event has ended.</span>{" "}
+          Kept accessible for the past speaker directory. Recruitment actions are hidden.
+        </div>
+      )}
 
       {/* Header card */}
       <Card className="p-5 rounded-2xl border-slate-200/70">
@@ -319,41 +329,43 @@ function EventDetail() {
           </div>
         </div>
 
-        {/* Status chips as filters */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <FilterChip
-            active={filterKey === "confirmed"}
-            onClick={() => setFilterKey(filterKey === "confirmed" ? "all" : "confirmed")}
-            tone="emerald"
-            label="Confirmed"
-            count={counts.confirmed}
-          />
-          <FilterChip
-            active={filterKey === "prospective"}
-            onClick={() => setFilterKey(filterKey === "prospective" ? "all" : "prospective")}
-            tone="sky"
-            label="Prospective"
-            count={counts.prospective}
-          />
-          {(e as any).tito_slug && (
-            <>
-              <FilterChip
-                active={filterKey === "registered"}
-                onClick={() => setFilterKey(filterKey === "registered" ? "all" : "registered")}
-                tone="violet"
-                label="Registered in Tito"
-                count={counts.registeredTito}
-              />
-              <FilterChip
-                active={filterKey === "not_registered"}
-                onClick={() => setFilterKey(filterKey === "not_registered" ? "all" : "not_registered")}
-                tone="amber"
-                label="Not yet registered"
-                count={counts.notRegistered}
-              />
-            </>
-          )}
-        </div>
+        {/* Status chips as filters — reconciliation hides for ended events */}
+        {!eventEnded && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <FilterChip
+              active={filterKey === "confirmed"}
+              onClick={() => setFilterKey(filterKey === "confirmed" ? "all" : "confirmed")}
+              tone="emerald"
+              label="Confirmed"
+              count={counts.confirmed}
+            />
+            <FilterChip
+              active={filterKey === "prospective"}
+              onClick={() => setFilterKey(filterKey === "prospective" ? "all" : "prospective")}
+              tone="sky"
+              label="Prospective"
+              count={counts.prospective}
+            />
+            {(e as any).tito_slug && (
+              <>
+                <FilterChip
+                  active={filterKey === "registered"}
+                  onClick={() => setFilterKey(filterKey === "registered" ? "all" : "registered")}
+                  tone="violet"
+                  label="Registered in Tito"
+                  count={counts.registeredTito}
+                />
+                <FilterChip
+                  active={filterKey === "not_registered"}
+                  onClick={() => setFilterKey(filterKey === "not_registered" ? "all" : "not_registered")}
+                  tone="amber"
+                  label="Not yet registered"
+                  count={counts.notRegistered}
+                />
+              </>
+            )}
+          </div>
+        )}
       </Card>
 
       <TitoEventPanel eventId={eventId} hasTitoSlug={Boolean((e as any).tito_slug)} />
