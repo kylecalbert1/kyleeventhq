@@ -19,6 +19,7 @@ import { Route as AuthenticatedSpeakerSourcingRouteImport } from './routes/_auth
 import { Route as AuthenticatedReplyNeededRouteImport } from './routes/_authenticated/reply-needed'
 import { Route as AuthenticatedProofingRouteImport } from './routes/_authenticated/proofing'
 import { Route as AuthenticatedOutreachTemplatesRouteImport } from './routes/_authenticated/outreach-templates'
+import { Route as AuthenticatedOutreachRouteImport } from './routes/_authenticated/outreach'
 import { Route as AuthenticatedMilestonesRouteImport } from './routes/_authenticated/milestones'
 import { Route as AuthenticatedBannersRouteImport } from './routes/_authenticated/banners'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
@@ -79,6 +80,11 @@ const AuthenticatedOutreachTemplatesRoute =
     path: '/outreach-templates',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOutreachRoute = AuthenticatedOutreachRouteImport.update({
+  id: '/outreach',
+  path: '/outreach',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMilestonesRoute = AuthenticatedMilestonesRouteImport.update({
   id: '/milestones',
   path: '/milestones',
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/banners': typeof AuthenticatedBannersRoute
   '/milestones': typeof AuthenticatedMilestonesRoute
+  '/outreach': typeof AuthenticatedOutreachRoute
   '/outreach-templates': typeof AuthenticatedOutreachTemplatesRoute
   '/proofing': typeof AuthenticatedProofingRoute
   '/reply-needed': typeof AuthenticatedReplyNeededRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/banners': typeof AuthenticatedBannersRoute
   '/milestones': typeof AuthenticatedMilestonesRoute
+  '/outreach': typeof AuthenticatedOutreachRoute
   '/outreach-templates': typeof AuthenticatedOutreachTemplatesRoute
   '/proofing': typeof AuthenticatedProofingRoute
   '/reply-needed': typeof AuthenticatedReplyNeededRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/banners': typeof AuthenticatedBannersRoute
   '/_authenticated/milestones': typeof AuthenticatedMilestonesRoute
+  '/_authenticated/outreach': typeof AuthenticatedOutreachRoute
   '/_authenticated/outreach-templates': typeof AuthenticatedOutreachTemplatesRoute
   '/_authenticated/proofing': typeof AuthenticatedProofingRoute
   '/_authenticated/reply-needed': typeof AuthenticatedReplyNeededRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/banners'
     | '/milestones'
+    | '/outreach'
     | '/outreach-templates'
     | '/proofing'
     | '/reply-needed'
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/banners'
     | '/milestones'
+    | '/outreach'
     | '/outreach-templates'
     | '/proofing'
     | '/reply-needed'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/_authenticated/agenda'
     | '/_authenticated/banners'
     | '/_authenticated/milestones'
+    | '/_authenticated/outreach'
     | '/_authenticated/outreach-templates'
     | '/_authenticated/proofing'
     | '/_authenticated/reply-needed'
@@ -297,6 +309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOutreachTemplatesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/outreach': {
+      id: '/_authenticated/outreach'
+      path: '/outreach'
+      fullPath: '/outreach'
+      preLoaderRoute: typeof AuthenticatedOutreachRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/milestones': {
       id: '/_authenticated/milestones'
       path: '/milestones'
@@ -359,6 +378,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedBannersRoute: typeof AuthenticatedBannersRoute
   AuthenticatedMilestonesRoute: typeof AuthenticatedMilestonesRoute
+  AuthenticatedOutreachRoute: typeof AuthenticatedOutreachRoute
   AuthenticatedOutreachTemplatesRoute: typeof AuthenticatedOutreachTemplatesRoute
   AuthenticatedProofingRoute: typeof AuthenticatedProofingRoute
   AuthenticatedReplyNeededRoute: typeof AuthenticatedReplyNeededRoute
@@ -375,6 +395,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedBannersRoute: AuthenticatedBannersRoute,
   AuthenticatedMilestonesRoute: AuthenticatedMilestonesRoute,
+  AuthenticatedOutreachRoute: AuthenticatedOutreachRoute,
   AuthenticatedOutreachTemplatesRoute: AuthenticatedOutreachTemplatesRoute,
   AuthenticatedProofingRoute: AuthenticatedProofingRoute,
   AuthenticatedReplyNeededRoute: AuthenticatedReplyNeededRoute,
