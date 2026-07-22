@@ -109,57 +109,6 @@ export async function runAsanaSync(admin: any, creds: AsanaCreds) {
 
   return { checked, updated, failures, details };
 }
-  const { data: events, error } = await admin
-    .from("events")
-    .select("id, format, asana_project_gid, kickoff_date, launch_date")
-    .not("asana_project_gid", "is", null);
-  if (error) throw new Error(error.message);
-
-  let checked = 0;
-  let updated = 0;
-  let failures = 0;
-  const details: Array<{ event_id: string; ok: boolean; changes?: string[]; error?: string }> = [];
-
-  for (const ev of events ?? []) {
-    checked++;
-    try {
-      const tasks = await fetchAsanaTasks(ev.asana_project_gid as string, pat);
-      const kickoffDue = findTaskDue(tasks, (n) => n.includes("run kick off meeting"));
-      const launchExact = findTaskDue(tasks, (n) => n.includes("launch day"));
-      const launchFallback =
-        (ev.format as string) === "virtual"
-          ? findTaskDue(tasks, (n) => n.includes("launch") && n.includes("to members"))
-          : null;
-      const launchDue = launchExact ?? launchFallback;
-
-      const patch: Record<string, string> = {};
-      const changes: string[] = [];
-
-      // Rule: only update when different AND new value non-null. Never null out.
-      if (kickoffDue && kickoffDue !== ev.kickoff_date) {
-        patch.kickoff_date = kickoffDue;
-        changes.push(`kickoff: ${ev.kickoff_date ?? "∅"} → ${kickoffDue}`);
-      }
-      if (launchDue && launchDue !== ev.launch_date) {
-        patch.launch_date = launchDue;
-        changes.push(`launch: ${ev.launch_date ?? "∅"} → ${launchDue}`);
-      }
-
-      patch.asana_last_synced_at = new Date().toISOString();
-      const { error: uErr } = await admin.from("events").update(patch).eq("id", ev.id);
-      if (uErr) throw new Error(uErr.message);
-
-      if (changes.length) updated++;
-      details.push({ event_id: ev.id, ok: true, changes });
-    } catch (err: any) {
-      failures++;
-      console.error("[asana-nightly] failed for event", ev.id, err);
-      details.push({ event_id: ev.id, ok: false, error: err?.message ?? String(err) });
-    }
-  }
-
-  return { checked, updated, failures, details };
-}
 
 type AsanaTask = {
   gid: string;
