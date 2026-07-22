@@ -655,6 +655,16 @@ function EventDetail() {
         />
       )}
       <SyncDialog open={syncOpen} onOpenChange={setSyncOpen} defaultEventId={eventId} />
+      {sendOpen && (
+        <SendMessageDialog
+          open={!!sendOpen}
+          onOpenChange={(o) => !o && setSendOpen(null)}
+          eventId={eventId}
+          seedRecipientEmails={sendOpen.seedEmails}
+          seedGroup={sendOpen.seedGroup}
+        />
+      )}
+      <EmailTemplateManagerDialog open={templateMgrOpen} onOpenChange={setTemplateMgrOpen} />
     </div>
   );
 }
