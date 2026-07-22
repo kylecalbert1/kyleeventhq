@@ -85,7 +85,7 @@ function AgendaPage() {
             onValueChange={setEventId}
             options={sorted.map((e: any) => ({
               value: e.id,
-              label: `${e.code ? `${e.code} — ` : ""}${e.name}`,
+              label: `${e.code ? `${e.code} - ` : ""}${e.name}`,
             }))}
           />
           {selected && (
@@ -202,7 +202,7 @@ function SelectedEventAgenda({ event }: { event: any }) {
             )}
           </div>
           <p className="mt-1.5 text-[11px] text-muted-foreground">
-            Paste a Google Doc, Sheets, or any external link. Editable here — no need to open Edit Event.
+            Paste a Google Doc, Sheets, or any external link. Editable here - no need to open Edit Event.
           </p>
         </div>
       </div>

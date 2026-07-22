@@ -201,7 +201,7 @@ function TagForEventDialog({
       if (!e.event_date) return true;
       return new Date(e.event_date).getTime() >= Date.now();
     })
-    .map((e) => ({ value: e.id, label: `${e.code} — ${e.name}` }));
+    .map((e) => ({ value: e.id, label: `${e.code} - ${e.name}` }));
 
   async function submit() {
     if (!target || people.length === 0) return;
@@ -305,7 +305,7 @@ function ManageEventTagsDialog({
                 <tr key={r.id} className="border-t border-slate-100">
                   <td className="py-2 pr-3">{r.title}</td>
                   <td className="py-2 pr-3 text-xs text-muted-foreground">
-                    {r.start_date ? new Date(r.start_date).toLocaleDateString() : "—"}
+                    {r.start_date ? new Date(r.start_date).toLocaleDateString() : "-"}
                   </td>
                   <td className="py-2">
                     <div className="inline-flex rounded-md border border-slate-200">

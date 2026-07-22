@@ -257,7 +257,7 @@ export function AgendaImportDialog({
         const doc = new DOMParser().parseFromString(html, "text/html");
         const table = doc.querySelector("table");
         if (!table) {
-          toast.error("No table found in this .docx — try exporting to xlsx or csv.");
+          toast.error("No table found in this .docx - try exporting to xlsx or csv.");
           setRows([]);
           setParsing(false);
           return;
@@ -411,7 +411,7 @@ export function AgendaImportDialog({
           {rows && rows.length > 0 && (
             <div>
               <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                Preview — {rows.length} rows
+                Preview - {rows.length} rows
                 {describing && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-normal text-indigo-700">
                     <Loader2 className="h-3 w-3 animate-spin" /> Generating descriptions…
@@ -443,7 +443,7 @@ export function AgendaImportDialog({
                       <div
                         className="grid grid-cols-[60px_60px_50px_110px_1fr_140px_120px] gap-2 px-3 py-1.5 text-xs items-center"
                       >
-                        <div className="tabular-nums">{r.start_time ?? "—"}</div>
+                        <div className="tabular-nums">{r.start_time ?? "-"}</div>
                         <div className="tabular-nums">{end}</div>
                         <div className="tabular-nums">{r.duration_min}</div>
                         <div className="truncate">{SESSION_LABELS[r.session_type] ?? r.session_type}</div>

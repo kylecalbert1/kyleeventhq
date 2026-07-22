@@ -269,7 +269,7 @@ export function EventFormDialog({
           <Field label="Final sign-off due" full>
             <Input type="date" value={form.final_signoff_due} onChange={(e) => setForm({ ...form, final_signoff_due: e.target.value })} />
           </Field>
-          <Field label="Tito event (optional — leave empty for virtual events)" full>
+          <Field label="Tito event (optional - leave empty for virtual events)" full>
             <div className="flex items-center gap-2">
               <SearchableSelect
                 triggerClassName="flex-1 h-10"
@@ -277,7 +277,7 @@ export function EventFormDialog({
                 searchPlaceholder="Search by name or slug…"
                 value={form.tito_slug}
                 onValueChange={(v) => setForm({ ...form, tito_slug: v })}
-                allOption={{ value: "", label: "— Not linked —" }}
+                allOption={{ value: "", label: "- Not linked -" }}
                 options={titoOptions}
               />
               {form.tito_slug && (
@@ -304,7 +304,7 @@ export function EventFormDialog({
             />
             {form.asana_link && !looksLikeAsanaUrl(form.asana_link) ? (
               <p className="text-xs text-amber-600">
-                This doesn't look like an Asana project URL — we'll save it as-is.
+                This doesn't look like an Asana project URL - we'll save it as-is.
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">

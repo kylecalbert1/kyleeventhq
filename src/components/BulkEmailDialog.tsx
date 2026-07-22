@@ -41,7 +41,7 @@ const TEMPLATES: Record<
 > = {
   custom: {
     label: "Custom / blank",
-    subject: "Quick ask for {{firstName}} — event assets",
+    subject: "Quick ask for {{firstName}} - event assets",
     body:
       "Hey {{firstName}},\n\nHope you're doing well! Could you send over your logo, headshot and short bio when you get a moment? It helps us finalise everything for the event.\n\nThanks so much!",
   },
@@ -55,7 +55,7 @@ const TEMPLATES: Record<
     label: "Banner request reminder",
     subject: "Quick nudge on your speaker banner",
     body:
-      "Hi {{firstName}},\n\nJust a quick nudge — our design team is putting speaker banners together this week. Could you confirm the title / description on your session is still accurate so we can lock it in?\n\nThanks!",
+      "Hi {{firstName}},\n\nJust a quick nudge - our design team is putting speaker banners together this week. Could you confirm the title / description on your session is still accurate so we can lock it in?\n\nThanks!",
   },
   bio_headshot_reminder: {
     label: "Bio & headshot reminder",
@@ -64,10 +64,10 @@ const TEMPLATES: Record<
       "Hi {{firstName}},\n\nWhenever you get a minute, could you send over a short speaker bio (2–3 sentences) and a high-res headshot? We'll use them on the site and in promo.\n\nMuch appreciated!",
   },
   follow_up: {
-    label: "Follow-up — no reply",
+    label: "Follow-up - no reply",
     subject: "Circling back, {{firstName}}",
     body:
-      "Hi {{firstName}},\n\nJust circling back on my last note — happy to jump on a quick call if easier, otherwise a quick reply here works too. Would love to lock this in.\n\nThanks!",
+      "Hi {{firstName}},\n\nJust circling back on my last note - happy to jump on a quick call if easier, otherwise a quick reply here works too. Would love to lock this in.\n\nThanks!",
   },
 };
 
@@ -96,7 +96,7 @@ export function BulkEmailDialog({
   /**
    * Optional per-recipient AI-generated overrides keyed by speaker id.
    * When present, the recipient's rSubject/rBody use these instead of the
-   * shared template — used by the Tito "Draft outreach" flow so each person
+   * shared template - used by the Tito "Draft outreach" flow so each person
    * gets a personalized draft that can still be reviewed & sent through the
    * app's Gmail integration.
    */

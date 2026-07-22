@@ -185,7 +185,7 @@ export function DiscoveryView() {
     staleTime: 30_000,
   });
 
-  // Build brand-scoped slug allowlist (default: only AIAI/CSC — Kyle's own).
+  // Build brand-scoped slug allowlist (default: only AIAI/CSC - Kyle's own).
   const scopedSlugsAll = useMemo(() => {
     const rows = titoEventsStats.data ?? [];
     return rows
@@ -349,12 +349,12 @@ export function DiscoveryView() {
 
         {/* Stat bar */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <StatCard label="Unified Events" value={stats.data?.unified_events ?? "—"} tone="blue" />
+          <StatCard label="Unified Events" value={stats.data?.unified_events ?? "-"} tone="blue" />
           <StatCard label="Synced Attendees" value={(stats.data?.synced_attendees ?? 0).toLocaleString()} tone="slate" />
-          <StatCard label="New Profiles" value={stats.data?.new_profiles ?? "—"} tone="amber" />
-          <StatCard label="Confirmed Speakers" value={stats.data?.confirmed_speakers ?? "—"} tone="green" />
-          <StatCard label="Waitlisted Speakers" value={stats.data?.waitlisted_speakers ?? "—"} tone="purple" />
-          <StatCard label="Declined Profiles" value={stats.data?.declined_profiles ?? "—"} tone="red" />
+          <StatCard label="New Profiles" value={stats.data?.new_profiles ?? "-"} tone="amber" />
+          <StatCard label="Confirmed Speakers" value={stats.data?.confirmed_speakers ?? "-"} tone="green" />
+          <StatCard label="Waitlisted Speakers" value={stats.data?.waitlisted_speakers ?? "-"} tone="purple" />
+          <StatCard label="Declined Profiles" value={stats.data?.declined_profiles ?? "-"} tone="red" />
         </div>
 
         {!conn.data?.connected && (
@@ -443,10 +443,10 @@ export function DiscoveryView() {
                         setTimeout(() => search.mutate(), 0);
                       }}
                     >
-                      <div className="font-medium">{s.name ?? s.email ?? "—"}</div>
+                      <div className="font-medium">{s.name ?? s.email ?? "-"}</div>
                       <div className="text-xs text-muted-foreground truncate">
                         {[s.job_title, s.company_name].filter(Boolean).join(" · ")}
-                        {s.event_title ? ` — ${s.event_title}` : ""}
+                        {s.event_title ? ` - ${s.event_title}` : ""}
                       </div>
                     </button>
                   ))}
@@ -1414,7 +1414,7 @@ function EventFilterPanel() {
   return (
     <div className="rounded-lg border bg-slate-50/60 p-4">
       <div className="text-sm font-medium mb-2">
-        Tito event filters — AIAI/CSC keyword rule + manual overrides
+        Tito event filters - AIAI/CSC keyword rule + manual overrides
       </div>
       <div className="space-y-3 text-sm">
         <div className="rounded-md bg-white p-3 text-xs text-muted-foreground border">

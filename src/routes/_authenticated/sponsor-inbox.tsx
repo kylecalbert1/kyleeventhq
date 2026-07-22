@@ -30,9 +30,9 @@ export const Route = createFileRoute("/_authenticated/sponsor-inbox")({
 });
 
 function fmt(iso: string | null) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleString("en-GB", {
     day: "numeric",
     month: "short",
@@ -105,7 +105,7 @@ function SponsorInboxPage() {
           <Mail className="h-8 w-8 mx-auto mb-3 opacity-50" />
           <p className="text-sm">
             {filter === "unactioned"
-              ? "Inbox zero — nothing awaiting action."
+              ? "Inbox zero - nothing awaiting action."
               : "No sponsor mentions captured yet."}
           </p>
         </Card>

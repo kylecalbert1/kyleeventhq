@@ -104,7 +104,7 @@ function Banners() {
           <h1 className="text-2xl font-semibold tracking-tight">Banner tracker</h1>
           <p className="text-sm text-muted-foreground">
             Every banner in production, grouped by event. Status here is the single source of
-            truth — it also drives the Speaker Kanban and the Sync banner check.
+            truth - it also drives the Speaker Kanban and the Sync banner check.
           </p>
         </div>
         <Select value={eventFilter} onValueChange={setEventFilter}>
@@ -115,7 +115,7 @@ function Banners() {
             <SelectItem value="all">All events</SelectItem>
             {(events.data ?? []).map((e) => (
               <SelectItem key={e.id} value={e.id}>
-                {e.code} — {e.name}
+                {e.code} - {e.name}
               </SelectItem>
             ))}
           </SelectContent>

@@ -112,8 +112,8 @@ function EventDetail() {
     setConfirmEmail({
       to: s.email,
       recipientName: firstName,
-      subject: `${code} — quick check-in`,
-      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+      subject: `${code} - quick check-in`,
+      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us - happy to help move things forward.\n\nThanks!`,
       templateType: "custom",
       eventId: s.event_id ?? null,
       speakerId: s.id,
@@ -198,7 +198,7 @@ function EventDetail() {
       <TitoEventPanel eventId={eventId} hasTitoSlug={Boolean((e as any).tito_slug)} />
 
 
-      {/* Top-level search — filters the Speakers, Outreach, Banners lists below */}
+      {/* Top-level search - filters the Speakers, Outreach, Banners lists below */}
       <div className="relative max-w-xl">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -403,7 +403,7 @@ function EventDetail() {
                         {labels.banner[s.banner_status as never]}
                       </StatusPill>
                     </TableCell>
-                    <TableCell>{s.linkedin_post_confirmed ? "✓" : "—"}</TableCell>
+                    <TableCell>{s.linkedin_post_confirmed ? "✓" : "-"}</TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"
@@ -545,7 +545,7 @@ function EventDetail() {
                       {labels.milestoneStatus[m.status as never]}
                     </StatusPill>
                     <span className="text-xs text-muted-foreground">
-                      {m.scheduled_date ? new Date(m.scheduled_date).toLocaleDateString() : "—"}
+                      {m.scheduled_date ? new Date(m.scheduled_date).toLocaleDateString() : "-"}
                     </span>
                   </div>
                   <div className="flex gap-3 text-xs mt-1">
@@ -594,8 +594,8 @@ function EventDetail() {
 
       <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
         Looking for LinkedIn outreach templates or the agenda builder? They now live
-        in their own top-level pages — <Link to="/outreach-templates" className="underline font-medium">Outreach</Link>{" "}
-        and <Link to="/agenda" className="underline font-medium">Agenda</Link> — with an event picker at the top.
+        in their own top-level pages - <Link to="/outreach-templates" className="underline font-medium">Outreach</Link>{" "}
+        and <Link to="/agenda" className="underline font-medium">Agenda</Link> - with an event picker at the top.
       </div>
 
 

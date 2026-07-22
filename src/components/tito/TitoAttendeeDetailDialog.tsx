@@ -49,7 +49,7 @@ export function TitoAttendeeDetailDialog({
               {initialsOf(a.name)}
             </div>
             <div className="min-w-0">
-              <div className="text-lg font-semibold truncate">{a.name ?? "—"}</div>
+              <div className="text-lg font-semibold truncate">{a.name ?? "-"}</div>
               {titleAtCompany && (
                 <div className="text-sm text-slate-500 font-normal truncate">
                   {titleAtCompany}

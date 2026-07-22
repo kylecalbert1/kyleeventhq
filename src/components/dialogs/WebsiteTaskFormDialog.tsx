@@ -214,7 +214,7 @@ export function WebsiteTaskFormDialog({
               <SelectContent>
                 {(events.data ?? []).map((e) => (
                   <SelectItem key={e.id} value={e.id}>
-                    {e.code} — {e.name}
+                    {e.code} - {e.name}
                   </SelectItem>
                 ))}
               </SelectContent>

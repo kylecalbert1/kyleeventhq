@@ -125,8 +125,8 @@ function SpeakerProfile() {
     setConfirmEmail({
       to: speaker.email,
       recipientName: firstName,
-      subject: `${code} — quick check-in`,
-      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us — happy to help move things forward.\n\nThanks!`,
+      subject: `${code} - quick check-in`,
+      body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us - happy to help move things forward.\n\nThanks!`,
     });
   }
 

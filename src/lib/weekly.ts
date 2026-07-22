@@ -1,4 +1,4 @@
-// Weekly helpers — Monday-based week key (YYYY-MM-DD of Monday).
+// Weekly helpers - Monday-based week key (YYYY-MM-DD of Monday).
 export function mondayOf(d: Date): Date {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);

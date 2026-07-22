@@ -15,7 +15,7 @@ export const TEMPLATE_LABELS: Record<TemplateType, string> = {
   confirmation: "Speaker confirmation",
   banner_reminder: "Banner request reminder",
   bio_headshot_reminder: "Bio & headshot reminder",
-  follow_up: "Follow-up — no reply",
+  follow_up: "Follow-up - no reply",
   custom: "Custom / blank",
 };
 
@@ -50,7 +50,7 @@ export const logEmailSend = createServerFn({ method: "POST" })
       .single();
     if (sendErr) throw new Error(sendErr.message);
 
-    // Validate speaker_ids — callers may pass non-speaker ids (e.g. Tito
+    // Validate speaker_ids - callers may pass non-speaker ids (e.g. Tito
     // ticket ids) which would violate the FK. Keep only ids that exist.
     const candidateIds = Array.from(
       new Set(
@@ -86,7 +86,7 @@ export const logEmailSend = createServerFn({ method: "POST" })
       .map((r) => ({
         speaker_id: r.speaker_id!,
         event_type: "email_sent",
-        note: `${TEMPLATE_LABELS[data.template_type]} — ${data.subject}`,
+        note: `${TEMPLATE_LABELS[data.template_type]} - ${data.subject}`,
       }));
     if (activityRows.length) {
       await context.supabase.from("speaker_activity_log").insert(activityRows);

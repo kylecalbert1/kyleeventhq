@@ -146,7 +146,7 @@ function coreDayEnd(items: Item[]): string | null {
 }
 
 // ------------------------------------------------------------------
-// Skeleton generator — the real fix
+// Skeleton generator - the real fix
 // ------------------------------------------------------------------
 
 export type DayPlan = {
@@ -164,7 +164,7 @@ function planSingleOrDay1(dayStart: string, opts: { withSponsors: boolean; withH
   //   + Panel(45) + Panel(30, shrunk per rule) = 330 ✓
   const items: Item[] = [];
 
-  // Registration (60) — sits before day start.
+  // Registration (60) - sits before day start.
   items.push(mkItem("other", "Registration", 60, { __isPreDay: true }));
 
   items.push(mkItem("chairperson_remarks", "Chairperson opening remarks", 15));
@@ -471,7 +471,7 @@ export function AgendaBuilder({
     const plans = buildPlans(template, isVirtual ? 1 : dayCount, day1Start, day2Start);
     setDays(plans.map((p) => p.items));
     setActiveDay(0);
-    toast.success(`Skeleton generated — ${plans.length === 1 ? "1 day" : "2 days"}`);
+    toast.success(`Skeleton generated - ${plans.length === 1 ? "1 day" : "2 days"}`);
   }
 
   function mutateDay(idx: number, fn: (items: Item[]) => Item[]) {
@@ -733,7 +733,7 @@ export function AgendaBuilder({
         </div>
         {activeRows.length === 0 && (
           <div className="p-8 text-center text-sm text-slate-500">
-            No sessions yet — click "Draft skeleton" to generate a starting agenda.
+            No sessions yet - click "Draft skeleton" to generate a starting agenda.
           </div>
         )}
         {activeRows.map((r, i) => {
@@ -918,7 +918,7 @@ function TemplateSettings({ templateKey }: { templateKey: TemplateKey }) {
       </PopoverTrigger>
       <PopoverContent className="w-72 p-3">
         <div className="text-xs font-semibold mb-2">
-          {TEMPLATE_LABELS[templateKey]} — default minutes (reference only; the skeleton uses the fixed vocabulary durations)
+          {TEMPLATE_LABELS[templateKey]} - default minutes (reference only; the skeleton uses the fixed vocabulary durations)
         </div>
         <div className="space-y-1.5 max-h-72 overflow-auto">
           {rows.map((r: any) => (

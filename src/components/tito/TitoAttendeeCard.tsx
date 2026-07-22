@@ -104,7 +104,7 @@ export function TitoAttendeeCard({
                 }}
                 className="text-left text-lg font-semibold tracking-tight text-slate-900 hover:text-indigo-700 transition-colors truncate"
               >
-                {a.name ?? "—"}
+                {a.name ?? "-"}
               </button>
               {a.release_title && (
                 <StatusPill className="text-[11px] bg-indigo-50 text-indigo-700 ring-indigo-200">

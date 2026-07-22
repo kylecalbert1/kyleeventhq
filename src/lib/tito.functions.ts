@@ -175,7 +175,7 @@ export const syncTito = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const force = Boolean(data.force);
     const token = process.env.TITO_API_TOKEN;
-    if (!token) throw new Error("Missing TITO_API_TOKEN — add it in Project Settings → Secrets.");
+    if (!token) throw new Error("Missing TITO_API_TOKEN - add it in Project Settings → Secrets.");
 
     // 1) Enumerate events (current + past)
     const events: TitoEvent[] = [];
@@ -194,7 +194,7 @@ export const syncTito = createServerFn({ method: "POST" })
       }
     }
 
-    // Dedupe by slug — an event can appear in both /events and /events/past
+    // Dedupe by slug - an event can appear in both /events and /events/past
     // during the transition window; Postgres rejects two rows with the same
     // conflict key in one INSERT...ON CONFLICT statement.
     const uniqueEvents = new Map<string, TitoEvent>();
@@ -219,7 +219,7 @@ export const syncTito = createServerFn({ method: "POST" })
       (filterRows ?? []).filter((r) => r.mode === "exclude").map((r) => r.event_slug),
     );
 
-    // AIAI/CSC brands only — exact-phrase keyword match, plus manual overrides.
+    // AIAI/CSC brands only - exact-phrase keyword match, plus manual overrides.
     const dedupedEvents = allEvents.filter((e) => {
       if (!e.slug) return false;
       if (manualExclude.has(e.slug)) return false;
@@ -260,7 +260,7 @@ export const syncTito = createServerFn({ method: "POST" })
     for (const ev of dedupedEvents) {
       const isPast = Boolean(ev.end_date && new Date(ev.end_date) < new Date());
       const prior = priorBySlug.get(ev.slug);
-      // Skip re-fetching tickets for past events already synced at least once —
+      // Skip re-fetching tickets for past events already synced at least once -
       // their attendee list is frozen. Force overrides this.
       if (!force && isPast && prior?.last_synced_at) {
         ticketFetchSkipped++;
@@ -454,7 +454,7 @@ export const deleteTitoEventFilter = createServerFn({ method: "POST" })
   });
 
 // Preview which raw Tito events would match the current AIAI/CSC keyword
-// rules + manual overrides — useful to sanity-check the filter list.
+// rules + manual overrides - useful to sanity-check the filter list.
 export const previewTitoEventClassification = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -655,7 +655,7 @@ export const syncTitoByUrl = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ url: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
     const token = process.env.TITO_API_TOKEN;
-    if (!token) throw new Error("Missing TITO_API_TOKEN — add it in Project Settings → Secrets.");
+    if (!token) throw new Error("Missing TITO_API_TOKEN - add it in Project Settings → Secrets.");
     const parsed = parseTitoUrl(data.url);
     if (!parsed) {
       throw new Error(
@@ -1225,7 +1225,7 @@ export const generateOutreachDrafts = createServerFn({ method: "POST" })
       )
       .join("\n");
 
-    const prompt = `Write a short, warm, personalized outreach draft (max ~90 words) for each attendee below inviting them as a potential speaker candidate for: "${data.event_context}". ${data.angle ? `Angle: ${data.angle}.` : ""} Reference something concrete (their role/company + the event they previously attended). No hype. Sign-off "Kyle". Return STRICT JSON: {"drafts":[{"n":1,"subject":"...","body":"..."}, ...]} — one per input in order.\n\nAttendees:\n${listing}`;
+    const prompt = `Write a short, warm, personalized outreach draft (max ~90 words) for each attendee below inviting them as a potential speaker candidate for: "${data.event_context}". ${data.angle ? `Angle: ${data.angle}.` : ""} Reference something concrete (their role/company + the event they previously attended). No hype. Sign-off "Kyle". Return STRICT JSON: {"drafts":[{"n":1,"subject":"...","body":"..."}, ...]} - one per input in order.\n\nAttendees:\n${listing}`;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -1239,8 +1239,8 @@ export const generateOutreachDrafts = createServerFn({ method: "POST" })
         response_format: { type: "json_object" },
       }),
     });
-    if (res.status === 429) throw new Error("AI rate limit — try again shortly.");
-    if (res.status === 402) throw new Error("AI credits exhausted — top up in Settings.");
+    if (res.status === 429) throw new Error("AI rate limit - try again shortly.");
+    if (res.status === 402) throw new Error("AI credits exhausted - top up in Settings.");
     if (!res.ok) throw new Error(`AI error ${res.status}`);
     const body = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const content = body.choices?.[0]?.message?.content ?? "{}";
@@ -1257,7 +1257,7 @@ export const generateOutreachDrafts = createServerFn({ method: "POST" })
         name: t.name || t.first_name || "",
         email: t.email ?? null,
         company: t.company_name ?? null,
-        subject: match?.subject ?? `Speaker invitation — ${data.event_context}`,
+        subject: match?.subject ?? `Speaker invitation - ${data.event_context}`,
         body: match?.body ?? "",
       };
     });
@@ -1281,7 +1281,7 @@ type TitoRelease = {
   quantity?: number | null;
   tickets_count?: number | null;
   // Tito exposes a shareable registration URL under a few possible names
-  // depending on API version — we pick whichever is present.
+  // depending on API version - we pick whichever is present.
   registration_url?: string | null;
   share_url?: string | null;
   url?: string | null;
@@ -1360,7 +1360,7 @@ async function syncSingleEventBySlug(
     if (relErr) throw new Error(`tito_releases upsert: ${relErr.message}`);
   }
 
-  // 3) Tickets — mirror syncTitoByUrl loop but scoped to this slug.
+  // 3) Tickets - mirror syncTitoByUrl loop but scoped to this slug.
   let newCount = 0;
   let updatedCount = 0;
   const { data: existingRows } = await supabase
@@ -1466,7 +1466,7 @@ export const syncEventFromTito = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ event_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const token = process.env.TITO_API_TOKEN;
-    if (!token) throw new Error("Missing TITO_API_TOKEN — add it in Project Settings → Secrets.");
+    if (!token) throw new Error("Missing TITO_API_TOKEN - add it in Project Settings → Secrets.");
     const { data: ev, error } = await context.supabase
       .from("events")
       .select("id, tito_slug")

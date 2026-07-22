@@ -60,7 +60,7 @@ export function SendHistoryPanel({
           <div className="text-sm font-semibold text-slate-900">
             {title}
             {sends.length > 0 && (
-              <span className="ml-1.5 text-slate-500 font-normal">— {headerSummary}</span>
+              <span className="ml-1.5 text-slate-500 font-normal">- {headerSummary}</span>
             )}
           </div>
         </div>
@@ -119,7 +119,7 @@ export function SendHistoryPanel({
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {s.email_send_recipients.length === 0 ? (
-                            <span className="text-xs text-slate-500">—</span>
+                            <span className="text-xs text-slate-500">-</span>
                           ) : (
                             s.email_send_recipients.map((r) => (
                               <span

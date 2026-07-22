@@ -53,7 +53,7 @@ export type TicketLite = {
 
 export type MatchResult = {
   // Confirmed speakers who don't have any Speaker Pass / Speaker Guest ticket
-  // for this event — either they haven't registered yet, or they registered
+  // for this event - either they haven't registered yet, or they registered
   // with an email/name we couldn't confidently link.
   needsRegistration: Array<SpeakerLite & { copy_link_hint: string | null }>;
   // Tito Speaker Pass / Speaker Guest holders who aren't already in the tracker
@@ -61,7 +61,7 @@ export type MatchResult = {
   notInTracker: TicketLite[];
   // Cross-email matches worth confirming. Score is 0..1.
   likelyMatches: Array<{ speaker: SpeakerLite; ticket: TicketLite; score: number; reason: string }>;
-  // Confirmed speakers with no email at all — unreachable, needs manual fix.
+  // Confirmed speakers with no email at all - unreachable, needs manual fix.
   unreachable: SpeakerLite[];
 };
 

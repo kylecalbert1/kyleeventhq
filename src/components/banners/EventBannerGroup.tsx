@@ -233,7 +233,7 @@ function BannerColumn({
           <BannerCard key={`${r.kind}-${r.id}`} row={r} onPatch={(patch) => onPatchRow(r, patch)} />
         ))}
         {rows.length === 0 && (
-          <div className="text-[11px] text-muted-foreground/70 italic px-1">—</div>
+          <div className="text-[11px] text-muted-foreground/70 italic px-1">-</div>
         )}
       </div>
     </div>

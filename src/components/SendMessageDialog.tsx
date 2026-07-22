@@ -188,7 +188,7 @@ export function SendMessageDialog({
   // ---------- Build candidate recipients ----------
   const speakers = speakersQ.data ?? [];
   const past = pastQ.data ?? [];
-  const eventName = evQ.data ? `${evQ.data.code} — ${evQ.data.name}` : "";
+  const eventName = evQ.data ? `${evQ.data.code} - ${evQ.data.name}` : "";
   const eventDate = evQ.data?.event_date
     ? new Date(evQ.data.event_date).toLocaleDateString("en-GB", {
         day: "numeric",
