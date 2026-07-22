@@ -1,27 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Reply, Clock, CheckCircle2 } from "lucide-react";
+import { Reply, Clock, AtSign, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { speakersQuery } from "@/lib/queries";
-import { daysBetween } from "@/lib/status";
+import { replyQueueQuery } from "@/routes/_authenticated/reply-needed";
 
 export function NeedsAttentionWidget() {
-  const { data } = useQuery(speakersQuery());
-  const speakers = data ?? [];
-  const now = new Date();
+  const { data } = useQuery(replyQueueQuery);
+  const rows = data?.rows ?? [];
 
   let replyNeeded = 0;
+  let mentions = 0;
   let followUp = 0;
-  for (const s of speakers as any[]) {
-    if (s.status !== "contacted" && s.status !== "responded") continue;
-    if (!s.last_message_at) continue;
-    const days = daysBetween(new Date(s.last_message_at), now);
-    if (days === null) continue;
-    if (s.last_message_direction === "inbound" && days > 2) replyNeeded++;
-    else if (s.last_message_direction === "outbound" && days > 7) followUp++;
+  for (const r of rows) {
+    if (r.reason === "speaker_reply") replyNeeded++;
+    else if (r.reason === "mention") mentions++;
+    else if (r.reason === "follow_up") followUp++;
   }
 
-  const clear = replyNeeded === 0 && followUp === 0;
+  const clear = rows.length === 0;
 
   return (
     <Card className="p-5 h-full">
@@ -30,7 +26,7 @@ export function NeedsAttentionWidget() {
           <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Needs attention
           </div>
-          <div className="text-sm text-muted-foreground mt-0.5">Speaker outreach SLAs</div>
+          <div className="text-sm text-muted-foreground mt-0.5">Reply queue</div>
         </div>
       </div>
 
@@ -40,43 +36,81 @@ export function NeedsAttentionWidget() {
           <div className="text-sm font-medium">You're all caught up</div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2">
-          <Link
+        <div className="grid grid-cols-3 gap-2">
+          <Tile
             to="/reply-needed"
-            search={{ filter: "reply" as const }}
-            className="group"
-          >
-            <div className="rounded-lg bg-rose-50 ring-1 ring-rose-200 px-3 py-3 transition-all hover:shadow-md hover:-translate-y-0.5 hover:ring-rose-300">
-              <div className="flex items-center gap-1.5 text-rose-700 text-xs font-medium">
-                <Reply className="h-3.5 w-3.5" /> Reply needed
-              </div>
-              <div className="mt-1 text-2xl font-semibold text-rose-800 tabular-nums">
-                {replyNeeded}
-              </div>
-              <div className="text-[11px] text-rose-600/80 mt-0.5">
-                {replyNeeded === 1 ? "speaker needs a reply" : "speakers need a reply"}
-              </div>
-            </div>
-          </Link>
-          <Link
+            search={{ filter: "speaker_reply" as const }}
+            label="Reply needed"
+            count={replyNeeded}
+            icon={Reply}
+            tone="rose"
+          />
+          <Tile
+            to="/reply-needed"
+            search={{ filter: "mention" as const }}
+            label="Mentions"
+            count={mentions}
+            icon={AtSign}
+            tone="indigo"
+          />
+          <Tile
             to="/reply-needed"
             search={{ filter: "follow_up" as const }}
-            className="group"
-          >
-            <div className="rounded-lg bg-amber-50 ring-1 ring-amber-200 px-3 py-3 transition-all hover:shadow-md hover:-translate-y-0.5 hover:ring-amber-300">
-              <div className="flex items-center gap-1.5 text-amber-800 text-xs font-medium">
-                <Clock className="h-3.5 w-3.5" /> Follow-up
-              </div>
-              <div className="mt-1 text-2xl font-semibold text-amber-900 tabular-nums">
-                {followUp}
-              </div>
-              <div className="text-[11px] text-amber-700/80 mt-0.5">
-                {followUp === 1 ? "speaker needs a follow-up" : "speakers need a follow-up"}
-              </div>
-            </div>
-          </Link>
+            label="Follow up"
+            count={followUp}
+            icon={Clock}
+            tone="amber"
+          />
         </div>
       )}
     </Card>
+  );
+}
+
+const TONES = {
+  rose: {
+    wrap: "bg-rose-50 ring-rose-200 hover:ring-rose-300",
+    head: "text-rose-700",
+    num: "text-rose-800",
+  },
+  indigo: {
+    wrap: "bg-indigo-50 ring-indigo-200 hover:ring-indigo-300",
+    head: "text-indigo-700",
+    num: "text-indigo-800",
+  },
+  amber: {
+    wrap: "bg-amber-50 ring-amber-200 hover:ring-amber-300",
+    head: "text-amber-800",
+    num: "text-amber-900",
+  },
+} as const;
+
+function Tile({
+  to,
+  search,
+  label,
+  count,
+  icon: Icon,
+  tone,
+}: {
+  to: string;
+  search: any;
+  label: string;
+  count: number;
+  icon: typeof Reply;
+  tone: keyof typeof TONES;
+}) {
+  const t = TONES[tone];
+  return (
+    <Link to={to} search={search} className="group">
+      <div className={`rounded-lg ring-1 px-3 py-3 transition-all hover:shadow-md hover:-translate-y-0.5 ${t.wrap}`}>
+        <div className={`flex items-center gap-1.5 text-xs font-medium ${t.head}`}>
+          <Icon className="h-3.5 w-3.5" /> {label}
+        </div>
+        <div className={`mt-1 text-2xl font-semibold tabular-nums ${t.num}`}>
+          {count}
+        </div>
+      </div>
+    </Link>
   );
 }
