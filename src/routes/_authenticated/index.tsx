@@ -200,6 +200,7 @@ function EventsGrid() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-6 py-8 md:py-10 space-y-6">
+        <SyncStalenessBanner />
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -217,9 +218,11 @@ function EventsGrid() {
               <FileBarChart className="h-4 w-4 mr-1.5" />
               All-events Report
             </Button>
-            <Button variant="outline" size="sm" className="h-9" disabled>
-              <SettingsIcon className="h-4 w-4 mr-1.5" />
-              Settings
+            <Button variant="outline" size="sm" className="h-9" asChild>
+              <Link to="/settings">
+                <SettingsIcon className="h-4 w-4 mr-1.5" />
+                Settings
+              </Link>
             </Button>
             <Button
               size="sm"
