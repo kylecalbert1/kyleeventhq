@@ -16,6 +16,7 @@ import { Route as AuthenticatedWebsiteRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSponsorInboxRouteImport } from './routes/_authenticated/sponsor-inbox'
 import { Route as AuthenticatedSpeakersRouteImport } from './routes/_authenticated/speakers'
 import { Route as AuthenticatedSpeakerSourcingRouteImport } from './routes/_authenticated/speaker-sourcing'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedReplyNeededRouteImport } from './routes/_authenticated/reply-needed'
 import { Route as AuthenticatedProofingRouteImport } from './routes/_authenticated/proofing'
 import { Route as AuthenticatedOutreachRouteImport } from './routes/_authenticated/outreach'
@@ -65,6 +66,11 @@ const AuthenticatedSpeakerSourcingRoute =
     path: '/speaker-sourcing',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedReplyNeededRoute =
   AuthenticatedReplyNeededRouteImport.update({
     id: '/reply-needed',
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/outreach': typeof AuthenticatedOutreachRoute
   '/proofing': typeof AuthenticatedProofingRoute
   '/reply-needed': typeof AuthenticatedReplyNeededRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/speaker-sourcing': typeof AuthenticatedSpeakerSourcingRoute
   '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/outreach': typeof AuthenticatedOutreachRoute
   '/proofing': typeof AuthenticatedProofingRoute
   '/reply-needed': typeof AuthenticatedReplyNeededRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/speaker-sourcing': typeof AuthenticatedSpeakerSourcingRoute
   '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/_authenticated/outreach': typeof AuthenticatedOutreachRoute
   '/_authenticated/proofing': typeof AuthenticatedProofingRoute
   '/_authenticated/reply-needed': typeof AuthenticatedReplyNeededRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/speaker-sourcing': typeof AuthenticatedSpeakerSourcingRoute
   '/_authenticated/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/_authenticated/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
@@ -205,6 +214,7 @@ export interface FileRouteTypes {
     | '/outreach'
     | '/proofing'
     | '/reply-needed'
+    | '/settings'
     | '/speaker-sourcing'
     | '/speakers'
     | '/sponsor-inbox'
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
     | '/outreach'
     | '/proofing'
     | '/reply-needed'
+    | '/settings'
     | '/speaker-sourcing'
     | '/speakers'
     | '/sponsor-inbox'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/_authenticated/outreach'
     | '/_authenticated/proofing'
     | '/_authenticated/reply-needed'
+    | '/_authenticated/settings'
     | '/_authenticated/speaker-sourcing'
     | '/_authenticated/speakers'
     | '/_authenticated/sponsor-inbox'
@@ -315,6 +327,13 @@ declare module '@tanstack/react-router' {
       path: '/speaker-sourcing'
       fullPath: '/speaker-sourcing'
       preLoaderRoute: typeof AuthenticatedSpeakerSourcingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reply-needed': {
@@ -424,6 +443,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOutreachRoute: typeof AuthenticatedOutreachRoute
   AuthenticatedProofingRoute: typeof AuthenticatedProofingRoute
   AuthenticatedReplyNeededRoute: typeof AuthenticatedReplyNeededRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSpeakerSourcingRoute: typeof AuthenticatedSpeakerSourcingRoute
   AuthenticatedSpeakersRoute: typeof AuthenticatedSpeakersRouteWithChildren
   AuthenticatedSponsorInboxRoute: typeof AuthenticatedSponsorInboxRoute
@@ -440,6 +460,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOutreachRoute: AuthenticatedOutreachRoute,
   AuthenticatedProofingRoute: AuthenticatedProofingRoute,
   AuthenticatedReplyNeededRoute: AuthenticatedReplyNeededRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSpeakerSourcingRoute: AuthenticatedSpeakerSourcingRoute,
   AuthenticatedSpeakersRoute: AuthenticatedSpeakersRouteWithChildren,
   AuthenticatedSponsorInboxRoute: AuthenticatedSponsorInboxRoute,
