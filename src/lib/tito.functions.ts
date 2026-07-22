@@ -1606,6 +1606,7 @@ export const getEventReconciliation = createServerFn({ method: "POST" })
     return {
       has_tito_slug: Boolean(ev.tito_slug),
       tito_slug: ev.tito_slug,
+      last_synced_at: lastSyncedAt,
       confirmed_count: speakers.filter((s) => s.status === "confirmed").length,
       speaker_target: ev.speaker_target ?? null,
       breakdown: { speakerPass, speakerGuest, delegate, total: tickets.length },
