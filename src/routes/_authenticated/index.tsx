@@ -62,6 +62,21 @@ function SyncStalenessBanner() {
   );
 }
 
+function AsanaOverdueChip() {
+  const { data } = useQuery(overdueWebsiteAsanaQuery);
+  if (!data || data === 0) return null;
+  return (
+    <Link
+      to="/asana"
+      search={{ website: true, hideDone: true }}
+      className="inline-flex items-center gap-2 rounded-full bg-rose-100 text-rose-800 ring-1 ring-rose-200 px-3 py-1.5 text-xs font-semibold hover:bg-rose-200 transition-colors"
+    >
+      <AlertTriangle className="h-3.5 w-3.5" />
+      {data} website Asana task{data === 1 ? "" : "s"} overdue
+    </Link>
+  );
+}
+
 export const Route = createFileRoute("/_authenticated/")({
   loader: ({ context }) =>
     Promise.all([
