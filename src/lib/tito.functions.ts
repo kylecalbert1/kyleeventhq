@@ -1312,7 +1312,7 @@ function releaseRegistrationUrl(r: TitoRelease, account: string, eventSlug: stri
   return null;
 }
 
-async function syncSingleEventBySlug(
+export async function syncSingleEventBySlug(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   token: string,
   eventSlug: string,
