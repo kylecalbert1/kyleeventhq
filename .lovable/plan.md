@@ -1,119 +1,126 @@
+## Goal
 
-## Approach
+Kill the "my laptop must be open" problem. Tito stays fresh via webhooks + a nightly full reconcile. Asana milestones sync themselves every morning. A Settings "Sync health" card shows if any of it drifts.
 
-Build in three sequenced phases so nothing lands half-wired. Phase 1 is a single approved migration + one data-cleanup pass — everything else depends on it.
+---
 
-## Phase 1 — Schema & data cleanup (one migration + one data pass)
+## 1. Tito — real-time via webhook
 
-**Migration (schema only):**
+**New public route** `src/routes/api/public/hooks/tito-webhook.ts`
+- POST handler, no auth (public prefix).
+- If `TITO_WEBHOOK_SECRET` is set, verify Tito's `X-Webhook-Signature` (HMAC-SHA256 of raw body). Timing-safe compare. Reject 401 otherwise.
+- Parse payload; branch on event name:
+  - `ticket.created` / `ticket.updated` / `ticket.completed` / `registration.finished` → upsert into `tito_tickets` using the exact same shape and `onConflict: 'tito_ticket_id'` used by manual sync (extracted into a shared helper).
+- Update `tito_events.last_webhook_at = now()` for the event slug so Settings can show "last received".
+- Return 200 fast; errors logged but non-throwing so Tito doesn't retry-storm.
 
-- `events.tito_slug text` (nullable, unique). Nullable so virtual events / unmapped events keep working.
-- New `tito_releases` table:
-  ```
-  id uuid pk, event_slug text not null, tito_release_id text not null,
-  slug text, title text not null, registration_url text,
-  quantity int, tickets_count int, state text,
-  created_at, updated_at,
-  unique (event_slug, tito_release_id)
-  ```
-  RLS: `authenticated` full access (matches existing tito_events pattern).
-- `tito_tickets` additions: `release_title text`, `release_slug text`, `release_id text` — needed so a ticket can be classified as Speaker Pass / Speaker Guest / delegate without a join. Indexed on `(event_slug, release_slug)`.
-- `speakers` additions:
-  - `source text default 'manual'` — values: `manual`, `tito`, `copied_from_past`.
-  - `source_ticket_id uuid` (fk `tito_tickets(id)` on delete set null) — links speaker → the ticket they were backfilled from.
-  - `copied_from_speaker_id uuid` (fk `speakers(id)` on delete set null) — "copy past speaker into new event" chain.
-  - Index on `(event_id, source)`.
+**Refactor**: extract the ticket-row builder from `src/lib/tito.functions.ts` into `src/lib/tito-shared.ts` (client-safe types + row mapper, no DB import) so both the manual sync and the webhook use one implementation.
 
-Note: `speakers.event_id` stays **required**. Prospects always sit under an event in the current model; loosening it is out of scope and would need extensive audit of every speaker query in the app.
+**Schema (migration)**
+- `tito_events.last_webhook_at timestamptz`
+- New `sync_health` table (see §3) — single source of truth for sync stamps other than Tito's own tables.
 
-**Data pass (via insert tool, after migration lands):**
+## 2. Tito — nightly full reconcile
 
-- Pre-populate `events.tito_slug` for the 6 mappings (CCO-SF-26, AICS-BOS-26, GENAI-BOS-26, CSS-TOR-26, GENAI-LDN-26, AICS-LDN-26).
-- Delete broken `tito_event_filters` row with slug `generative -london`.
+**New public route** `src/routes/api/public/hooks/tito-nightly.ts`
+- POST, `apikey` header check against `SUPABASE_PUBLISHABLE_KEY`.
+- For every `events` row with `tito_slug` set, run the same logic as `syncEventFromTito` (releases + tickets, `view=extended`, mapped events only), updating `last_synced_at` and `tito_releases`.
+- Writes `sync_health` row `{ kind: 'tito_full', last_run_at, ok, note }`.
 
-## Phase 2 — Sync rework (`src/lib/tito.functions.ts`)
+**pg_cron** (via `supabase--insert`, not migration): daily at `0 3 * * *` calling that route with empty body.
 
-- New scope rule: the primary sync path only walks tito_events whose slug appears in `events.tito_slug` (mapped set). The "sync all account events for discovery" path stays available but moves to an explicit "Discover new Tito events" action so ongoing syncs stop hammering the 758 irrelevant events.
-- Per mapped event, fetch:
-  1. `GET /:account/:slug/releases?view=extended` → upsert into new `tito_releases` (captures `registration_url` from the release's `share_url` / `public_url` field, plus title, quantity, tickets_count, state).
-  2. For each release, fetch its tickets (existing path, but now also stamp `release_title/slug/id` onto each ticket row).
-- New server fn `syncEventFromTito({ event_id })` for the per-event "Sync" button — syncs only that event's slug + releases + tickets.
-- Existing "Sync now" full-account discovery becomes `discoverTitoEvents({ force })` — used rarely, only to find new events to potentially map.
-- Add `listReleasesForEvent({ event_slug })` and `getSpeakerAndGuestLinks({ event_slug })` helpers.
+## 3. Asana — nightly milestone sync
 
-## Phase 3 — UI (feature-by-feature)
+**Storage**: `ASANA_PAT` as a Supabase secret. Settings page has a "Save Asana token" input that calls a `saveAsanaToken` server function (admin role check → writes secret via… note: Supabase secret writes aren't runtime — we can't `set_secret` from user code). **Practical path**: instruct the user to paste the PAT into Project Settings → Secrets as `ASANA_PAT`, exactly the same UX as `TITO_API_TOKEN`. Settings shows whether the secret is present (via a server fn that returns `!!process.env.ASANA_PAT`), not a save input.
 
-### 3a. Event settings — Tito mapping picker
+**Schema (migration)**
+- `events.asana_last_synced_at timestamptz`
 
-- In `EventFormDialog`, add a `SearchableSelect` populated from synced `tito_events` — options default-sorted by future `start_date` first. Shows current mapping + "Clear mapping" button. Hidden when `format === 'virtual'` unless already mapped.
+**New public route** `src/routes/api/public/hooks/asana-nightly.ts`
+- Auth: `apikey` header check.
+- For each event with `asana_project_gid`:
+  - `GET https://app.asana.com/api/1.0/projects/{gid}/tasks?opt_fields=name,due_on,completed,resource_subtype&limit=100` (paginate on `next_page.offset`), `Authorization: Bearer $ASANA_PAT`.
+  - Normalize names: lowercase, strip emoji + non-alphanumerics → spaces.
+  - `kickoff` = first task whose normalized name contains `run kick off meeting` (also matches "run kickoff meeting" after normalization).
+  - `launch` = task whose normalized name contains `launch day`; fallback for virtual events = normalized name contains both `launch` and `to members`.
+  - Compare `due_on` to current `events.kickoff_date` / `events.launch_date`. Update only when different **and new value is non-null**. Never null-out an existing date.
+  - Wrap per-event in try/catch; failures logged, other events continue.
+  - Set `events.asana_last_synced_at = now()` on success.
+- Writes `sync_health` row `{ kind: 'asana', last_run_at, ok, note }`.
 
-### 3b. Event page — Tito panels (`events.$eventId.tsx`)
+**pg_cron**: daily at `0 7 * * *`.
 
-New collapsible sections, only rendered when the event has a `tito_slug`:
+**Event page**: under kickoff/launch dates, show "Asana synced Xh ago" pill (reads `asana_last_synced_at`).
 
-- **Registration links panel**: Speaker Pass + Speaker Guest links with copy buttons; "all other releases" listed compactly below.
-- **Tito breakdown** (Part 6): stat tiles for Confirmed / Target, Speaker Pass count, Speaker Guest count, Delegate count. Each tile is a link that filters the on-page list.
-- **Tito reconciliation** (Part 4): three collapsed lists —
-  - "Confirmed speakers with no Tito registration" — with per-row copy-link shortcut.
-  - "Tito Speaker Pass holders not in tracker" — each with "Add to tracker" that creates a speaker record (source='tito', source_ticket_id=ticket.id) pre-filled from ticket fields.
-  - "Likely same person, different email" — surfaced from an in-memory match engine:
-    - Primary key: normalized email (lowercase, trim).
-    - Fallback: fuzzy name match via a simple normalized-token Jaccard score ≥ 0.75 (handles Rahman/Ishan cases). Confirm button writes `source_ticket_id` linking speaker → ticket so they leave lists a) and b).
-  - Small red warning strip listing confirmed speakers with no email at all (unreachable).
+## 4. Settings page — Sync health card
 
-### 3c. Speakers page — three sections (Part 5)
+Restructure `src/routes/_authenticated/settings.tsx` (or create if missing).
 
-Restructure `_authenticated/speakers.tsx` into three collapsible sections per event context:
+**Sections**
+1. **Tito webhook**
+   - Copy-to-clipboard URL: `https://project--1b69743f-dcda-484f-a3af-afd5b0f775a7.lovable.app/api/public/hooks/tito-webhook`
+   - Instructions: paste into Tito → Settings → Webhooks, subscribe to the 4 events, optionally set a signing secret and store it as `TITO_WEBHOOK_SECRET` in Project Settings → Secrets.
+   - "Last webhook received" (max `tito_events.last_webhook_at`) with staleness tone.
+2. **Sync health card** (grid of 4)
+   - Tito webhook · Tito full reconcile · Asana · Goldcast
+   - Each: last-run timestamp, tone chip (green <24h, amber 24–48h, red >48h or never), "Run now" button.
+     - Tito full → invokes `runTitoNightly` server fn (same logic as the hook, callable by authenticated user).
+     - Asana → invokes `runAsanaNightly` server fn.
+     - Goldcast → existing manual sync fn if any (leave stubbed otherwise).
+3. **Secret status** (booleans only, never values): `TITO_API_TOKEN`, `TITO_WEBHOOK_SECRET`, `ASANA_PAT`, `GOLDCAST_API_TOKEN`.
 
-- **Prospective** — status ∈ {new, contacted, responded, call_scheduled}. Independent bulk select + bulk email.
-- **Current** — status = confirmed, event_date ≥ today. Independent bulk select + bulk email.
-- **Past** — event_date < today, permanently visible. Shows event name + session title. Row action: "Copy into new event as prospect" → picker → creates new speakers row (status='new', source='copied_from_past', copied_from_speaker_id=old.id, session_title cleared).
+**Dashboard banner**: `src/routes/_authenticated/index.tsx` — if any sync_health row's `last_run_at` is >48h old (or missing for enabled integrations), render an amber warning strip at the top linking to `/settings`.
 
-Filters: event / company / status apply across sections. Existing filter/history logic stays.
+## 5. Schema
 
-### 3d. Email composer template variables
+```sql
+-- Migration
+ALTER TABLE tito_events ADD COLUMN IF NOT EXISTS last_webhook_at timestamptz;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS asana_last_synced_at timestamptz;
 
-Extend the existing template renderer to expand:
-- `{{speaker_pass_link}}` → registration_url of the release titled "Speaker Pass" for the current event.
-- `{{guest_pass_link}}` → registration_url for "Speaker Guest".
-- Falls back to empty string with a lint warning when the event has no tito mapping or the release isn't found.
+CREATE TABLE public.sync_health (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  kind text NOT NULL UNIQUE,          -- 'tito_full' | 'asana' | 'goldcast'
+  last_run_at timestamptz NOT NULL DEFAULT now(),
+  ok boolean NOT NULL DEFAULT true,
+  note text,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT ON public.sync_health TO authenticated;
+GRANT ALL ON public.sync_health TO service_role;
+ALTER TABLE public.sync_health ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth read sync_health" ON public.sync_health
+  FOR SELECT TO authenticated USING (true);
+```
 
-## Files touched
+## 6. Files touched
 
-**Created**
-- `src/components/events/TitoReconciliationPanel.tsx`
-- `src/components/events/TitoRegistrationLinks.tsx`
-- `src/components/events/TitoStatsBreakdown.tsx`
-- `src/components/speakers/CopyPastSpeakerDialog.tsx`
-- `src/lib/tito-matching.ts` (email/name fuzzy matcher — pure, unit-testable)
+**New**
+- `src/lib/tito-shared.ts` — ticket row mapper, name normalizer.
+- `src/routes/api/public/hooks/tito-webhook.ts`
+- `src/routes/api/public/hooks/tito-nightly.ts`
+- `src/routes/api/public/hooks/asana-nightly.ts`
+- `src/lib/sync-health.functions.ts` — read health, run-now wrappers.
+- `src/routes/_authenticated/settings.tsx` (rebuild).
 
-**Modified**
-- `src/lib/tito.functions.ts` — new sync fns, release upsert, per-event scoping
-- `src/lib/events.functions.ts` — accept tito_slug in patch
-- `src/lib/speakers.functions.ts` — accept source/source_ticket_id/copied_from_speaker_id; add `copySpeakerToEvent` server fn
-- `src/lib/email.functions.ts` (or wherever the template renderer lives) — new variables
-- `src/components/dialogs/EventFormDialog.tsx` — Tito mapping picker
-- `src/routes/_authenticated/events.$eventId.tsx` — mount new panels + Tito breakdown filter
-- `src/routes/_authenticated/speakers.tsx` — 3-section layout, past speakers visible, copy action
+**Edited**
+- `src/lib/tito.functions.ts` — use shared mapper.
+- `src/lib/asana.functions.ts` — reuse Asana fetch logic in nightly hook.
+- `src/routes/_authenticated/events.$eventId.tsx` — Asana synced pill.
+- `src/routes/_authenticated/index.tsx` — staleness banner.
+- `src/components/AppShell.tsx` — Settings nav entry if missing.
 
-**Untouched** (deliberately)
-- Agenda builder, website tasks, reply-needed queue, banners page — no functional changes.
-- Existing speaker records — additive columns only, no deletion or field rewrites.
+## 7. Rules honored
 
-## Verification
+- Manual "Sync from Tito" and per-event "Sync" buttons stay.
+- Only `asana_project_gid` used for Asana matching; no name search.
+- Never overwrite an existing kickoff/launch date with null.
+- Secrets stay in Supabase secrets — no DB rows for `ASANA_PAT` or `TITO_WEBHOOK_SECRET`.
+- `/api/public/*` prefix for external callers; signature/apikey verified in handler.
 
-After each phase:
-- Phase 1: `select tito_slug from events where code in (…)` returns the 6 mappings; `select count(*) from tito_event_filters where slug like '% %'` = 0.
-- Phase 2: invoking `syncEventFromTito` for GENAI-BOS-26 populates `tito_releases` with Speaker Pass + Speaker Guest rows carrying non-null `registration_url`, and its tickets carry `release_title`.
-- Phase 3: reconciliation surfaces Rahman/Ishan under "likely same person" (not in lists a/b); Speakers page shows a Past section that would otherwise be empty today.
+## 8. Post-deploy checklist (for you)
 
-## Order of execution
-
-1. Migration (needs your approval).
-2. Data cleanup + mappings pass.
-3. Sync fn rework + per-event Sync wired to the button on Event pages.
-4. Reconciliation + registration links + breakdown UI on Event page.
-5. Speakers page 3-section restructure + past-speaker copy flow.
-6. Template variable expansion in composer.
-
-If you're happy with this shape, I'll ship the migration first and then execute 3→6 without further check-ins unless something surprises me in the Tito API response shape.
+1. Approve migration.
+2. Paste `ASANA_PAT` (Asana profile → Developer console → Personal access tokens) into Project Settings → Secrets.
+3. Copy webhook URL from Settings into Tito → Webhooks; optionally set `TITO_WEBHOOK_SECRET`.
+4. I'll register the two pg_cron jobs after the routes deploy.

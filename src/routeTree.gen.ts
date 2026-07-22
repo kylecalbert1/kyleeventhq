@@ -16,6 +16,7 @@ import { Route as AuthenticatedWebsiteRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSponsorInboxRouteImport } from './routes/_authenticated/sponsor-inbox'
 import { Route as AuthenticatedSpeakersRouteImport } from './routes/_authenticated/speakers'
 import { Route as AuthenticatedSpeakerSourcingRouteImport } from './routes/_authenticated/speaker-sourcing'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedReplyNeededRouteImport } from './routes/_authenticated/reply-needed'
 import { Route as AuthenticatedProofingRouteImport } from './routes/_authenticated/proofing'
 import { Route as AuthenticatedOutreachRouteImport } from './routes/_authenticated/outreach'
@@ -25,6 +26,9 @@ import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedTitoSlugRouteImport } from './routes/_authenticated/tito.$slug'
 import { Route as AuthenticatedSpeakersSpeakerIdRouteImport } from './routes/_authenticated/speakers.$speakerId'
 import { Route as AuthenticatedEventsEventIdRouteImport } from './routes/_authenticated/events.$eventId'
+import { Route as ApiPublicHooksTitoWebhookRouteImport } from './routes/api/public/hooks/tito-webhook'
+import { Route as ApiPublicHooksTitoNightlyRouteImport } from './routes/api/public/hooks/tito-nightly'
+import { Route as ApiPublicHooksAsanaNightlyRouteImport } from './routes/api/public/hooks/asana-nightly'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -62,6 +66,11 @@ const AuthenticatedSpeakerSourcingRoute =
     path: '/speaker-sourcing',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedReplyNeededRoute =
   AuthenticatedReplyNeededRouteImport.update({
     id: '/reply-needed',
@@ -110,6 +119,24 @@ const AuthenticatedEventsEventIdRoute =
     path: '/events/$eventId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicHooksTitoWebhookRoute =
+  ApiPublicHooksTitoWebhookRouteImport.update({
+    id: '/api/public/hooks/tito-webhook',
+    path: '/api/public/hooks/tito-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksTitoNightlyRoute =
+  ApiPublicHooksTitoNightlyRouteImport.update({
+    id: '/api/public/hooks/tito-nightly',
+    path: '/api/public/hooks/tito-nightly',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksAsanaNightlyRoute =
+  ApiPublicHooksAsanaNightlyRouteImport.update({
+    id: '/api/public/hooks/asana-nightly',
+    path: '/api/public/hooks/asana-nightly',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -120,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/outreach': typeof AuthenticatedOutreachRoute
   '/proofing': typeof AuthenticatedProofingRoute
   '/reply-needed': typeof AuthenticatedReplyNeededRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/speaker-sourcing': typeof AuthenticatedSpeakerSourcingRoute
   '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
@@ -127,6 +155,9 @@ export interface FileRoutesByFullPath {
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/tito/$slug': typeof AuthenticatedTitoSlugRoute
+  '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
+  '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
+  '/api/public/hooks/tito-webhook': typeof ApiPublicHooksTitoWebhookRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -136,6 +167,7 @@ export interface FileRoutesByTo {
   '/outreach': typeof AuthenticatedOutreachRoute
   '/proofing': typeof AuthenticatedProofingRoute
   '/reply-needed': typeof AuthenticatedReplyNeededRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/speaker-sourcing': typeof AuthenticatedSpeakerSourcingRoute
   '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
@@ -144,6 +176,9 @@ export interface FileRoutesByTo {
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/tito/$slug': typeof AuthenticatedTitoSlugRoute
+  '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
+  '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
+  '/api/public/hooks/tito-webhook': typeof ApiPublicHooksTitoWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -155,6 +190,7 @@ export interface FileRoutesById {
   '/_authenticated/outreach': typeof AuthenticatedOutreachRoute
   '/_authenticated/proofing': typeof AuthenticatedProofingRoute
   '/_authenticated/reply-needed': typeof AuthenticatedReplyNeededRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/speaker-sourcing': typeof AuthenticatedSpeakerSourcingRoute
   '/_authenticated/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/_authenticated/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
@@ -163,6 +199,9 @@ export interface FileRoutesById {
   '/_authenticated/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/_authenticated/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/_authenticated/tito/$slug': typeof AuthenticatedTitoSlugRoute
+  '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
+  '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
+  '/api/public/hooks/tito-webhook': typeof ApiPublicHooksTitoWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -175,6 +214,7 @@ export interface FileRouteTypes {
     | '/outreach'
     | '/proofing'
     | '/reply-needed'
+    | '/settings'
     | '/speaker-sourcing'
     | '/speakers'
     | '/sponsor-inbox'
@@ -182,6 +222,9 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/speakers/$speakerId'
     | '/tito/$slug'
+    | '/api/public/hooks/asana-nightly'
+    | '/api/public/hooks/tito-nightly'
+    | '/api/public/hooks/tito-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -191,6 +234,7 @@ export interface FileRouteTypes {
     | '/outreach'
     | '/proofing'
     | '/reply-needed'
+    | '/settings'
     | '/speaker-sourcing'
     | '/speakers'
     | '/sponsor-inbox'
@@ -199,6 +243,9 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/speakers/$speakerId'
     | '/tito/$slug'
+    | '/api/public/hooks/asana-nightly'
+    | '/api/public/hooks/tito-nightly'
+    | '/api/public/hooks/tito-webhook'
   id:
     | '__root__'
     | '/_authenticated'
@@ -209,6 +256,7 @@ export interface FileRouteTypes {
     | '/_authenticated/outreach'
     | '/_authenticated/proofing'
     | '/_authenticated/reply-needed'
+    | '/_authenticated/settings'
     | '/_authenticated/speaker-sourcing'
     | '/_authenticated/speakers'
     | '/_authenticated/sponsor-inbox'
@@ -217,11 +265,17 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$eventId'
     | '/_authenticated/speakers/$speakerId'
     | '/_authenticated/tito/$slug'
+    | '/api/public/hooks/asana-nightly'
+    | '/api/public/hooks/tito-nightly'
+    | '/api/public/hooks/tito-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicHooksAsanaNightlyRoute: typeof ApiPublicHooksAsanaNightlyRoute
+  ApiPublicHooksTitoNightlyRoute: typeof ApiPublicHooksTitoNightlyRoute
+  ApiPublicHooksTitoWebhookRoute: typeof ApiPublicHooksTitoWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -273,6 +327,13 @@ declare module '@tanstack/react-router' {
       path: '/speaker-sourcing'
       fullPath: '/speaker-sourcing'
       preLoaderRoute: typeof AuthenticatedSpeakerSourcingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reply-needed': {
@@ -338,6 +399,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEventsEventIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/tito-webhook': {
+      id: '/api/public/hooks/tito-webhook'
+      path: '/api/public/hooks/tito-webhook'
+      fullPath: '/api/public/hooks/tito-webhook'
+      preLoaderRoute: typeof ApiPublicHooksTitoWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/tito-nightly': {
+      id: '/api/public/hooks/tito-nightly'
+      path: '/api/public/hooks/tito-nightly'
+      fullPath: '/api/public/hooks/tito-nightly'
+      preLoaderRoute: typeof ApiPublicHooksTitoNightlyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/asana-nightly': {
+      id: '/api/public/hooks/asana-nightly'
+      path: '/api/public/hooks/asana-nightly'
+      fullPath: '/api/public/hooks/asana-nightly'
+      preLoaderRoute: typeof ApiPublicHooksAsanaNightlyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -361,6 +443,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOutreachRoute: typeof AuthenticatedOutreachRoute
   AuthenticatedProofingRoute: typeof AuthenticatedProofingRoute
   AuthenticatedReplyNeededRoute: typeof AuthenticatedReplyNeededRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSpeakerSourcingRoute: typeof AuthenticatedSpeakerSourcingRoute
   AuthenticatedSpeakersRoute: typeof AuthenticatedSpeakersRouteWithChildren
   AuthenticatedSponsorInboxRoute: typeof AuthenticatedSponsorInboxRoute
@@ -377,6 +460,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOutreachRoute: AuthenticatedOutreachRoute,
   AuthenticatedProofingRoute: AuthenticatedProofingRoute,
   AuthenticatedReplyNeededRoute: AuthenticatedReplyNeededRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSpeakerSourcingRoute: AuthenticatedSpeakerSourcingRoute,
   AuthenticatedSpeakersRoute: AuthenticatedSpeakersRouteWithChildren,
   AuthenticatedSponsorInboxRoute: AuthenticatedSponsorInboxRoute,
@@ -392,6 +476,9 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicHooksAsanaNightlyRoute: ApiPublicHooksAsanaNightlyRoute,
+  ApiPublicHooksTitoNightlyRoute: ApiPublicHooksTitoNightlyRoute,
+  ApiPublicHooksTitoWebhookRoute: ApiPublicHooksTitoWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
