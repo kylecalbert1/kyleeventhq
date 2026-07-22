@@ -60,6 +60,7 @@ import { sendGmailEmail } from "@/lib/email.functions";
 import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
 import { TitoEventPanel } from "@/components/events/TitoEventPanel";
+import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
