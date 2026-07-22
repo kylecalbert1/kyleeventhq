@@ -655,7 +655,9 @@ export function DiscoveryView() {
                 <TagButton
                   disabled={selected.size === 0}
                   ticketIds={Array.from(selected)}
-                  events={(upcomingEvents.data ?? []).map((e) => ({ id: e.id, title: e.name }))}
+                  events={(upcomingEvents.data ?? [])
+                    .filter((e) => !isPastEvent(e))
+                    .map((e) => ({ id: e.id, title: e.name }))}
                   onDone={() => {
                     toast.success("Tagged as speaker candidates");
                     setSelected(new Set());
