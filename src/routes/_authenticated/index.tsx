@@ -118,7 +118,7 @@ function EventsGrid() {
   const [creating, setCreating] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [q, setQ] = useState("");
-  const [hidePast, setHidePast] = useState(true);
+  const [pastOpen, setPastOpen] = useState(false);
   const summaries = data ?? [];
   const allSpeakers = speakers ?? [];
 
@@ -165,33 +165,36 @@ function EventsGrid() {
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
+    if (!term) return summaries;
     return summaries.filter((s) => {
       const ev = s.event as any;
-      const eventDate = ev.event_date ?? ev.launch_date;
-      if (hidePast && eventDate) {
-        const d = new Date(eventDate);
-        if (!Number.isNaN(d.getTime()) && d < now) return false;
-      }
-      if (term) {
-        const hay = `${ev.name ?? ""} ${ev.code ?? ""} ${ev.venue ?? ""}`.toLowerCase();
-        if (!hay.includes(term)) return false;
-      }
-      return true;
+      const hay = `${ev.name ?? ""} ${ev.code ?? ""} ${ev.venue ?? ""}`.toLowerCase();
+      return hay.includes(term);
     });
-  }, [summaries, q, hidePast, now]);
+  }, [summaries, q]);
 
-  const sorted = useMemo(() => {
-    const arr = [...filtered];
-    arr.sort((a, b) => {
-      const ea = a.event as any;
-      const eb = b.event as any;
-      const da = ea.event_date ?? ea.launch_date;
-      const db = eb.event_date ?? eb.launch_date;
+  const { upcomingSorted, pastSorted } = useMemo(() => {
+    const upcoming: typeof filtered = [];
+    const past: typeof filtered = [];
+    for (const s of filtered) {
+      (isPastEvent(s.event as any) ? past : upcoming).push(s);
+    }
+    upcoming.sort((a, b) => {
+      const da = (a.event as any).event_date ?? (a.event as any).launch_date;
+      const db = (b.event as any).event_date ?? (b.event as any).launch_date;
       const ta = da ? new Date(da).getTime() : Infinity;
       const tb = db ? new Date(db).getTime() : Infinity;
       return ta - tb;
     });
-    return arr;
+    past.sort((a, b) => {
+      // Most recently finished first
+      const da = (a.event as any).event_date ?? (a.event as any).launch_date;
+      const db = (b.event as any).event_date ?? (b.event as any).launch_date;
+      const ta = da ? new Date(da).getTime() : -Infinity;
+      const tb = db ? new Date(db).getTime() : -Infinity;
+      return tb - ta;
+    });
+    return { upcomingSorted: upcoming, pastSorted: past };
   }, [filtered]);
 
   return (
