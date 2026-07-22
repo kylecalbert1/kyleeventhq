@@ -128,6 +128,20 @@ function WebsiteBoard() {
                             {WEBSITE_STAGES.map((s) => <SelectItem key={s} value={s}>{labels.website[s]}</SelectItem>)}
                           </SelectContent>
                         </Select>
+                        {(() => {
+                          const evId = (t.events as any)?.id;
+                          const done = evId ? asanaByEventField.get(evId) : null;
+                          if (!done) return null;
+                          const fields = ["buddy_proof_done", "marketer_proof_done", "final_signoff_done"] as const;
+                          return fields.map((f) => (
+                            <AsanaSuggestionRow
+                              key={f}
+                              matchingAsanaTaskCompleted={done.has(f)}
+                              localDone={!!t[f]}
+                              onConfirm={() => applyAsana.mutate({ id: t.id, field: f })}
+                            />
+                          ));
+                        })()}
                       </div>
                     </div>
                   </div>
