@@ -152,6 +152,87 @@ function EventDetail() {
   if (!event.data) return null;
   const e = event.data;
 
+  const recon = useQuery({
+    ...eventReconciliationQuery(eventId),
+    enabled: Boolean((e as any).tito_slug),
+  });
+  const needsRegIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of recon.data?.needsRegistration ?? []) ids.add(r.id);
+    return ids;
+  }, [recon.data]);
+
+  const allSpeakers = (speakers.data ?? []) as any[];
+  const isProspective = (s: any) =>
+    s.status === "new" || s.status === "contacted" || s.status === "responded";
+  const isMissingAssets = (s: any) => {
+    if (typeof s.bio_and_headshot_received === "boolean") return !s.bio_and_headshot_received;
+    return !(s.bio_received && s.headshot_received);
+  };
+  const needsChasing = (s: any) => {
+    if (s.status !== "contacted" && s.status !== "responded") return false;
+    if (s.last_message_direction !== "outbound") return false;
+    if (!s.last_message_at) return true;
+    const days = (Date.now() - new Date(s.last_message_at).getTime()) / 86400000;
+    return days >= 3;
+  };
+  const notRegisteredInTito = (s: any) =>
+    s.status === "confirmed" && needsRegIds.has(s.id);
+  const registeredInTito = (s: any) =>
+    s.status === "confirmed" && !needsRegIds.has(s.id) && Boolean((e as any).tito_slug);
+
+  const counts = {
+    all: allSpeakers.length,
+    confirmed: allSpeakers.filter((s) => s.status === "confirmed").length,
+    prospective: allSpeakers.filter(isProspective).length,
+    needsChasing: allSpeakers.filter(needsChasing).length,
+    missingAssets: allSpeakers.filter(isMissingAssets).length,
+    notRegistered: allSpeakers.filter(notRegisteredInTito).length,
+    declined: allSpeakers.filter((s) => s.status === "declined").length,
+    registeredTito: allSpeakers.filter(registeredInTito).length,
+  };
+
+  type FilterKey =
+    | "all"
+    | "confirmed"
+    | "prospective"
+    | "needs_chasing"
+    | "missing_assets"
+    | "not_registered"
+    | "registered"
+    | "declined";
+
+  function applyFilter(list: any[]): any[] {
+    switch (filterKey) {
+      case "confirmed": return list.filter((s) => s.status === "confirmed");
+      case "prospective": return list.filter(isProspective);
+      case "needs_chasing": return list.filter(needsChasing);
+      case "missing_assets": return list.filter(isMissingAssets);
+      case "not_registered": return list.filter(notRegisteredInTito);
+      case "registered": return list.filter(registeredInTito);
+      case "declined": return list.filter((s) => s.status === "declined");
+      default: return list;
+    }
+  }
+
+  const eventDate = e.event_date ? new Date(e.event_date) : null;
+  const tz = "Europe/London";
+  const dayLabel = eventDate
+    ? new Intl.DateTimeFormat("en-GB", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: tz,
+      }).format(eventDate)
+    : "Date TBC";
+  const tzShort = eventDate
+    ? new Intl.DateTimeFormat("en-GB", { timeZone: tz, timeZoneName: "short" })
+        .formatToParts(eventDate)
+        .find((p) => p.type === "timeZoneName")?.value ?? tz
+    : tz;
+  const speakerTarget = (e as any).speaker_target ?? 0;
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex items-center gap-3">
@@ -163,9 +244,10 @@ function EventDetail() {
         </Button>
       </div>
 
+      {/* Header card */}
       <Card className="p-5 rounded-2xl border-slate-200/70">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
             <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
               {e.code}
               <StatusPill className={pillClass.businessLine[e.business_line as "AIAI" | "CSC"]}>
@@ -176,188 +258,251 @@ function EventDetail() {
               </span>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight mt-1">{e.name}</h1>
-            <div className="text-sm text-muted-foreground mt-1">
-              {e.venue ? `${e.venue} · ` : ""}
-              {e.event_date ? new Date(e.event_date).toLocaleDateString() : "Date TBC"}
-              {e.owner ? ` · Owner: ${e.owner}` : ""}
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-slate-600">
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays className="h-4 w-4 text-slate-400" />
+                {dayLabel} <span className="text-slate-400">({tzShort})</span>
+              </span>
+              {e.venue && (
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 text-slate-400" />
+                  {e.venue}
+                </span>
+              )}
+              {e.owner && <span className="text-slate-500">Owner: {e.owner}</span>}
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <StatusPill className={pillClass.website[e.website_status as never]}>
-              {labels.website[e.website_status as never]}
-            </StatusPill>
-            <Button variant="outline" size="sm" onClick={() => setEditingEvent(true)}>
-              <Pencil className="h-4 w-4 mr-1.5" />
-              Edit Event
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)}>
-              <Sparkles className="h-4 w-4 mr-1.5" />
-              Sync from Tito
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setSendOpen({})}>
-              <Send className="h-4 w-4 mr-1.5" />
-              Send message
-            </Button>
-            <Button size="sm" onClick={() => setSpeakerEdit({ open: true })}>
-              <Plus className="h-4 w-4 mr-1.5" />
-              Add Attendee
-            </Button>
+          <div className="flex flex-col items-end gap-3">
+            <div className="inline-flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 px-3.5 py-2">
+              <UsersIcon className="h-4 w-4 text-indigo-600" />
+              <span className="text-xs uppercase tracking-wider text-indigo-700/80 font-semibold">
+                Confirmed
+              </span>
+              <span className="text-lg font-bold text-indigo-900 tabular-nums">
+                {counts.confirmed}
+                <span className="text-indigo-400 font-normal"> / </span>
+                <span className="text-indigo-700">{speakerTarget || "-"}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <StatusPill className={pillClass.website[e.website_status as never]}>
+                {labels.website[e.website_status as never]}
+              </StatusPill>
+              <Button variant="outline" size="sm" onClick={() => setEditingEvent(true)}>
+                <Pencil className="h-4 w-4 mr-1.5" />
+                Edit event
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)}>
+                <Sparkles className="h-4 w-4 mr-1.5" />
+                Sync from Tito
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setSendOpen({})}>
+                <Send className="h-4 w-4 mr-1.5" />
+                Send message
+              </Button>
+              <Button size="sm" onClick={() => setSpeakerEdit({ open: true })}>
+                <Plus className="h-4 w-4 mr-1.5" />
+                Add attendee
+              </Button>
+            </div>
           </div>
+        </div>
+
+        {/* Status chips as filters */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <FilterChip
+            active={filterKey === "confirmed"}
+            onClick={() => setFilterKey(filterKey === "confirmed" ? "all" : "confirmed")}
+            tone="emerald"
+            label="Confirmed"
+            count={counts.confirmed}
+          />
+          <FilterChip
+            active={filterKey === "prospective"}
+            onClick={() => setFilterKey(filterKey === "prospective" ? "all" : "prospective")}
+            tone="sky"
+            label="Prospective"
+            count={counts.prospective}
+          />
+          {(e as any).tito_slug && (
+            <>
+              <FilterChip
+                active={filterKey === "registered"}
+                onClick={() => setFilterKey(filterKey === "registered" ? "all" : "registered")}
+                tone="violet"
+                label="Registered in Tito"
+                count={counts.registeredTito}
+              />
+              <FilterChip
+                active={filterKey === "not_registered"}
+                onClick={() => setFilterKey(filterKey === "not_registered" ? "all" : "not_registered")}
+                tone="amber"
+                label="Not yet registered"
+                count={counts.notRegistered}
+              />
+            </>
+          )}
         </div>
       </Card>
 
       <TitoEventPanel eventId={eventId} hasTitoSlug={Boolean((e as any).tito_slug)} />
 
-
-      {/* Top-level search - filters the Speakers, Outreach, Banners lists below */}
-      <div className="relative max-w-xl">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          className="pl-9 h-10"
-          placeholder="Search speakers by name, company, email…"
-          value={speakerQ}
-          onChange={(ev) => setSpeakerQ(ev.target.value)}
-        />
-      </div>
-
-      {/* ─── Stat pills ─── */}
-      {(() => {
-        const all = (speakers.data ?? []) as any[];
-        const total = all.length;
-        const confirmed = all.filter((s) => s.status === "confirmed").length;
-        const responded = all.filter((s) => s.status === "responded").length;
-        const contacted = all.filter((s) => s.status === "contacted").length;
-        return (
-          <div className="flex flex-wrap gap-2">
-            <span className="pill pill-blue">Speakers · {total}</span>
-            <span className="pill pill-amber">Contacted · {contacted}</span>
-            <span className="pill pill-purple">Responded · {responded}</span>
-            <span className="pill pill-green">Confirmed · {confirmed}</span>
-          </div>
-        );
-      })()}
-
-      {/* ─── Speakers (most-used, visible by default) ─── */}
+      {/* Speakers section: one search bar + one filter row */}
       <section className="space-y-3">
-        <div>
-          <div className="accent-bar mb-2" />
-          {(() => {
-            const term = speakerQ.trim().toLowerCase();
-            const all = (speakers.data ?? []) as any[];
-            const filtered = term
-              ? all.filter((s) => {
-                  const hay = `${s.name ?? ""} ${s.company ?? ""} ${s.email ?? ""} ${s.title ?? ""}`.toLowerCase();
-                  return hay.includes(term);
-                })
-              : all;
-            const selectedIds = Object.keys(selected).filter((k) => selected[k]);
-            const selectedSpeakers = filtered.filter((s) => selected[s.id]);
-            const allVisibleChecked =
-              filtered.length > 0 && filtered.every((s) => selected[s.id]);
-            return (
-              <>
-                <SectionHeader
-                  title={
-                    term
-                      ? `Speakers (${filtered.length} of ${all.length})`
-                      : `Speakers (${all.length})`
-                  }
-                  onAdd={() => setSpeakerEdit({ open: true })}
-                />
+        <div className="accent-bar mb-2" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[260px] max-w-xl">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="pl-9 h-10"
+              placeholder="Search speakers by name, company, email"
+              value={speakerQ}
+              onChange={(ev) => setSpeakerQ(ev.target.value)}
+            />
+          </div>
+          <Select value={filterKey} onValueChange={(v) => setFilterKey(v as FilterKey)}>
+            <SelectTrigger className="h-10 w-[280px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All ({counts.all})</SelectItem>
+              <SelectItem value="confirmed">Confirmed ({counts.confirmed})</SelectItem>
+              <SelectItem value="prospective">Prospective ({counts.prospective})</SelectItem>
+              <SelectItem value="needs_chasing">Needs chasing ({counts.needsChasing})</SelectItem>
+              <SelectItem value="missing_assets">
+                Missing bio or headshot ({counts.missingAssets})
+              </SelectItem>
+              {(e as any).tito_slug && (
+                <SelectItem value="not_registered">
+                  Not registered in Tito ({counts.notRegistered})
+                </SelectItem>
+              )}
+              <SelectItem value="declined">Declined ({counts.declined})</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
+        {(() => {
+          const term = speakerQ.trim().toLowerCase();
+          const searched = term
+            ? allSpeakers.filter((s) => {
+                const hay = `${s.name ?? ""} ${s.company ?? ""} ${s.email ?? ""} ${s.title ?? ""}`.toLowerCase();
+                return hay.includes(term);
+              })
+            : allSpeakers;
+          const filtered = applyFilter(searched);
+          const selectedIds = Object.keys(selected).filter((k) => selected[k]);
+          const selectedSpeakers = filtered.filter((s) => selected[s.id]);
+          const allVisibleChecked =
+            filtered.length > 0 && filtered.every((s) => selected[s.id]);
+          return (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-slate-500">
+                  Showing {filtered.length} of {allSpeakers.length}
+                </div>
                 {filtered.length > 0 && (
-                  <div className="flex items-center gap-3 mb-3 px-1">
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer px-2 py-1 rounded-md hover:bg-muted/60 transition-colors">
-                      <Checkbox
-                        checked={allVisibleChecked}
-                        onCheckedChange={(v) => {
-                          const next = { ...selected };
-                          if (v) filtered.forEach((s) => (next[s.id] = true));
-                          else filtered.forEach((s) => delete next[s.id]);
-                          setSelected(next);
-                        }}
-                      />
-                      Select all visible
-                    </label>
-                  </div>
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer px-2 py-1 rounded-md hover:bg-muted/60 transition-colors">
+                    <Checkbox
+                      checked={allVisibleChecked}
+                      onCheckedChange={(v) => {
+                        const next = { ...selected };
+                        if (v) filtered.forEach((s) => (next[s.id] = true));
+                        else filtered.forEach((s) => delete next[s.id]);
+                        setSelected(next);
+                      }}
+                    />
+                    Select all visible
+                  </label>
                 )}
+              </div>
 
-                <div
-                  className={`overflow-hidden transition-all duration-300 ease-out ${
-                    selectedIds.length > 0 ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 shadow-sm">
-                    <div className="text-sm font-medium">
-                      {selectedIds.length} speaker{selectedIds.length === 1 ? "" : "s"} selected
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Button size="sm" variant="outline" onClick={() => setSelected({})}>
-                        Clear
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          setSendOpen({
-                            seedEmails: selectedSpeakers
-                              .map((s) => s.email)
-                              .filter((e): e is string => !!e),
-                          })
-                        }
-                      >
-                        <Mail className="h-4 w-4 mr-1.5" />
-                        Send message
-                      </Button>
-                    </div>
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-out ${
+                  selectedIds.length > 0 ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 shadow-sm">
+                  <div className="text-sm font-medium">
+                    {selectedIds.length} speaker{selectedIds.length === 1 ? "" : "s"} selected
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button size="sm" variant="outline" onClick={() => setSelected({})}>
+                      Clear
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        setSendOpen({
+                          seedEmails: selectedSpeakers
+                            .map((s) => s.email)
+                            .filter((e): e is string => !!e),
+                        })
+                      }
+                    >
+                      <Mail className="h-4 w-4 mr-1.5" />
+                      Send message
+                    </Button>
                   </div>
                 </div>
+              </div>
 
-                {all.length === 0 ? (
-                  <Card className="p-8 text-center text-sm text-muted-foreground">
-                    No speakers yet.
-                  </Card>
-                ) : filtered.length === 0 ? (
-                  <Card className="p-8 text-center text-sm text-muted-foreground">
-                    No speakers match "{speakerQ}".
-                  </Card>
-                ) : (
-                  <div className="space-y-3">
-                    {filtered.map((s: any) => (
-                      <SpeakerListCard
-                        key={s.id}
-                        s={s}
-                        ev={e}
-                        showEventChip={false}
-                        selected={!!selected[s.id]}
-                        onToggleSelect={(v) =>
-                          setSelected({ ...selected, [s.id]: v })
+              {allSpeakers.length === 0 ? (
+                <Card className="p-8 text-center text-sm text-muted-foreground">
+                  No speakers yet.
+                </Card>
+              ) : filtered.length === 0 ? (
+                <Card className="p-8 text-center text-sm text-muted-foreground">
+                  No speakers match this filter.
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {filtered.map((s: any) => (
+                    <SpeakerListCard
+                      key={s.id}
+                      s={s}
+                      ev={e}
+                      showEventChip={false}
+                      selected={!!selected[s.id]}
+                      onToggleSelect={(v) => setSelected({ ...selected, [s.id]: v })}
+                      onOpenDetail={() => setDetailSpeaker(s)}
+                      onEmail={() => emailOne(s, e)}
+                      onCopyLink={async () => {
+                        const url = s.dropbox_link || s.linkedin_url;
+                        if (!url) return toast.error("No link stored for this speaker");
+                        try {
+                          await navigator.clipboard.writeText(url);
+                          toast.success("Link copied");
+                        } catch { toast.error("Couldn't copy link"); }
+                      }}
+                      onEdit={() => setSpeakerEdit({ open: true, speaker: s })}
+                      onStatusChange={async (next) => {
+                        try {
+                          const { updateSpeaker } = await import("@/lib/speakers.functions");
+                          await updateSpeaker({ data: { id: s.id, patch: { status: next } } });
+                          await qc.invalidateQueries({ queryKey: ["speakers", eventId] });
+                          await qc.invalidateQueries({ queryKey: ["eventReconciliation", eventId] });
+                          toast.success(`Status set to ${next}`);
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Couldn't update status");
                         }
-                        onOpenDetail={() => setDetailSpeaker(s)}
-                        onEmail={() => emailOne(s, e)}
-                        onCopyLink={async () => {
-                          const url = s.dropbox_link || s.linkedin_url;
-                          if (!url) return toast.error("No link stored for this speaker");
-                          try {
-                            await navigator.clipboard.writeText(url);
-                            toast.success("Link copied");
-                          } catch { toast.error("Couldn't copy link"); }
-                        }}
-                        onEdit={() => setSpeakerEdit({ open: true, speaker: s })}
-                        history={lookupHistory(s.email)}
-                      />
-                    ))}
-                  </div>
-                )}
+                      }}
+                      history={lookupHistory(s.email)}
+                    />
+                  ))}
+                </div>
+              )}
 
-                <BulkEmailDialog
-                  open={bulkEmailOpen}
-                  onOpenChange={setBulkEmailOpen}
-                  speakers={selectedSpeakers}
-                  eventId={eventId}
-                />
-              </>
-            );
-          })()}
+              <BulkEmailDialog
+                open={bulkEmailOpen}
+                onOpenChange={setBulkEmailOpen}
+                speakers={selectedSpeakers}
+                eventId={eventId}
+              />
+            </>
+          );
+        })()}
+
         </div>
       </section>
 
