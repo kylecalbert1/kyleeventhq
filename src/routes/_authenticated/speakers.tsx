@@ -63,6 +63,7 @@ import {
 import { useContactHistory } from "@/hooks/use-contact-history";
 import { DiscoveryView } from "@/components/speakers/DiscoveryView";
 import { PastSpeakersDirectorySection } from "@/components/speakers/PastSpeakersDirectorySection";
+import { isPastEvent } from "@/lib/event-lifecycle";
 
 const searchSchema = z.object({
   attention: z.enum(["reply", "follow_up", "any"]).optional(),
