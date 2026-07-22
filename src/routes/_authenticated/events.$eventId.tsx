@@ -284,9 +284,18 @@ function EventDetail() {
                       <Button size="sm" variant="outline" onClick={() => setSelected({})}>
                         Clear
                       </Button>
-                      <Button size="sm" onClick={() => setBulkEmailOpen(true)}>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          setSendOpen({
+                            seedEmails: selectedSpeakers
+                              .map((s) => s.email)
+                              .filter((e): e is string => !!e),
+                          })
+                        }
+                      >
                         <Mail className="h-4 w-4 mr-1.5" />
-                        Compose email
+                        Send message
                       </Button>
                     </div>
                   </div>
