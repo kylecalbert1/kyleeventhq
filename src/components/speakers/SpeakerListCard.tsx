@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Inbox,
   CalendarCheck,
+  Search as SearchIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,6 +23,23 @@ import {
 } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import { openGmailThread, gmailThreadUrl } from "@/lib/gmail";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+export type SpeakerStatus = "new" | "contacted" | "responded" | "confirmed" | "declined";
+
+const STATUS_OPTIONS: Array<{ value: SpeakerStatus; label: string }> = [
+  { value: "new", label: "New" },
+  { value: "contacted", label: "Contacted" },
+  { value: "responded", label: "Responded" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "declined", label: "Declined" },
+];
+
 
 /* ---------------- shared helpers reused across app ---------------- */
 
