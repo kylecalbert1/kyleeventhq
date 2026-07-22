@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { StatusPill } from "@/components/StatusPill";
 import { WebsiteTaskFormDialog } from "@/components/dialogs/WebsiteTaskFormDialog";
-import { websiteTasksQuery } from "@/lib/queries";
+import { websiteTasksQuery, asanaTasksQuery } from "@/lib/queries";
 import { updateWebsiteTask } from "@/lib/website-tasks.functions";
+import { matchTrackedPattern } from "@/lib/asana-tasks.functions";
+import { AsanaSuggestionRow } from "@/components/AsanaTasksCard";
 import { WEBSITE_STAGES, labels, pillClass } from "@/lib/status";
 import { toast } from "sonner";
 
@@ -19,9 +21,20 @@ export const Route = createFileRoute("/_authenticated/website")({
   component: WebsiteBoard,
 });
 
+// Map an Asana task name to the local checkbox it corresponds to.
+function asanaFieldFor(taskName: string): "buddy_proof_done" | "marketer_proof_done" | "final_signoff_done" | null {
+  const m = matchTrackedPattern(taskName);
+  if (!m) return null;
+  if (m.key === "1st website proof") return "buddy_proof_done";
+  if (m.key === "2nd website proof") return "marketer_proof_done";
+  if (m.key === "final website sign off" || m.key === "website sign off") return "final_signoff_done";
+  return null;
+}
+
 function WebsiteBoard() {
   const qc = useQueryClient();
   const tasks = useQuery(websiteTasksQuery());
+  const asanaAll = useQuery(asanaTasksQuery({ website_only: true }));
   const update = useServerFn(updateWebsiteTask);
   const [editing, setEditing] = useState<null | { open: boolean; task?: any }>(null);
   const [confirmMove, setConfirmMove] = useState<null | { task: any; to: string }>(null);
@@ -35,6 +48,27 @@ function WebsiteBoard() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+
+  const applyAsana = useMutation({
+    mutationFn: async ({ id, field }: { id: string; field: string }) =>
+      update({ data: { id, patch: { [field]: true, [`${field.replace("_done", "_date")}`]: new Date().toISOString().slice(0, 10) } as never } }),
+    onSuccess: () => {
+      toast.success("Marked done");
+      qc.invalidateQueries({ queryKey: ["websiteTasks"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  // Group Asana completed tasks by event_id + field
+  const asanaByEventField = new Map<string, Set<string>>();
+  for (const t of (asanaAll.data ?? []) as any[]) {
+    if (!t.completed) continue;
+    const f = asanaFieldFor(t.name ?? "");
+    if (!f) continue;
+    const key = t.event_id as string;
+    if (!asanaByEventField.has(key)) asanaByEventField.set(key, new Set());
+    asanaByEventField.get(key)!.add(f);
+  }
 
   const grouped: Record<string, any[]> = { draft: [], proof_1: [], proof_2: [], amendments: [], signed_off: [], live: [] };
   (tasks.data ?? []).forEach((t: any) => grouped[t.status]?.push(t));
@@ -94,6 +128,20 @@ function WebsiteBoard() {
                             {WEBSITE_STAGES.map((s) => <SelectItem key={s} value={s}>{labels.website[s]}</SelectItem>)}
                           </SelectContent>
                         </Select>
+                        {(() => {
+                          const evId = (t.events as any)?.id;
+                          const done = evId ? asanaByEventField.get(evId) : null;
+                          if (!done) return null;
+                          const fields = ["buddy_proof_done", "marketer_proof_done", "final_signoff_done"] as const;
+                          return fields.map((f) => (
+                            <AsanaSuggestionRow
+                              key={f}
+                              matchingAsanaTaskCompleted={done.has(f)}
+                              localDone={!!t[f]}
+                              onConfirm={() => applyAsana.mutate({ id: t.id, field: f })}
+                            />
+                          ));
+                        })()}
                       </div>
                     </div>
                   </div>

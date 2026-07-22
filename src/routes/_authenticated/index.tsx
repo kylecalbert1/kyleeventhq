@@ -17,7 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
 import { SyncDialog } from "@/components/SyncDialog";
-import { eventSummariesQuery, speakersQuery } from "@/lib/queries";
+import { MyPrioritiesWidget } from "@/components/MyPrioritiesWidget";
+import { eventSummariesQuery, speakersQuery, overdueWebsiteAsanaQuery } from "@/lib/queries";
 import { daysBetween } from "@/lib/status";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { getSyncHealth } from "@/lib/sync-health.functions";
@@ -58,6 +59,21 @@ function SyncStalenessBanner() {
         Open settings →
       </Link>
     </div>
+  );
+}
+
+function AsanaOverdueChip() {
+  const { data } = useQuery(overdueWebsiteAsanaQuery);
+  if (!data || data === 0) return null;
+  return (
+    <Link
+      to="/asana"
+      search={{ website: true, hideDone: true }}
+      className="inline-flex items-center gap-2 rounded-full bg-rose-100 text-rose-800 ring-1 ring-rose-200 px-3 py-1.5 text-xs font-semibold hover:bg-rose-200 transition-colors"
+    >
+      <AlertTriangle className="h-3.5 w-3.5" />
+      {data} website Asana task{data === 1 ? "" : "s"} overdue
+    </Link>
   );
 }
 
@@ -242,6 +258,7 @@ function EventsGrid() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-6 py-8 md:py-10 space-y-6">
         <SyncStalenessBanner />
+        <AsanaOverdueChip />
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -290,6 +307,8 @@ function EventsGrid() {
             <Stat label="Declined" value={stats.declined} tone="red" />
           </div>
         </div>
+
+        <MyPrioritiesWidget />
 
         {/* Search */}
         <div className="flex items-center gap-2">
