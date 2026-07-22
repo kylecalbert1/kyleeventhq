@@ -29,9 +29,31 @@ export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasT
       toast.success(`Synced: ${r.new} new · ${r.updated} updated · ${r.releases} releases`);
       qc.invalidateQueries({ queryKey: ["eventReleases", eventId] });
       qc.invalidateQueries({ queryKey: ["eventReconciliation", eventId] });
+      qc.invalidateQueries({ queryKey: ["eventSummaries"] });
+      qc.invalidateQueries({ queryKey: ["speakers"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Sync failed"),
   });
+
+  // Auto-refresh Tito data on mount if last sync is older than 6 hours.
+  const autoTriedRef = useRef(false);
+  const lastSyncedAt = recon.data?.last_synced_at ?? null;
+  useEffect(() => {
+    if (!hasTitoSlug || autoTriedRef.current || recon.isLoading) return;
+    const stale =
+      !lastSyncedAt || Date.now() - new Date(lastSyncedAt).getTime() > 6 * 60 * 60 * 1000;
+    if (stale && !syncMut.isPending) {
+      autoTriedRef.current = true;
+      syncMut.mutate();
+    }
+  }, [hasTitoSlug, lastSyncedAt, recon.isLoading, syncMut]);
+
+  const staleInfo = useMemo(() => {
+    if (!lastSyncedAt) return { label: "Never synced", stale: true };
+    const ms = Date.now() - new Date(lastSyncedAt).getTime();
+    const stale = ms > 6 * 60 * 60 * 1000;
+    return { label: `Last synced ${relTime(ms)}`, stale };
+  }, [lastSyncedAt]);
 
   const linkMut = useMutation({
     mutationFn: (v: { speaker_id: string; ticket_id: string }) => link({ data: v }),
