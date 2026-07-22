@@ -67,6 +67,7 @@ import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDi
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
 import { JobTitleFilter, parseKeywordList, matchesJobTitleFilters } from "@/components/tito/JobTitleFilter";
+import { isPastEvent } from "@/lib/event-lifecycle";
 
 // Rendered as an embedded view inside /speakers when "Find new candidates" mode is on.
 
@@ -655,7 +656,9 @@ export function DiscoveryView() {
                 <TagButton
                   disabled={selected.size === 0}
                   ticketIds={Array.from(selected)}
-                  events={(upcomingEvents.data ?? []).map((e) => ({ id: e.id, title: e.name }))}
+                  events={(upcomingEvents.data ?? [])
+                    .filter((e) => !isPastEvent(e))
+                    .map((e) => ({ id: e.id, title: e.name }))}
                   onDone={() => {
                     toast.success("Tagged as speaker candidates");
                     setSelected(new Set());
