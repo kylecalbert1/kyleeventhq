@@ -3,15 +3,14 @@ import {
   LayoutGrid,
   Users,
   Globe,
-  CalendarDays,
   LogOut,
   ClipboardCheck,
   Inbox,
   Reply,
   ListChecks,
+  CalendarDays,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean };
 
@@ -34,13 +33,13 @@ function NavLink({ item }: { item: NavItem }) {
     <Link
       to={item.to as never}
       activeOptions={{ exact: item.exact ?? false }}
-      className="group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
+      className="group relative flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       activeProps={{
         className:
-          "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary shadow-sm",
+          "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
       }}
     >
-      <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+      <item.icon className="h-4 w-4 shrink-0" strokeWidth={2} />
       <span className="truncate">{item.label}</span>
     </Link>
   );
@@ -54,18 +53,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="hidden md:flex md:w-60 flex-col border-r bg-sidebar">
-        <div className="flex h-16 items-center px-5 border-b">
-          <div className="text-sm font-semibold tracking-tight leading-tight">
+      <aside className="hidden md:flex md:w-56 flex-col border-r border-border bg-sidebar">
+        <div className="flex h-14 items-center px-4 border-b border-border">
+          <div className="text-[13px] font-semibold leading-tight text-foreground">
             Event Ops
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
-              Command Center
+              Command centre
             </div>
           </div>
         </div>
-        <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-            Event delivery
+        <nav className="flex-1 px-2 py-3 overflow-y-auto">
+          <div className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            Delivery
           </div>
           <div className="space-y-0.5">
             {NAV_PRIMARY.map((item) => (
@@ -73,8 +72,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ))}
           </div>
           <div className="my-3 h-px bg-border" />
-          <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-            Ops & outreach
+          <div className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            Ops
           </div>
           <div className="space-y-0.5">
             {NAV_OPS.map((item) => (
@@ -82,10 +81,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ))}
           </div>
         </nav>
-        <div className="p-3 border-t">
-          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-2" /> Sign out
-          </Button>
+        <div className="p-2 border-t border-border">
+          <button
+            onClick={signOut}
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <LogOut className="h-3.5 w-3.5" /> Sign out
+          </button>
         </div>
       </aside>
       <main className="flex-1 min-w-0">{children ?? <Outlet />}</main>
