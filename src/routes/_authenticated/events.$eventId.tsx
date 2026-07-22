@@ -44,7 +44,7 @@ import { SendHistoryPanel } from "@/components/SendHistoryPanel";
 import { SendMessageDialog } from "@/components/SendMessageDialog";
 import { EmailTemplateManagerDialog } from "@/components/EmailTemplateManagerDialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
+
 import { sendGmailEmail } from "@/lib/email.functions";
 import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
