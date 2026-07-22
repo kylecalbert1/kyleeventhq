@@ -1548,6 +1548,16 @@ export const getEventReconciliation = createServerFn({ method: "POST" })
     if (evErr) throw new Error(evErr.message);
     if (!ev) throw new Error("Event not found.");
 
+    let lastSyncedAt: string | null = null;
+    if (ev.tito_slug) {
+      const { data: te } = await context.supabase
+        .from("tito_events")
+        .select("last_synced_at")
+        .eq("slug", ev.tito_slug)
+        .maybeSingle();
+      lastSyncedAt = (te?.last_synced_at as string | null) ?? null;
+    }
+
     const [spkRes, tktRes, relRes] = await Promise.all([
       context.supabase
         .from("speakers")
@@ -1596,6 +1606,7 @@ export const getEventReconciliation = createServerFn({ method: "POST" })
     return {
       has_tito_slug: Boolean(ev.tito_slug),
       tito_slug: ev.tito_slug,
+      last_synced_at: lastSyncedAt,
       confirmed_count: speakers.filter((s) => s.status === "confirmed").length,
       speaker_target: ev.speaker_target ?? null,
       breakdown: { speakerPass, speakerGuest, delegate, total: tickets.length },

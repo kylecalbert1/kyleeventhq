@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, ExternalLink, LinkIcon, Sparkles, UserPlus, Link2, Users } from "lucide-react";
+import { Copy, ExternalLink, LinkIcon, Sparkles, UserPlus, Link2, Users, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,9 +29,31 @@ export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasT
       toast.success(`Synced: ${r.new} new · ${r.updated} updated · ${r.releases} releases`);
       qc.invalidateQueries({ queryKey: ["eventReleases", eventId] });
       qc.invalidateQueries({ queryKey: ["eventReconciliation", eventId] });
+      qc.invalidateQueries({ queryKey: ["eventSummaries"] });
+      qc.invalidateQueries({ queryKey: ["speakers"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Sync failed"),
   });
+
+  // Auto-refresh Tito data on mount if last sync is older than 6 hours.
+  const autoTriedRef = useRef(false);
+  const lastSyncedAt = recon.data?.last_synced_at ?? null;
+  useEffect(() => {
+    if (!hasTitoSlug || autoTriedRef.current || recon.isLoading) return;
+    const stale =
+      !lastSyncedAt || Date.now() - new Date(lastSyncedAt).getTime() > 6 * 60 * 60 * 1000;
+    if (stale && !syncMut.isPending) {
+      autoTriedRef.current = true;
+      syncMut.mutate();
+    }
+  }, [hasTitoSlug, lastSyncedAt, recon.isLoading, syncMut]);
+
+  const staleInfo = useMemo(() => {
+    if (!lastSyncedAt) return { label: "Never synced", stale: true };
+    const ms = Date.now() - new Date(lastSyncedAt).getTime();
+    const stale = ms > 6 * 60 * 60 * 1000;
+    return { label: `Last synced ${relTime(ms)}`, stale };
+  }, [lastSyncedAt]);
 
   const linkMut = useMutation({
     mutationFn: (v: { speaker_id: string; ticket_id: string }) => link({ data: v }),
@@ -91,15 +113,28 @@ export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasT
               </a>
             )}
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => syncMut.mutate()}
-            disabled={syncMut.isPending}
-          >
-            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-            {syncMut.isPending ? "Syncing…" : "Sync from Tito"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full ring-1 ${
+                staleInfo.stale
+                  ? "bg-amber-50 text-amber-800 ring-amber-200"
+                  : "bg-slate-50 text-slate-600 ring-slate-200"
+              }`}
+              title={lastSyncedAt ?? undefined}
+            >
+              {staleInfo.stale && <AlertTriangle className="h-3 w-3" />}
+              {staleInfo.label}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => syncMut.mutate()}
+              disabled={syncMut.isPending}
+            >
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+              {syncMut.isPending ? "Syncing…" : "Sync from Tito"}
+            </Button>
+          </div>
         </div>
 
         {breakdown && (
@@ -311,4 +346,15 @@ async function copy(v: string, label: string) {
   } catch {
     toast.error("Couldn't copy");
   }
+}
+
+function relTime(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
 }

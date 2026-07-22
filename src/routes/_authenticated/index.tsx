@@ -6,13 +6,14 @@ import {
   Search,
   CalendarDays,
   MapPin,
-  RefreshCw,
+  Sparkles,
   Settings as SettingsIcon,
   FileBarChart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
+import { SyncDialog } from "@/components/SyncDialog";
 import { eventSummariesQuery, speakersQuery } from "@/lib/queries";
 import { daysBetween } from "@/lib/status";
 
@@ -112,6 +113,7 @@ function EventsGrid() {
   const { data } = useQuery(eventSummariesQuery);
   const { data: speakers } = useQuery(speakersQuery());
   const [creating, setCreating] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [q, setQ] = useState("");
   const [hidePast, setHidePast] = useState(true);
   const summaries = data ?? [];
@@ -201,11 +203,9 @@ function EventsGrid() {
             <p className="text-sm text-slate-500 mt-0.5">Admin Dashboard</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" size="sm" asChild className="h-9">
-              <Link to="/speaker-sourcing">
-                <RefreshCw className="h-4 w-4 mr-1.5" />
-                Sync from Tito
-              </Link>
+            <Button variant="outline" size="sm" className="h-9" onClick={() => setScanOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              Scan Gmail & Calendar
             </Button>
             <Button variant="outline" size="sm" className="h-9" disabled>
               <FileBarChart className="h-4 w-4 mr-1.5" />
@@ -350,6 +350,7 @@ function EventsGrid() {
       </div>
 
       <EventFormDialog open={creating} onOpenChange={setCreating} />
+      <SyncDialog open={scanOpen} onOpenChange={setScanOpen} />
     </div>
   );
 }

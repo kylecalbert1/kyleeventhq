@@ -462,7 +462,7 @@ export function SyncDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            Sync
+            Scan Gmail & Calendar
           </DialogTitle>
           <DialogDescription>
             Runs Calendar leads, Gmail status, and Bio + Banner checks together.
