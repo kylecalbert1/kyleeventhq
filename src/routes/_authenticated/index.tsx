@@ -258,18 +258,10 @@ function EventsGrid() {
               onChange={(e) => setQ(e.target.value)}
             />
           </div>
-          <Button
-            variant={hidePast ? "default" : "outline"}
-            size="sm"
-            className={`h-10 ${hidePast ? "bg-slate-900 hover:bg-slate-800 text-white" : ""}`}
-            onClick={() => setHidePast((v) => !v)}
-          >
-            {hidePast ? "Hide past" : "Show past"}
-          </Button>
         </div>
 
-        {/* Event list */}
-        {sorted.length === 0 ? (
+        {/* Upcoming events */}
+        {upcomingSorted.length === 0 && pastSorted.length === 0 ? (
           <div className="surface-card p-12 text-center">
             <div className="text-sm text-slate-500">No events match.</div>
             <Button variant="outline" className="mt-4" onClick={() => setCreating(true)}>
@@ -277,83 +269,133 @@ function EventsGrid() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
-            {sorted.map((s) => {
-              const ev = s.event as any;
-              const eventDate = ev.event_date ?? ev.launch_date;
-              const days = eventDate ? daysBetween(new Date(), new Date(eventDate)) : null;
-              const dateLabel = formatDateLong(eventDate);
-              const isVirtual = ev.format === "virtual";
-              const counts = perEvent.get(ev.id) ?? { contacted: 0, responded: 0, confirmed: 0, declined: 0, total: 0 };
+          <>
+            {upcomingSorted.length > 0 ? (
+              <div className="space-y-3">
+                {upcomingSorted.map((s) => (
+                  <EventCard key={(s.event as any).id} s={s} perEvent={perEvent} />
+                ))}
+              </div>
+            ) : (
+              <div className="surface-card p-8 text-center text-sm text-slate-500">
+                No upcoming events. Past events are below.
+              </div>
+            )}
 
-              let awayPill: { label: string; tone: "neutral" | "amber" | "green" | "red" } | null = null;
-              if (days !== null) {
-                if (days < 0) awayPill = { label: `${Math.abs(days)}d ago`, tone: "neutral" };
-                else if (days === 0) awayPill = { label: "Today", tone: "red" };
-                else if (days <= 7) awayPill = { label: `${days}d away`, tone: "red" };
-                else if (days <= 30) awayPill = { label: `${days}d away`, tone: "amber" };
-                else awayPill = { label: `${days}d away`, tone: "green" };
-              }
-
-              return (
-                <Link
-                  key={ev.id}
-                  to="/events/$eventId"
-                  params={{ eventId: ev.id }}
-                  className="group block"
+            {pastSorted.length > 0 && (
+              <section>
+                <button
+                  type="button"
+                  onClick={() => setPastOpen((v) => !v)}
+                  className="w-full flex items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
                 >
-                  <div className="surface-card p-5 md:p-6 transition-all hover:shadow-[var(--shadow-soft-hover)] hover:-translate-y-0.5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-semibold text-lg text-slate-900 leading-tight group-hover:text-slate-700 truncate">
-                            {ev.name}
-                          </h3>
-                          <span className="pill pill-slate font-mono text-[10px]">{ev.code}</span>
-                          <span className={`pill ${ev.business_line === "AIAI" ? "pill-purple" : "pill-blue"}`}>
-                            {ev.business_line}
-                          </span>
-                        </div>
-                        {dateLabel && (
-                          <div className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
-                            <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-                            <span>{dateLabel}</span>
-                          </div>
-                        )}
-                        {(ev.venue || isVirtual) && (
-                          <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-600">
-                            <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                            <span>{isVirtual ? "Virtual event" : ev.venue}</span>
-                          </div>
-                        )}
-                      </div>
-                      {awayPill && (
-                        <Pill tone={awayPill.tone}>{awayPill.label}</Pill>
-                      )}
-                    </div>
-
-                    <div className="mt-4 flex items-center gap-2 flex-wrap">
-                      <Pill tone="neutral">{counts.total} attendees</Pill>
-                      {counts.contacted > 0 && (
-                        <Pill tone="amber">{counts.contacted} registered</Pill>
-                      )}
-                      {counts.confirmed > 0 && (
-                        <Pill tone="green">{counts.confirmed} confirmed</Pill>
-                      )}
-                      {counts.declined > 0 && (
-                        <Pill tone="red">{counts.declined} declined</Pill>
-                      )}
-                      {s.bannersSent > 0 && (
-                        <Pill tone="blue">{s.bannersSent} speakers/sponsors</Pill>
-                      )}
-                    </div>
+                  {pastOpen ? (
+                    <ChevronDown className="h-4 w-4 text-slate-500" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-slate-500" />
+                  )}
+                  <span className="text-sm font-semibold text-slate-700">
+                    Past events
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    {pastSorted.length} finished — kept for the past speaker directory
+                  </span>
+                </button>
+                {pastOpen && (
+                  <div className="mt-3 space-y-3 opacity-90">
+                    {pastSorted.map((s) => (
+                      <EventCard key={(s.event as any).id} s={s} perEvent={perEvent} past />
+                    ))}
                   </div>
-                </Link>
-              );
-            })}
-          </div>
+                )}
+              </section>
+            )}
+          </>
         )}
       </div>
+
+      <EventFormDialog open={creating} onOpenChange={setCreating} />
+      <SyncDialog open={scanOpen} onOpenChange={setScanOpen} />
+    </div>
+  );
+}
+
+function EventCard({
+  s,
+  perEvent,
+  past,
+}: {
+  s: any;
+  perEvent: Map<string, { contacted: number; responded: number; confirmed: number; declined: number; total: number }>;
+  past?: boolean;
+}) {
+  const ev = s.event as any;
+  const eventDate = ev.event_date ?? ev.launch_date;
+  const days = eventDate ? daysBetween(new Date(), new Date(eventDate)) : null;
+  const dateLabel = formatDateLong(eventDate);
+  const isVirtual = ev.format === "virtual";
+  const counts = perEvent.get(ev.id) ?? { contacted: 0, responded: 0, confirmed: 0, declined: 0, total: 0 };
+  let awayPill: { label: string; tone: "neutral" | "amber" | "green" | "red" } | null = null;
+  if (days !== null) {
+    if (days < 0) awayPill = { label: `${Math.abs(days)}d ago`, tone: "neutral" };
+    else if (days === 0) awayPill = { label: "Today", tone: "red" };
+    else if (days <= 7) awayPill = { label: `${days}d away`, tone: "red" };
+    else if (days <= 30) awayPill = { label: `${days}d away`, tone: "amber" };
+    else awayPill = { label: `${days}d away`, tone: "green" };
+  }
+  return (
+    <Link
+      to="/events/$eventId"
+      params={{ eventId: ev.id }}
+      className="group block"
+    >
+      <div className="surface-card p-5 md:p-6 transition-all hover:shadow-[var(--shadow-soft-hover)] hover:-translate-y-0.5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-lg text-slate-900 leading-tight group-hover:text-slate-700 truncate">
+                {ev.name}
+              </h3>
+              <span className="pill pill-slate font-mono text-[10px]">{ev.code}</span>
+              <span className={`pill ${ev.business_line === "AIAI" ? "pill-purple" : "pill-blue"}`}>
+                {ev.business_line}
+              </span>
+              {past && (
+                <span className="pill bg-slate-100 text-slate-600 ring-1 ring-slate-200 text-[10px]">
+                  Ended
+                </span>
+              )}
+            </div>
+            {dateLabel && (
+              <div className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
+                <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                <span>{dateLabel}</span>
+              </div>
+            )}
+            {(ev.venue || isVirtual) && (
+              <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-600">
+                <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                <span>{isVirtual ? "Virtual event" : ev.venue}</span>
+              </div>
+            )}
+          </div>
+          {awayPill && <Pill tone={awayPill.tone}>{awayPill.label}</Pill>}
+        </div>
+
+        <div className="mt-4 flex items-center gap-2 flex-wrap">
+          <Pill tone="neutral">{counts.total} attendees</Pill>
+          {counts.contacted > 0 && <Pill tone="amber">{counts.contacted} registered</Pill>}
+          {counts.confirmed > 0 && <Pill tone="green">{counts.confirmed} confirmed</Pill>}
+          {counts.declined > 0 && <Pill tone="red">{counts.declined} declined</Pill>}
+          {s.bannersSent > 0 && <Pill tone="blue">{s.bannersSent} speakers/sponsors</Pill>}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function _KeepFooter() {
+  return null;
 
       <EventFormDialog open={creating} onOpenChange={setCreating} />
       <SyncDialog open={scanOpen} onOpenChange={setScanOpen} />
