@@ -502,9 +502,8 @@ function EventDetail() {
             </>
           );
         })()}
-
-        </div>
       </section>
+
 
 
       {/* ─── Messaging ─── */}
