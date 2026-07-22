@@ -10,6 +10,7 @@ import {
   ListChecks,
   CalendarDays,
   Megaphone,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,6 +29,7 @@ const NAV_OPS: NavItem[] = [
   { to: "/milestones", label: "Kickoff & washup", icon: CalendarDays },
   { to: "/proofing", label: "Proofing", icon: ClipboardCheck },
   { to: "/sponsor-inbox", label: "Sponsor inbox", icon: Inbox },
+  { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
 function NavLink({ item }: { item: NavItem }) {
