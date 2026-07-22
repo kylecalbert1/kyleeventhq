@@ -355,6 +355,13 @@ export function SpeakerListCard({
             </div>
           )}
 
+          {missingFields.length > 0 && (
+            <div className="mt-1.5 text-[11px] text-slate-400">
+              Missing: {missingFields.join(", ")}
+            </div>
+          )}
+
+
           {(addedShort || lastShort) && (
             <div className="mt-2.5 flex items-center justify-between text-xs text-slate-400">
               <span>{addedShort ? <>Added {addedShort}</> : null}</span>
