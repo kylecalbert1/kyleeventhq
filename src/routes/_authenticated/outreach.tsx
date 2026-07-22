@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Megaphone, Search } from "lucide-react";
+import { Megaphone, Search, ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { eventsQuery } from "@/lib/queries";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
+import { isPastEvent } from "@/lib/event-lifecycle";
 
 export const Route = createFileRoute("/_authenticated/outreach")({
   loader: ({ context }) => context.queryClient.ensureQueryData(eventsQuery),
@@ -14,18 +15,29 @@ export const Route = createFileRoute("/_authenticated/outreach")({
 function OutreachPage() {
   const events = useQuery(eventsQuery);
   const [q, setQ] = useState("");
+  const [pastOpen, setPastOpen] = useState(false);
 
-  const sorted = useMemo(() => {
-    const list = [...(events.data ?? [])].sort((a: any, b: any) => {
+  const { upcoming, past } = useMemo(() => {
+    const sorted = [...(events.data ?? [])].sort((a: any, b: any) => {
       const da = a.event_date ? new Date(a.event_date).getTime() : 0;
       const db = b.event_date ? new Date(b.event_date).getTime() : 0;
       return db - da;
     });
-    if (!q.trim()) return list;
-    const needle = q.toLowerCase();
-    return list.filter((e: any) =>
-      `${e.code ?? ""} ${e.name ?? ""}`.toLowerCase().includes(needle),
-    );
+    const needle = q.trim().toLowerCase();
+    const filtered = needle
+      ? sorted.filter((e: any) =>
+          `${e.code ?? ""} ${e.name ?? ""}`.toLowerCase().includes(needle),
+        )
+      : sorted;
+    const upcoming = filtered.filter((e: any) => !isPastEvent(e));
+    const past = filtered.filter((e: any) => isPastEvent(e));
+    // Upcoming: soonest first
+    upcoming.sort((a: any, b: any) => {
+      const da = a.event_date ? new Date(a.event_date).getTime() : Infinity;
+      const db = b.event_date ? new Date(b.event_date).getTime() : Infinity;
+      return da - db;
+    });
+    return { upcoming, past };
   }, [events.data, q]);
 
   return (
@@ -38,7 +50,7 @@ function OutreachPage() {
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           LinkedIn templates and saved Sales Navigator searches for every event.
-          Expand a kit to edit templates or copy links.
+          Upcoming events only by default — past events are collapsed at the bottom.
         </p>
       </div>
 
@@ -54,34 +66,77 @@ function OutreachPage() {
         </div>
       </div>
 
-      {sorted.length === 0 ? (
+      {upcoming.length === 0 && past.length === 0 ? (
         <div className="surface-card p-12 text-center text-sm text-muted-foreground">
           {events.data?.length ? "No events match your search." : "No events yet."}
         </div>
       ) : (
-        <div className="space-y-3">
-          {sorted.map((e: any) => (
-            <div key={e.id} className="space-y-1.5">
-              <div className="flex items-baseline gap-2 px-1">
-                <span className="text-sm font-semibold text-foreground">
-                  {e.code ? `${e.code} — ` : ""}
-                  {e.name}
-                </span>
-                {e.event_date && (
-                  <span className="text-[11px] text-muted-foreground">
-                    {new Date(e.event_date).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </span>
-                )}
-              </div>
-              <OutreachKitCard eventId={e.id} />
+        <>
+          {upcoming.length > 0 ? (
+            <div className="space-y-3">
+              {upcoming.map((e: any) => (
+                <EventKit key={e.id} event={e} />
+              ))}
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="surface-card p-8 text-center text-sm text-muted-foreground">
+              No upcoming events. Past events are below.
+            </div>
+          )}
+
+          {past.length > 0 && (
+            <section className="pt-2">
+              <button
+                type="button"
+                onClick={() => setPastOpen((v) => !v)}
+                className="w-full flex items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/50 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+              >
+                {pastOpen ? (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="text-sm font-semibold text-slate-700">
+                  Past events
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {past.length} finished — outreach kits kept for reference
+                </span>
+              </button>
+              {pastOpen && (
+                <div className="mt-3 space-y-3 opacity-80">
+                  {past.map((e: any) => (
+                    <EventKit key={e.id} event={e} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+function EventKit({ event }: { event: any }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline gap-2 px-1">
+        <span className="text-sm font-semibold text-foreground">
+          {event.code ? `${event.code} — ` : ""}
+          {event.name}
+        </span>
+        {event.event_date && (
+          <span className="text-[11px] text-muted-foreground">
+            {new Date(event.event_date).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </span>
+        )}
+      </div>
+      <OutreachKitCard eventId={event.id} />
     </div>
   );
 }
