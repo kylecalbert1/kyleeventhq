@@ -236,6 +236,7 @@ function HealthTile({
   note,
   onRun,
   running,
+  extraAction,
 }: {
   label: string;
   hint: string;
@@ -244,6 +245,7 @@ function HealthTile({
   note?: string;
   onRun?: () => void;
   running?: boolean;
+  extraAction?: React.ReactNode;
 }) {
   const tone = staleness(lastAt, ok);
   const wrap = {
@@ -275,12 +277,15 @@ function HealthTile({
           </div>
           {note && <div className="mt-1 text-[11px] text-slate-500 truncate">{note}</div>}
         </div>
-        {onRun && (
-          <Button size="sm" variant="outline" onClick={onRun} disabled={running}>
-            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${running ? "animate-spin" : ""}`} />
-            Run now
-          </Button>
-        )}
+        <div className="flex flex-col gap-1.5 shrink-0">
+          {onRun && (
+            <Button size="sm" variant="outline" onClick={onRun} disabled={running}>
+              <RefreshCw className={`h-3.5 w-3.5 mr-1 ${running ? "animate-spin" : ""}`} />
+              Run now
+            </Button>
+          )}
+          {extraAction}
+        </div>
       </div>
     </div>
   );
