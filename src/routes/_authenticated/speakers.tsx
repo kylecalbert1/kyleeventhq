@@ -171,6 +171,7 @@ function SpeakerBoard() {
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [callScheduledOnly, setCallScheduledOnly] = useState(search.call_scheduled === "true");
   const [candidatesOpen, setCandidatesOpen] = useState(true);
+  const [showPastEvents, setShowPastEvents] = useState(false);
 
   const eventById = useMemo(
     () => Object.fromEntries((events.data ?? []).map((e) => [e.id, e])),
@@ -458,12 +459,18 @@ function SpeakerBoard() {
             value={eventFilter}
             onValueChange={setEventFilter}
             allOption={{ value: "all", label: "All events" }}
-            options={(events.data ?? []).map((e) => ({
-              value: e.id,
-              label: e.code,
-              keywords: e.name,
-            }))}
+            options={(events.data ?? [])
+              .filter((e) => showPastEvents || !isPastEvent(e) || e.id === eventFilter)
+              .map((e) => ({
+                value: e.id,
+                label: e.code + (isPastEvent(e) ? " (past)" : ""),
+                keywords: e.name,
+              }))}
           />
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
+            <Checkbox checked={showPastEvents} onCheckedChange={(v) => setShowPastEvents(!!v)} />
+            Show past
+          </label>
 
           <Select value={lineFilter} onValueChange={setLineFilter}>
             <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Business line" /></SelectTrigger>

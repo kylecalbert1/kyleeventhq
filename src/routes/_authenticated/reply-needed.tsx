@@ -25,6 +25,7 @@ import { eventsQuery, speakersQuery } from "@/lib/queries";
 import { listReplyQueue, ackReplyQueueRow, scanReplyQueue } from "@/lib/reply-queue.functions";
 import { initialsOf, openGmailThread, gmailThreadUrl } from "@/lib/gmail";
 import { cn } from "@/lib/utils";
+import { isPastEvent } from "@/lib/event-lifecycle";
 
 const searchSchema = z.object({
   filter: z.enum(["speaker_reply", "mention", "follow_up", "all"]).optional(),
@@ -164,16 +165,37 @@ function ReplyNeededPage() {
 
   const rows = (queue.data?.rows ?? []) as Row[];
   const activeFilter = search.filter ?? "all";
+  // Counts reflect what's visible after past-event suppression (see below).
+  const visibleCountRows = useMemo(
+    () =>
+      rows.filter((r) => {
+        if (r.reason !== "follow_up") return true;
+        const ev = r.event_id ? eventById[r.event_id] : null;
+        return !ev || !isPastEvent(ev);
+      }),
+    [rows, eventById],
+  );
   const counts = useMemo(() => {
-    const c = { speaker_reply: 0, mention: 0, follow_up: 0, all: rows.length };
-    for (const r of rows) c[r.reason]++;
+    const c = { speaker_reply: 0, mention: 0, follow_up: 0, all: visibleCountRows.length };
+    for (const r of visibleCountRows) c[r.reason]++;
     return c;
-  }, [rows]);
+  }, [visibleCountRows]);
+
+  // Suppress follow_up rows for speakers of past events (no point chasing a reply
+  // for a finished event). speaker_reply and mention rows stay visible regardless.
+  const liveRows = useMemo(() => {
+    return rows.filter((r) => {
+      if (r.reason !== "follow_up") return true;
+      const ev = r.event_id ? eventById[r.event_id] : null;
+      if (!ev) return true;
+      return !isPastEvent(ev);
+    });
+  }, [rows, eventById]);
 
   const filtered = useMemo(() => {
-    if (activeFilter === "all") return rows;
-    return rows.filter((r) => r.reason === activeFilter);
-  }, [rows, activeFilter]);
+    if (activeFilter === "all") return liveRows;
+    return liveRows.filter((r) => r.reason === activeFilter);
+  }, [liveRows, activeFilter]);
 
   const grouped = useMemo(() => {
     const speakerReply = filtered.filter((r) => r.reason === "speaker_reply");
