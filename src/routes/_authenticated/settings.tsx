@@ -17,6 +17,7 @@ import {
   getSyncHealth,
   runTitoNightlyNow,
   runAsanaNightlyNow,
+  testAsanaConnection,
 } from "@/lib/sync-health.functions";
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -62,6 +63,15 @@ function SettingsPage() {
     onError: (e: any) => toast.error(e?.message ?? "Sync failed"),
   });
 
+  const testAsana = useMutation({
+    mutationFn: () => testAsanaConnection(),
+    onSuccess: (r) => {
+      if (r.ok) toast.success(r.message);
+      else toast.error(r.message);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Test failed"),
+  });
+
   const [copied, setCopied] = useState(false);
   function copyWebhook() {
     navigator.clipboard.writeText(WEBHOOK_URL);
@@ -74,7 +84,7 @@ function SettingsPage() {
   const secrets = q.data?.secrets ?? {
     TITO_API_TOKEN: false,
     TITO_WEBHOOK_SECRET: false,
-    ASANA_PAT: false,
+    ASANA_CONNECTED: false,
     GOLDCAST_API_TOKEN: false,
   };
 
@@ -112,12 +122,27 @@ function SettingsPage() {
           />
           <HealthTile
             label="Asana milestones"
-            hint="Nightly at 07:00 UTC. Updates kickoff & launch dates from each event's Asana project."
+            hint={
+              secrets.ASANA_CONNECTED
+                ? "Connected via Kyle's Asana. Nightly at 07:00 UTC — updates kickoff & launch dates from each event's Asana project."
+                : "Not connected. Link the Asana connector in workspace Connectors."
+            }
             lastAt={health.asana?.last_run_at ?? null}
             ok={health.asana?.ok ?? undefined}
             note={health.asana?.note ?? undefined}
             onRun={() => runAsana.mutate()}
             running={runAsana.isPending}
+            extraAction={
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => testAsana.mutate()}
+                disabled={testAsana.isPending || !secrets.ASANA_CONNECTED}
+              >
+                <ShieldCheck className={`h-3.5 w-3.5 mr-1 ${testAsana.isPending ? "animate-pulse" : ""}`} />
+                Test connection
+              </Button>
+            }
           />
           <HealthTile
             label="Goldcast"
@@ -187,10 +212,10 @@ function SettingsPage() {
             hint="Optional but recommended"
           />
           <SecretRow
-            name="ASANA_PAT"
-            present={secrets.ASANA_PAT}
+            name="Asana connector"
+            present={secrets.ASANA_CONNECTED}
             required
-            hint="Asana → My profile → Developer Console → Personal access tokens"
+            hint="Managed via workspace Connectors → Kyle's Asana. No secret needed here."
           />
           <SecretRow
             name="GOLDCAST_API_TOKEN"
@@ -211,6 +236,7 @@ function HealthTile({
   note,
   onRun,
   running,
+  extraAction,
 }: {
   label: string;
   hint: string;
@@ -219,6 +245,7 @@ function HealthTile({
   note?: string;
   onRun?: () => void;
   running?: boolean;
+  extraAction?: React.ReactNode;
 }) {
   const tone = staleness(lastAt, ok);
   const wrap = {
@@ -250,12 +277,15 @@ function HealthTile({
           </div>
           {note && <div className="mt-1 text-[11px] text-slate-500 truncate">{note}</div>}
         </div>
-        {onRun && (
-          <Button size="sm" variant="outline" onClick={onRun} disabled={running}>
-            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${running ? "animate-spin" : ""}`} />
-            Run now
-          </Button>
-        )}
+        <div className="flex flex-col gap-1.5 shrink-0">
+          {onRun && (
+            <Button size="sm" variant="outline" onClick={onRun} disabled={running}>
+              <RefreshCw className={`h-3.5 w-3.5 mr-1 ${running ? "animate-spin" : ""}`} />
+              Run now
+            </Button>
+          )}
+          {extraAction}
+        </div>
       </div>
     </div>
   );

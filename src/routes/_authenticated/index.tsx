@@ -39,7 +39,7 @@ function SyncStalenessBanner() {
       if (ageH > 48 || row.ok === false) items.push(label);
     };
     check("tito_full", "Tito reconcile", data?.secrets?.TITO_API_TOKEN);
-    check("asana", "Asana milestones", data?.secrets?.ASANA_PAT);
+    check("asana", "Asana milestones", data?.secrets?.ASANA_CONNECTED);
     return items;
   }, [data]);
 

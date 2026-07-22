@@ -5,10 +5,15 @@ import { createFileRoute } from "@tanstack/react-router";
 //
 // Auth: apikey header must equal SUPABASE_PUBLISHABLE_KEY.
 //
+// Uses the Lovable connector gateway (Kyle's Asana connection), not a
+// separate PAT — mirrors the Gmail/Calendar pattern in sync.functions.ts.
+//
 // For each event with asana_project_gid, pulls tasks from that project
 // (never search Asana by event name — shared workspace, wrong-match risk)
 // and updates kickoff_date / launch_date only when the value differs and
 // the new value is non-null. Never overwrites a real date with null.
+
+const ASANA_GATEWAY = "https://connector-gateway.lovable.dev/asana";
 
 export const Route = createFileRoute("/api/public/hooks/asana-nightly")({
   server: {
@@ -19,15 +24,17 @@ export const Route = createFileRoute("/api/public/hooks/asana-nightly")({
           return new Response("Unauthorized", { status: 401 });
         }
 
-        const pat = process.env.ASANA_PAT;
-        if (!pat) {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          await stampHealth(supabaseAdmin, "asana", false, "ASANA_PAT not set");
-          return Response.json({ ok: false, error: "ASANA_PAT not set" }, { status: 500 });
+        const creds = getAsanaGatewayCreds();
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        if (!creds) {
+          await stampHealth(supabaseAdmin, "asana", false, "Asana connector not linked");
+          return Response.json(
+            { ok: false, error: "Asana connector not linked" },
+            { status: 500 },
+          );
         }
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const result = await runAsanaSync(supabaseAdmin, pat);
+        const result = await runAsanaSync(supabaseAdmin, creds);
         await stampHealth(
           supabaseAdmin,
           "asana",
@@ -40,8 +47,17 @@ export const Route = createFileRoute("/api/public/hooks/asana-nightly")({
   },
 });
 
+export type AsanaCreds = { lovableKey: string; asanaKey: string };
+
+export function getAsanaGatewayCreds(): AsanaCreds | null {
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  const asanaKey = process.env.ASANA_API_KEY;
+  if (!lovableKey || !asanaKey) return null;
+  return { lovableKey, asanaKey };
+}
+
 // Exported so the "Run now" server function can reuse it.
-export async function runAsanaSync(admin: any, pat: string) {
+export async function runAsanaSync(admin: any, creds: AsanaCreds) {
   const { data: events, error } = await admin
     .from("events")
     .select("id, format, asana_project_gid, kickoff_date, launch_date")
@@ -56,7 +72,7 @@ export async function runAsanaSync(admin: any, pat: string) {
   for (const ev of events ?? []) {
     checked++;
     try {
-      const tasks = await fetchAsanaTasks(ev.asana_project_gid as string, pat);
+      const tasks = await fetchAsanaTasks(ev.asana_project_gid as string, creds);
       const kickoffDue = findTaskDue(tasks, (n) => n.includes("run kick off meeting"));
       const launchExact = findTaskDue(tasks, (n) => n.includes("launch day"));
       const launchFallback =
@@ -102,17 +118,18 @@ type AsanaTask = {
   resource_subtype?: string;
 };
 
-async function fetchAsanaTasks(projectGid: string, pat: string): Promise<AsanaTask[]> {
+async function fetchAsanaTasks(projectGid: string, creds: AsanaCreds): Promise<AsanaTask[]> {
   const out: AsanaTask[] = [];
   let offset: string | undefined = undefined;
   for (let page = 0; page < 20; page++) {
-    const url = new URL(`https://app.asana.com/api/1.0/projects/${projectGid}/tasks`);
+    const url = new URL(`${ASANA_GATEWAY}/projects/${projectGid}/tasks`);
     url.searchParams.set("opt_fields", "name,due_on,completed,resource_subtype");
     url.searchParams.set("limit", "100");
     if (offset) url.searchParams.set("offset", offset);
     const res = await fetch(url.toString(), {
       headers: {
-        Authorization: `Bearer ${pat}`,
+        Authorization: `Bearer ${creds.lovableKey}`,
+        "X-Connection-Api-Key": creds.asanaKey,
         Accept: "application/json",
       },
     });
