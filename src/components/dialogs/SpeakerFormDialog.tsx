@@ -148,13 +148,27 @@ export function SpeakerFormDialog({
         <DialogHeader><DialogTitle>{speaker ? "Edit speaker" : "New speaker"}</DialogTitle></DialogHeader>
         <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="grid grid-cols-2 gap-4">
           <div className="col-span-2 space-y-1.5">
-            <Label className="text-xs">Event</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Event</Label>
+              <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+                <Checkbox
+                  checked={showPastEvents}
+                  onCheckedChange={(v) => setShowPastEvents(!!v)}
+                />
+                Show past events
+              </label>
+            </div>
             <Select value={form.event_id} onValueChange={(v) => setForm({ ...form, event_id: v })}>
               <SelectTrigger><SelectValue placeholder="Select event" /></SelectTrigger>
               <SelectContent>
-                {(events.data ?? []).map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.code} - {e.name}</SelectItem>
-                ))}
+                {(events.data ?? [])
+                  .filter((e) => showPastEvents || !isPastEvent(e) || e.id === form.event_id)
+                  .map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.code} - {e.name}
+                      {isPastEvent(e) ? " (past)" : ""}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
