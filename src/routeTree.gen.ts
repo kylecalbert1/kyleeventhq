@@ -25,6 +25,9 @@ import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedTitoSlugRouteImport } from './routes/_authenticated/tito.$slug'
 import { Route as AuthenticatedSpeakersSpeakerIdRouteImport } from './routes/_authenticated/speakers.$speakerId'
 import { Route as AuthenticatedEventsEventIdRouteImport } from './routes/_authenticated/events.$eventId'
+import { Route as ApiPublicHooksTitoWebhookRouteImport } from './routes/api/public/hooks/tito-webhook'
+import { Route as ApiPublicHooksTitoNightlyRouteImport } from './routes/api/public/hooks/tito-nightly'
+import { Route as ApiPublicHooksAsanaNightlyRouteImport } from './routes/api/public/hooks/asana-nightly'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -110,6 +113,24 @@ const AuthenticatedEventsEventIdRoute =
     path: '/events/$eventId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicHooksTitoWebhookRoute =
+  ApiPublicHooksTitoWebhookRouteImport.update({
+    id: '/api/public/hooks/tito-webhook',
+    path: '/api/public/hooks/tito-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksTitoNightlyRoute =
+  ApiPublicHooksTitoNightlyRouteImport.update({
+    id: '/api/public/hooks/tito-nightly',
+    path: '/api/public/hooks/tito-nightly',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksAsanaNightlyRoute =
+  ApiPublicHooksAsanaNightlyRouteImport.update({
+    id: '/api/public/hooks/asana-nightly',
+    path: '/api/public/hooks/asana-nightly',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -127,6 +148,9 @@ export interface FileRoutesByFullPath {
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/tito/$slug': typeof AuthenticatedTitoSlugRoute
+  '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
+  '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
+  '/api/public/hooks/tito-webhook': typeof ApiPublicHooksTitoWebhookRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -144,6 +168,9 @@ export interface FileRoutesByTo {
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/tito/$slug': typeof AuthenticatedTitoSlugRoute
+  '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
+  '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
+  '/api/public/hooks/tito-webhook': typeof ApiPublicHooksTitoWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -163,6 +190,9 @@ export interface FileRoutesById {
   '/_authenticated/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/_authenticated/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/_authenticated/tito/$slug': typeof AuthenticatedTitoSlugRoute
+  '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
+  '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
+  '/api/public/hooks/tito-webhook': typeof ApiPublicHooksTitoWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -182,6 +212,9 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/speakers/$speakerId'
     | '/tito/$slug'
+    | '/api/public/hooks/asana-nightly'
+    | '/api/public/hooks/tito-nightly'
+    | '/api/public/hooks/tito-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -199,6 +232,9 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/speakers/$speakerId'
     | '/tito/$slug'
+    | '/api/public/hooks/asana-nightly'
+    | '/api/public/hooks/tito-nightly'
+    | '/api/public/hooks/tito-webhook'
   id:
     | '__root__'
     | '/_authenticated'
@@ -217,11 +253,17 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$eventId'
     | '/_authenticated/speakers/$speakerId'
     | '/_authenticated/tito/$slug'
+    | '/api/public/hooks/asana-nightly'
+    | '/api/public/hooks/tito-nightly'
+    | '/api/public/hooks/tito-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicHooksAsanaNightlyRoute: typeof ApiPublicHooksAsanaNightlyRoute
+  ApiPublicHooksTitoNightlyRoute: typeof ApiPublicHooksTitoNightlyRoute
+  ApiPublicHooksTitoWebhookRoute: typeof ApiPublicHooksTitoWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -338,6 +380,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEventsEventIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/tito-webhook': {
+      id: '/api/public/hooks/tito-webhook'
+      path: '/api/public/hooks/tito-webhook'
+      fullPath: '/api/public/hooks/tito-webhook'
+      preLoaderRoute: typeof ApiPublicHooksTitoWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/tito-nightly': {
+      id: '/api/public/hooks/tito-nightly'
+      path: '/api/public/hooks/tito-nightly'
+      fullPath: '/api/public/hooks/tito-nightly'
+      preLoaderRoute: typeof ApiPublicHooksTitoNightlyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/asana-nightly': {
+      id: '/api/public/hooks/asana-nightly'
+      path: '/api/public/hooks/asana-nightly'
+      fullPath: '/api/public/hooks/asana-nightly'
+      preLoaderRoute: typeof ApiPublicHooksAsanaNightlyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -392,6 +455,9 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicHooksAsanaNightlyRoute: ApiPublicHooksAsanaNightlyRoute,
+  ApiPublicHooksTitoNightlyRoute: ApiPublicHooksTitoNightlyRoute,
+  ApiPublicHooksTitoWebhookRoute: ApiPublicHooksTitoWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
