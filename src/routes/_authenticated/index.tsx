@@ -350,6 +350,7 @@ function EventsGrid() {
       </div>
 
       <EventFormDialog open={creating} onOpenChange={setCreating} />
+      <SyncDialog open={scanOpen} onOpenChange={setScanOpen} />
     </div>
   );
 }
