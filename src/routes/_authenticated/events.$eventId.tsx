@@ -101,6 +101,8 @@ function EventDetail() {
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
   const [speakerQ, setSpeakerQ] = useState("");
+  const [sendOpen, setSendOpen] = useState<null | { seedEmails?: string[]; seedGroup?: "prospective" | "current_confirmed" | "past_speakers" | "confirmed_not_registered" }>(null);
+  const [templateMgrOpen, setTemplateMgrOpen] = useState(false);
   const sendEmail = useServerFn(sendGmailEmail);
 
   function emailOne(s: any, ev: any) {
