@@ -1356,7 +1356,7 @@ async function syncSingleEventBySlug(
     for (const r of releaseRows) dedup.set(r.tito_release_id, r);
     const { error: relErr } = await supabase
       .from("tito_releases")
-      .upsert(Array.from(dedup.values()), { onConflict: "tito_release_id" });
+      .upsert(Array.from(dedup.values()), { onConflict: "event_slug,tito_release_id" });
     if (relErr) throw new Error(`tito_releases upsert: ${relErr.message}`);
   }
 
