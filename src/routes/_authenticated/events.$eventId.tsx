@@ -304,7 +304,7 @@ function EventDetail() {
               </Button>
               <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)}>
                 <Sparkles className="h-4 w-4 mr-1.5" />
-                Sync from Tito
+                Scan Gmail & Calendar
               </Button>
               <Button variant="outline" size="sm" onClick={() => setSendOpen({})}>
                 <Send className="h-4 w-4 mr-1.5" />
