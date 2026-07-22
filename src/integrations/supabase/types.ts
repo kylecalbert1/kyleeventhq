@@ -103,6 +103,53 @@ export type Database = {
         }
         Relationships: []
       }
+      asana_tasks: {
+        Row: {
+          asana_gid: string
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          due_on: string | null
+          event_id: string
+          id: string
+          last_synced_at: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          asana_gid: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          due_on?: string | null
+          event_id: string
+          id?: string
+          last_synced_at?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          asana_gid?: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          due_on?: string | null
+          event_id?: string
+          id?: string
+          last_synced_at?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asana_tasks_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_recipients: {
         Row: {
           created_at: string
@@ -1226,8 +1273,12 @@ export type Database = {
         Row: {
           created_at: string
           done: boolean
+          due_date: string | null
+          event_id: string | null
           id: string
+          is_asap: boolean
           position: number
+          source_asana_gid: string | null
           text: string
           updated_at: string
           user_id: string
@@ -1236,8 +1287,12 @@ export type Database = {
         Insert: {
           created_at?: string
           done?: boolean
+          due_date?: string | null
+          event_id?: string | null
           id?: string
+          is_asap?: boolean
           position: number
+          source_asana_gid?: string | null
           text?: string
           updated_at?: string
           user_id: string
@@ -1246,14 +1301,26 @@ export type Database = {
         Update: {
           created_at?: string
           done?: boolean
+          due_date?: string | null
+          event_id?: string | null
           id?: string
+          is_asap?: boolean
           position?: number
+          source_asana_gid?: string | null
           text?: string
           updated_at?: string
           user_id?: string
           week_start?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "weekly_priorities_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
