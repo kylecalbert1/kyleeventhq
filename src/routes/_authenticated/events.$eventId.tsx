@@ -351,10 +351,28 @@ function EventDetail() {
       </section>
 
 
-      {/* ─── Email schedule ─── */}
+      {/* ─── Messaging ─── */}
       <section className="space-y-3">
         <div className="accent-bar mb-2" />
-        <EmailSection eventId={eventId} speakers={speakers.data ?? []} />
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold flex items-center gap-1.5">
+              <Mail className="h-4 w-4 text-indigo-600" /> Messaging
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              One send flow for every audience. Open Send message to pick a template, edit copy, and choose recipients.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setTemplateMgrOpen(true)}>
+              <Pencil className="h-4 w-4 mr-1.5" /> Manage templates
+            </Button>
+            <Button size="sm" onClick={() => setSendOpen({})}>
+              <Send className="h-4 w-4 mr-1.5" /> Send message
+            </Button>
+          </div>
+        </div>
+        <SendHistoryPanel eventId={eventId} defaultOpen title="Send history (this event)" />
       </section>
 
       {/* ─── Sponsors ─── */}
