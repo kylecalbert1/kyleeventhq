@@ -9,6 +9,8 @@ import {
   Sparkles,
   Settings as SettingsIcon,
   FileBarChart,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +18,7 @@ import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
 import { SyncDialog } from "@/components/SyncDialog";
 import { eventSummariesQuery, speakersQuery } from "@/lib/queries";
 import { daysBetween } from "@/lib/status";
+import { isPastEvent } from "@/lib/event-lifecycle";
 
 export const Route = createFileRoute("/_authenticated/")({
   loader: ({ context }) =>
