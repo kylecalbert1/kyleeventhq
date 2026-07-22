@@ -47,7 +47,7 @@ export function OutreachKitCard({
         <div className="flex items-center gap-2 shrink-0">
           <span
             className={cn(
-              "chip-neutral",
+              "chip chip-slate",
               templateCount === 0 && "opacity-50",
             )}
           >
@@ -55,7 +55,7 @@ export function OutreachKitCard({
           </span>
           <span
             className={cn(
-              "chip-neutral",
+              "chip chip-slate",
               linkCount === 0 && "opacity-50",
             )}
           >
