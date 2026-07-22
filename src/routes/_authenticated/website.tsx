@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { StatusPill } from "@/components/StatusPill";
 import { WebsiteTaskFormDialog } from "@/components/dialogs/WebsiteTaskFormDialog";
-import { websiteTasksQuery } from "@/lib/queries";
+import { websiteTasksQuery, asanaTasksQuery } from "@/lib/queries";
 import { updateWebsiteTask } from "@/lib/website-tasks.functions";
+import { matchTrackedPattern } from "@/lib/asana-tasks.functions";
+import { AsanaSuggestionRow } from "@/components/AsanaTasksCard";
 import { WEBSITE_STAGES, labels, pillClass } from "@/lib/status";
 import { toast } from "sonner";
 
