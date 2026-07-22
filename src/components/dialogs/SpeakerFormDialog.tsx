@@ -13,6 +13,7 @@ import { createSpeaker, updateSpeaker, deleteSpeaker } from "@/lib/speakers.func
 import { SPEAKER_STATUSES, BANNER_STATUSES, SESSION_FORMATS, OUTREACH_CHANNELS, labels } from "@/lib/status";
 import { qk } from "@/lib/queries";
 import { eventsQuery } from "@/lib/queries";
+import { isPastEvent } from "@/lib/event-lifecycle";
 
 type Speaker = {
   id: string;
