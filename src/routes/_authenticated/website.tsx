@@ -21,9 +21,20 @@ export const Route = createFileRoute("/_authenticated/website")({
   component: WebsiteBoard,
 });
 
+// Map an Asana task name to the local checkbox it corresponds to.
+function asanaFieldFor(taskName: string): "buddy_proof_done" | "marketer_proof_done" | "final_signoff_done" | null {
+  const m = matchTrackedPattern(taskName);
+  if (!m) return null;
+  if (m.key === "1st website proof") return "buddy_proof_done";
+  if (m.key === "2nd website proof") return "marketer_proof_done";
+  if (m.key === "final website sign off" || m.key === "website sign off") return "final_signoff_done";
+  return null;
+}
+
 function WebsiteBoard() {
   const qc = useQueryClient();
   const tasks = useQuery(websiteTasksQuery());
+  const asanaAll = useQuery(asanaTasksQuery({ website_only: true }));
   const update = useServerFn(updateWebsiteTask);
   const [editing, setEditing] = useState<null | { open: boolean; task?: any }>(null);
   const [confirmMove, setConfirmMove] = useState<null | { task: any; to: string }>(null);
@@ -37,6 +48,27 @@ function WebsiteBoard() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+
+  const applyAsana = useMutation({
+    mutationFn: async ({ id, field }: { id: string; field: string }) =>
+      update({ data: { id, patch: { [field]: true, [`${field.replace("_done", "_date")}`]: new Date().toISOString().slice(0, 10) } as never } }),
+    onSuccess: () => {
+      toast.success("Marked done");
+      qc.invalidateQueries({ queryKey: ["websiteTasks"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  // Group Asana completed tasks by event_id + field
+  const asanaByEventField = new Map<string, Set<string>>();
+  for (const t of (asanaAll.data ?? []) as any[]) {
+    if (!t.completed) continue;
+    const f = asanaFieldFor(t.name ?? "");
+    if (!f) continue;
+    const key = t.event_id as string;
+    if (!asanaByEventField.has(key)) asanaByEventField.set(key, new Set());
+    asanaByEventField.get(key)!.add(f);
+  }
 
   const grouped: Record<string, any[]> = { draft: [], proof_1: [], proof_2: [], amendments: [], signed_off: [], live: [] };
   (tasks.data ?? []).forEach((t: any) => grouped[t.status]?.push(t));
