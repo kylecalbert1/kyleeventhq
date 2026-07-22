@@ -530,6 +530,75 @@ export type Database = {
           },
         ]
       }
+      reply_queue: {
+        Row: {
+          acked_at: string | null
+          acked_message_id: string | null
+          created_at: string
+          event_id: string | null
+          gmail_thread_id: string
+          id: string
+          last_message_at: string
+          last_message_id: string
+          person_email: string
+          person_name: string | null
+          reason: string
+          speaker_id: string | null
+          subject: string | null
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          acked_at?: string | null
+          acked_message_id?: string | null
+          created_at?: string
+          event_id?: string | null
+          gmail_thread_id: string
+          id?: string
+          last_message_at: string
+          last_message_id: string
+          person_email: string
+          person_name?: string | null
+          reason: string
+          speaker_id?: string | null
+          subject?: string | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acked_at?: string | null
+          acked_message_id?: string | null
+          created_at?: string
+          event_id?: string | null
+          gmail_thread_id?: string
+          id?: string
+          last_message_at?: string
+          last_message_id?: string
+          person_email?: string
+          person_name?: string | null
+          reason?: string
+          speaker_id?: string | null
+          subject?: string | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reply_queue_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reply_queue_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       speaker_activity_log: {
         Row: {
           created_at: string
