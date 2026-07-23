@@ -1198,6 +1198,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          email_signature_html: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          email_signature_html?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          email_signature_html?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       website_tasks: {
         Row: {
           amendments_actioned_date: string | null
