@@ -579,12 +579,27 @@ function EventDetail() {
                           await updateSpeaker({ data: { id: s.id, patch: { status: next } } });
                           await qc.invalidateQueries({ queryKey: ["speakers", eventId] });
                           await qc.invalidateQueries({ queryKey: ["eventReconciliation", eventId] });
+                          await qc.invalidateQueries({ queryKey: ["speakerDrafts", eventId] });
                           toast.success(`Status set to ${next}`);
                         } catch (err) {
                           toast.error(err instanceof Error ? err.message : "Couldn't update status");
                         }
                       }}
                       history={lookupHistory(s.email)}
+                      agendaOptions={agendaOptions}
+                      assignedAgendaItemId={assignedByspeakerId.get(s.id) ?? null}
+                      onAssignAgendaItem={async (aid) => {
+                        try {
+                          await assignFn({
+                            data: { speaker_id: s.id, event_id: eventId, agenda_item_id: aid },
+                          });
+                          await qc.invalidateQueries({ queryKey: ["agendaItems", eventId] });
+                          toast.success(aid ? "Session assigned" : "Session cleared");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Assignment failed");
+                        }
+                      }}
+                      draftReady={draftBySpeakerId.has(s.id)}
                     />
                   ))}
                 </div>
