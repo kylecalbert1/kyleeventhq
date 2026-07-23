@@ -357,7 +357,10 @@ export function SyncDialog({
       await create({
         data: {
           event_id: targetEventId,
-          name: l.name || l.email.split("@")[0],
+          // Never derive a name from the email local-part - that produced
+          // greetings like "Hi rayotero323,". Store a neutral placeholder
+          // instead so greeting helpers fall back to "Hi there,".
+          name: (l.name ?? "").trim() || "Unnamed",
           email: l.email,
           status: "contacted",
           banner_status: "not_started",

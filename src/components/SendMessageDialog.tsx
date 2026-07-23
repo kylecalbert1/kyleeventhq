@@ -285,7 +285,7 @@ export function SendMessageDialog({
       .map((s) => ({
         email: s.email!.toLowerCase(),
         name: s.name,
-        first_name: firstName(s.name),
+        first_name: firstName(s.name, s.email),
         company: s.company ?? null,
         job_title: s.title ?? null,
         session_title: s.session_title ?? null,
@@ -301,7 +301,7 @@ export function SendMessageDialog({
       .map((p) => ({
         email: p.email.toLowerCase(),
         name: p.name,
-        first_name: firstName(p.name),
+        first_name: firstName(p.name, p.email),
         company: p.company ?? null,
         job_title: p.job_title ?? null,
         session_title: null,
@@ -337,8 +337,10 @@ export function SendMessageDialog({
       if (p) return p;
       return {
         email,
-        name: email,
-        first_name: firstName(email.split("@")[0].replace(/[._-]+/g, " ")),
+        // No known name: keep name blank so downstream UIs show the email,
+        // and greeting placeholders fall back to the neutral "there".
+        name: "",
+        first_name: "",
         company: null,
         job_title: null,
         session_title: null,
