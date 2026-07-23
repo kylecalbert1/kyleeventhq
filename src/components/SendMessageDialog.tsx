@@ -389,10 +389,14 @@ export function SendMessageDialog({
     if (!t) return;
     setTemplateId(id);
     setSubject(t.subject);
-    setBodyHtml(escapeToInitialHtml(t.body));
+    // Make the greeting part of the editable body so it can be removed or reworded.
+    const bodyWithGreeting = /^\s*(hi|hello|dear)\b/i.test(t.body)
+      ? t.body
+      : `Hi {{first_name}},\n\n${t.body}`;
+    setBodyHtml(escapeToInitialHtml(bodyWithGreeting));
     setOriginalSubject(t.subject);
-    setOriginalBody(t.body);
-    if (bodyRef.current) bodyRef.current.innerHTML = escapeToInitialHtml(t.body);
+    setOriginalBody(bodyWithGreeting);
+    if (bodyRef.current) bodyRef.current.innerHTML = escapeToInitialHtml(bodyWithGreeting);
   }
 
   function resetToTemplate() {
