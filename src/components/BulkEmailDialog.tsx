@@ -164,7 +164,7 @@ export function BulkEmailDialog({
 
   const rows = useMemo(() => {
     return speakers.map((s) => {
-      const firstName = firstNameOf(s.name);
+      const firstName = firstNameOf(s.name, s.email);
       const vars = {
         firstName,
         name: s.name,
