@@ -430,16 +430,16 @@ export function SendMessageDialog({
     setSending(true);
     setSendError(null);
     setSendProgress({ done: 0, total });
-    const plainBody = htmlToPlain(bodyHtml);
     const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink };
     const successful: Array<{ email: string; name: string; speaker_id: string | null }> = [];
+    const fullHtml = signatureHtml ? `${bodyHtml}<br><br>${signatureHtml}` : bodyHtml;
     try {
       for (let i = 0; i < filteredRecipients.length; i++) {
         const r = filteredRecipients[i];
         const s = resolvePlaceholders(subject, r, ctx);
-        const b = resolvePlaceholders(plainBody, r, ctx);
+        const b = resolvePlaceholders(fullHtml, r, ctx);
         try {
-          await sendEmail({ data: { to: r.email, subject: s, body: b } });
+          await sendEmail({ data: { to: r.email, subject: s, body: b, isHtml: true } });
           successful.push({ email: r.email, name: r.name, speaker_id: r.speaker_id });
         } catch (err: any) {
           console.error("send failed", r.email, err);
@@ -454,7 +454,7 @@ export function SendMessageDialog({
             event_id: eventId,
             template_type: (tpl?.slug ?? "custom") as any,
             subject,
-            body: htmlToPlain(bodyHtml),
+            body: htmlToPlain(fullHtml),
             recipients: successful.map((r) => ({
               speaker_id: r.speaker_id,
               email: r.email,
@@ -475,7 +475,9 @@ export function SendMessageDialog({
   const firstR = filteredRecipients[0];
   const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink };
   const previewSubject = firstR ? resolvePlaceholders(subject, firstR, ctx) : subject;
-  const previewBodyPlain = firstR ? resolvePlaceholders(htmlToPlain(bodyHtml), firstR, ctx) : "";
+  const previewFullHtml = signatureHtml ? `${bodyHtml}<br><br>${signatureHtml}` : bodyHtml;
+  const previewBodyPlain = firstR ? resolvePlaceholders(htmlToPlain(previewFullHtml), firstR, ctx) : "";
+  const previewBodyHtml = firstR ? resolvePlaceholders(previewFullHtml, firstR, ctx) : previewFullHtml;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
