@@ -391,6 +391,20 @@ function EventDetail() {
               label="Prospective"
               count={counts.prospective}
             />
+            <FilterChip
+              active={filterKey === "in_conversation"}
+              onClick={() => setFilterKey(filterKey === "in_conversation" ? "all" : "in_conversation")}
+              tone="amber"
+              label="In conversation"
+              count={counts.inConversation}
+            />
+            <FilterChip
+              active={filterKey === "responded"}
+              onClick={() => setFilterKey(filterKey === "responded" ? "all" : "responded")}
+              tone="violet"
+              label="Responded"
+              count={counts.responded}
+            />
             {(e as any).tito_slug && (
               <>
                 <FilterChip
