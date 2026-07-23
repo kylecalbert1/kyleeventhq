@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Settings as SettingsIcon,
   Copy,
@@ -9,6 +9,11 @@ import {
   ShieldCheck,
   ShieldAlert,
   Webhook,
+  Bold,
+  Italic,
+  Link2,
+  Signature,
+  Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +24,9 @@ import {
   runAsanaNightlyNow,
   testAsanaConnection,
 } from "@/lib/sync-health.functions";
+import { userSettingsQuery } from "@/lib/queries";
+import { updateUserSettings } from "@/lib/user-settings.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
