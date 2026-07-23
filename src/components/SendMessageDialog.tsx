@@ -63,8 +63,22 @@ const GROUP_LABELS: Record<GroupKey, string> = {
   confirmed_not_registered: "Confirmed but not in Tito",
 };
 
-function firstName(full: string): string {
-  return (full ?? "").trim().split(/\s+/)[0] ?? "";
+// Resolve a greeting first name from a stored contact name only.
+// Never derive from an email address: doing so produced greetings like
+// "Hi rayotero323," when Tito registrants left the name field blank.
+function firstName(full: string | null | undefined, email?: string | null): string {
+  const raw = (full ?? "").trim();
+  if (!raw) return "";
+  if (/^unnamed(\s+attendee)?$/i.test(raw)) return "";
+  if (email) {
+    const lowerRaw = raw.toLowerCase();
+    const lowerEmail = email.toLowerCase();
+    if (lowerRaw === lowerEmail) return "";
+    const local = lowerEmail.split("@")[0] ?? "";
+    const norm = (s: string) => s.replace(/[\s._\-+]+/g, "");
+    if (local && norm(lowerRaw) === norm(local)) return "";
+  }
+  return raw.split(/\s+/)[0] ?? "";
 }
 
 type Ctx = {
