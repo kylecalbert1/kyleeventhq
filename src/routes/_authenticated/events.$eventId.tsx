@@ -63,6 +63,9 @@ import { TitoEventPanel } from "@/components/events/TitoEventPanel";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
 import { EventPrioritiesStrip } from "@/components/EventPrioritiesStrip";
 import { AsanaTasksCard } from "@/components/AsanaTasksCard";
+import { ConfirmationDraftsSection } from "@/components/ConfirmationDraftsSection";
+import { agendaItemsQuery } from "@/lib/queries";
+import { listDraftsForEvent, assignSpeakerToAgendaItem } from "@/lib/speaker-drafts.functions";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { toast } from "sonner";
 
@@ -154,6 +157,8 @@ function EventDetail() {
     | "all"
     | "confirmed"
     | "prospective"
+    | "in_conversation"
+    | "responded"
     | "needs_chasing"
     | "missing_assets"
     | "not_registered"
@@ -178,13 +183,17 @@ function EventDetail() {
 
   const allSpeakers = (speakers.data ?? []) as any[];
   const isProspective = (s: any) =>
-    s.status === "new" || s.status === "contacted" || s.status === "responded";
+    (s.status === "new" || s.status === "contacted") && !s.call_scheduled;
+  const isInConversation = (s: any) =>
+    s.status === "in_conversation" ||
+    (s.call_scheduled && s.status !== "confirmed" && s.status !== "declined");
+  const isResponded = (s: any) => s.status === "responded";
   const isMissingAssets = (s: any) => {
     if (typeof s.bio_and_headshot_received === "boolean") return !s.bio_and_headshot_received;
     return !(s.bio_received && s.headshot_received);
   };
   const needsChasing = (s: any) => {
-    if (s.status !== "contacted" && s.status !== "responded") return false;
+    if (s.status !== "contacted" && s.status !== "in_conversation" && s.status !== "responded") return false;
     if (s.last_message_direction !== "outbound") return false;
     if (!s.last_message_at) return true;
     const days = (Date.now() - new Date(s.last_message_at).getTime()) / 86400000;
@@ -199,6 +208,8 @@ function EventDetail() {
     all: allSpeakers.length,
     confirmed: allSpeakers.filter((s) => s.status === "confirmed").length,
     prospective: allSpeakers.filter(isProspective).length,
+    inConversation: allSpeakers.filter(isInConversation).length,
+    responded: allSpeakers.filter(isResponded).length,
     needsChasing: allSpeakers.filter(needsChasing).length,
     missingAssets: allSpeakers.filter(isMissingAssets).length,
     notRegistered: allSpeakers.filter(notRegisteredInTito).length,
@@ -210,6 +221,8 @@ function EventDetail() {
     | "all"
     | "confirmed"
     | "prospective"
+    | "in_conversation"
+    | "responded"
     | "needs_chasing"
     | "missing_assets"
     | "not_registered"
@@ -220,6 +233,8 @@ function EventDetail() {
     switch (filterKey) {
       case "confirmed": return list.filter((s) => s.status === "confirmed");
       case "prospective": return list.filter(isProspective);
+      case "in_conversation": return list.filter(isInConversation);
+      case "responded": return list.filter(isResponded);
       case "needs_chasing": return list.filter(needsChasing);
       case "missing_assets": return list.filter(isMissingAssets);
       case "not_registered": return list.filter(notRegisteredInTito);
@@ -228,6 +243,34 @@ function EventDetail() {
       default: return list;
     }
   }
+
+  // Agenda items for session-assignment UI on confirmed speaker cards.
+  const agenda = useQuery(agendaItemsQuery(eventId));
+  const agendaOptions = useMemo(() => {
+    return (agenda.data ?? [])
+      .filter((a: any) => a.type !== "break" && a.type !== "networking" && a.title)
+      .map((a: any) => ({ id: a.id as string, title: a.title as string }));
+  }, [agenda.data]);
+  const assignedByspeakerId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const item of (agenda.data ?? []) as any[]) {
+      for (const sid of (item.speaker_ids ?? []) as string[]) m.set(sid, item.id);
+    }
+    return m;
+  }, [agenda.data]);
+  const assignFn = useServerFn(assignSpeakerToAgendaItem);
+
+  // Pending confirmation drafts for badge on speaker cards.
+  const draftsQuery = useQuery({
+    queryKey: ["speakerDrafts", eventId],
+    queryFn: () => listDraftsForEvent({ data: { event_id: eventId } }),
+  });
+  const draftBySpeakerId = useMemo(() => {
+    const s = new Set<string>();
+    for (const d of draftsQuery.data ?? []) s.add(d.speaker_id);
+    return s;
+  }, [draftsQuery.data]);
+
 
   const eventDate = e.event_date ? new Date(e.event_date) : null;
   const tz = "Europe/London";
@@ -348,6 +391,20 @@ function EventDetail() {
               label="Prospective"
               count={counts.prospective}
             />
+            <FilterChip
+              active={filterKey === "in_conversation"}
+              onClick={() => setFilterKey(filterKey === "in_conversation" ? "all" : "in_conversation")}
+              tone="amber"
+              label="In conversation"
+              count={counts.inConversation}
+            />
+            <FilterChip
+              active={filterKey === "responded"}
+              onClick={() => setFilterKey(filterKey === "responded" ? "all" : "responded")}
+              tone="violet"
+              label="Responded"
+              count={counts.responded}
+            />
             {(e as any).tito_slug && (
               <>
                 <FilterChip
@@ -383,6 +440,8 @@ function EventDetail() {
 
       <OutreachKitCard eventId={eventId} />
 
+      <ConfirmationDraftsSection eventId={eventId} />
+
       {/* Speakers section: one search bar + one filter row */}
       <section className="space-y-3">
         <div className="accent-bar mb-2" />
@@ -404,6 +463,8 @@ function EventDetail() {
               <SelectItem value="all">All ({counts.all})</SelectItem>
               <SelectItem value="confirmed">Confirmed ({counts.confirmed})</SelectItem>
               <SelectItem value="prospective">Prospective ({counts.prospective})</SelectItem>
+              <SelectItem value="in_conversation">In conversation ({counts.inConversation})</SelectItem>
+              <SelectItem value="responded">Responded ({counts.responded})</SelectItem>
               <SelectItem value="needs_chasing">Needs chasing ({counts.needsChasing})</SelectItem>
               <SelectItem value="missing_assets">
                 Missing bio or headshot ({counts.missingAssets})
@@ -518,12 +579,27 @@ function EventDetail() {
                           await updateSpeaker({ data: { id: s.id, patch: { status: next } } });
                           await qc.invalidateQueries({ queryKey: ["speakers", eventId] });
                           await qc.invalidateQueries({ queryKey: ["eventReconciliation", eventId] });
+                          await qc.invalidateQueries({ queryKey: ["speakerDrafts", eventId] });
                           toast.success(`Status set to ${next}`);
                         } catch (err) {
                           toast.error(err instanceof Error ? err.message : "Couldn't update status");
                         }
                       }}
                       history={lookupHistory(s.email)}
+                      agendaOptions={agendaOptions}
+                      assignedAgendaItemId={assignedByspeakerId.get(s.id) ?? null}
+                      onAssignAgendaItem={async (aid) => {
+                        try {
+                          await assignFn({
+                            data: { speaker_id: s.id, event_id: eventId, agenda_item_id: aid },
+                          });
+                          await qc.invalidateQueries({ queryKey: ["agendaItems", eventId] });
+                          toast.success(aid ? "Session assigned" : "Session cleared");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Assignment failed");
+                        }
+                      }}
+                      draftReady={draftBySpeakerId.has(s.id)}
                     />
                   ))}
                 </div>

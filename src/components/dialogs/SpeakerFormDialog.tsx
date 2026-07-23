@@ -22,7 +22,7 @@ type Speaker = {
   company: string | null;
   title: string | null;
   email: string | null;
-  status: "new" | "contacted" | "responded" | "confirmed" | "declined";
+  status: "new" | "contacted" | "in_conversation" | "responded" | "confirmed" | "declined";
   call_scheduled?: boolean;
   call_scheduled_at?: string | null;
   session_title: string | null;

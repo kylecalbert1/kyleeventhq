@@ -10,6 +10,7 @@ import {
   Inbox,
   CalendarCheck,
   Search as SearchIcon,
+  Mic,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,11 +31,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export type SpeakerStatus = "new" | "contacted" | "responded" | "confirmed" | "declined";
+export type SpeakerStatus = "new" | "contacted" | "in_conversation" | "responded" | "confirmed" | "declined";
 
 const STATUS_OPTIONS: Array<{ value: SpeakerStatus; label: string }> = [
   { value: "new", label: "New" },
   { value: "contacted", label: "Contacted" },
+  { value: "in_conversation", label: "In conversation" },
   { value: "responded", label: "Responded" },
   { value: "confirmed", label: "Confirmed" },
   { value: "declined", label: "Declined" },
@@ -155,6 +157,10 @@ export function SpeakerListCard({
   onStatusChange,
   showEventChip = true,
   history,
+  agendaOptions,
+  assignedAgendaItemId,
+  onAssignAgendaItem,
+  draftReady,
 }: {
   s: any;
   ev: any;
@@ -167,6 +173,10 @@ export function SpeakerListCard({
   onStatusChange?: (next: SpeakerStatus) => void;
   showEventChip?: boolean;
   history?: { count: number; last_sent_at: string | null } | null;
+  agendaOptions?: Array<{ id: string; title: string }>;
+  assignedAgendaItemId?: string | null;
+  onAssignAgendaItem?: (id: string | null) => void;
+  draftReady?: boolean;
 }) {
   const colKey = columnFor(s);
   const stage = stagePill[colKey];
@@ -176,6 +186,9 @@ export function SpeakerListCard({
   const historyShort = fmtShort(history?.last_sent_at ?? null);
   const dir = s.last_message_direction as string | null;
   const titleAtCompany = [s.title, s.company].filter(Boolean).join(" at ");
+  const assignedSessionTitle = assignedAgendaItemId
+    ? (agendaOptions ?? []).find((a) => a.id === assignedAgendaItemId)?.title ?? null
+    : null;
 
   const missingFields: string[] = [];
   if (!s.email) missingFields.push("email");
@@ -264,6 +277,17 @@ export function SpeakerListCard({
                 <StatusPill className="text-[11px] bg-emerald-100 text-emerald-800 ring-emerald-200 font-semibold">
                   <CalendarCheck className="h-3 w-3" />
                   {s.call_scheduled_at ? `Call ${fmtShort(s.call_scheduled_at)}` : "Call scheduled"}
+                </StatusPill>
+              )}
+              {assignedSessionTitle && (
+                <StatusPill className="text-[11px] bg-indigo-50 text-indigo-800 ring-indigo-200 font-semibold">
+                  <Mic className="h-3 w-3" />
+                  {assignedSessionTitle}
+                </StatusPill>
+              )}
+              {draftReady && (
+                <StatusPill className="text-[11px] bg-amber-100 text-amber-900 ring-amber-300 font-semibold">
+                  ✉︎ Confirmation draft ready
                 </StatusPill>
               )}
             </div>
@@ -423,6 +447,33 @@ export function SpeakerListCard({
             >
               ✏️ Edit details
             </button>
+            {onAssignAgendaItem && agendaOptions && agendaOptions.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 text-slate-600 hover:text-indigo-700 font-medium transition-colors"
+                  >
+                    <Mic className="h-3.5 w-3.5" />
+                    {assignedSessionTitle ? "Change session" : "Assign session"}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
+                  <DropdownMenuItem onSelect={() => onAssignAgendaItem(null)}>
+                    — Unassigned —
+                  </DropdownMenuItem>
+                  {agendaOptions.map((opt) => (
+                    <DropdownMenuItem
+                      key={opt.id}
+                      onSelect={() => onAssignAgendaItem(opt.id)}
+                    >
+                      {opt.title}
+                      {opt.id === assignedAgendaItemId ? " ✓" : ""}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </div>
