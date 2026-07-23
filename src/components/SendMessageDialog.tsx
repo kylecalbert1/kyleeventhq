@@ -30,6 +30,7 @@ import {
   eventTitoLinksQuery,
   eventQuery,
   pastSpeakersQuery,
+  userSettingsQuery,
 } from "@/lib/queries";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { logEmailSend } from "@/lib/email-sends.functions";
