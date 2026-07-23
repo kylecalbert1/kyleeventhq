@@ -681,6 +681,59 @@ export type Database = {
           },
         ]
       }
+      speaker_email_drafts: {
+        Row: {
+          body: string
+          created_at: string
+          guest_pass_link: string | null
+          id: string
+          kind: string
+          sent_at: string | null
+          sent_email_send_id: string | null
+          speaker_id: string
+          speaker_pass_link: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          guest_pass_link?: string | null
+          id?: string
+          kind?: string
+          sent_at?: string | null
+          sent_email_send_id?: string | null
+          speaker_id: string
+          speaker_pass_link?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          guest_pass_link?: string | null
+          id?: string
+          kind?: string
+          sent_at?: string | null
+          sent_email_send_id?: string | null
+          speaker_id?: string
+          speaker_pass_link?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_email_drafts_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       speakers: {
         Row: {
           banner_status: Database["public"]["Enums"]["banner_status"]
@@ -1345,6 +1398,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_speaker_confirmation_draft: {
+        Args: { _speaker_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1372,6 +1429,7 @@ export type Database = {
       speaker_status:
         | "new"
         | "contacted"
+        | "in_conversation"
         | "responded"
         | "confirmed"
         | "declined"
@@ -1535,6 +1593,7 @@ export const Constants = {
       speaker_status: [
         "new",
         "contacted",
+        "in_conversation",
         "responded",
         "confirmed",
         "declined",

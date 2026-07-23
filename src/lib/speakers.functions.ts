@@ -8,7 +8,7 @@ const SpeakerInput = z.object({
   company: z.string().nullable().optional(),
   title: z.string().nullable().optional(),
   email: z.string().nullable().optional(),
-  status: z.enum(["new", "contacted", "responded", "confirmed", "declined"]),
+  status: z.enum(["new", "contacted", "in_conversation", "responded", "confirmed", "declined"]),
   call_scheduled: z.boolean().optional(),
   call_scheduled_at: z.string().nullable().optional(),
   session_title: z.string().nullable().optional(),

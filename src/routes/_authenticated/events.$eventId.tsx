@@ -63,6 +63,9 @@ import { TitoEventPanel } from "@/components/events/TitoEventPanel";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
 import { EventPrioritiesStrip } from "@/components/EventPrioritiesStrip";
 import { AsanaTasksCard } from "@/components/AsanaTasksCard";
+import { ConfirmationDraftsSection } from "@/components/ConfirmationDraftsSection";
+import { agendaItemsQuery } from "@/lib/queries";
+import { listDraftsForEvent, assignSpeakerToAgendaItem } from "@/lib/speaker-drafts.functions";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { toast } from "sonner";
 
@@ -154,6 +157,8 @@ function EventDetail() {
     | "all"
     | "confirmed"
     | "prospective"
+    | "in_conversation"
+    | "responded"
     | "needs_chasing"
     | "missing_assets"
     | "not_registered"

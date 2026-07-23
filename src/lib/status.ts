@@ -4,7 +4,7 @@
 export const WEBSITE_STAGES = ["draft", "proof_1", "proof_2", "amendments", "signed_off", "live"] as const;
 export type WebsiteStage = (typeof WEBSITE_STAGES)[number];
 
-export const SPEAKER_STATUSES = ["contacted", "responded", "confirmed", "declined"] as const;
+export const SPEAKER_STATUSES = ["new", "contacted", "in_conversation", "responded", "confirmed", "declined"] as const;
 export type SpeakerStatus = (typeof SPEAKER_STATUSES)[number];
 
 export const BANNER_STATUSES = ["not_started", "created", "sent", "confirmed_live"] as const;
@@ -57,7 +57,9 @@ export const labels = {
     live: "Live",
   } satisfies Record<WebsiteStage, string>,
   speaker: {
+    new: "New",
     contacted: "Contacted",
+    in_conversation: "In conversation",
     responded: "Responded",
     confirmed: "Confirmed",
     declined: "Declined",
@@ -110,7 +112,9 @@ export const pillClass = {
     live: "bg-emerald-100 text-emerald-800 ring-emerald-200",
   } satisfies Record<WebsiteStage, string>,
   speaker: {
+    new: "bg-slate-100 text-slate-700 ring-slate-200",
     contacted: "bg-slate-100 text-slate-700 ring-slate-200",
+    in_conversation: "bg-amber-100 text-amber-800 ring-amber-200",
     responded: "bg-sky-100 text-sky-800 ring-sky-200",
     confirmed: "bg-emerald-100 text-emerald-800 ring-emerald-200",
     declined: "bg-rose-100 text-rose-700 ring-rose-200",
