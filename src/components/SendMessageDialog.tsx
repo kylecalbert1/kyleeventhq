@@ -499,6 +499,7 @@ export function SendMessageDialog({
         {previewing ? (
           <PreviewPane
             subject={previewSubject}
+            bodyHtml={previewBodyHtml}
             bodyPlain={previewBodyPlain}
             firstRecipient={firstR}
             recipients={filteredRecipients}
