@@ -51,9 +51,28 @@ export function renderTemplate(template: string, vars: Record<string, string>) {
   return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, k) => vars[k] ?? "");
 }
 
-export function firstNameOf(fullName: string | null | undefined) {
-  if (!fullName) return "there";
-  return fullName.trim().split(/\s+/)[0] ?? "there";
+// Resolve a greeting first name from a stored contact name.
+// Priority: real stored name → "there". Never derive from an email address.
+// Rejects blank, placeholder ("Unnamed"), or names that are just the email /
+// email local-part (a legacy fallback that produced greetings like
+// "Hi rayotero323,"). Pass the email so we can detect and neutralize those.
+export function firstNameOf(
+  fullName: string | null | undefined,
+  email?: string | null,
+): string {
+  const raw = (fullName ?? "").trim();
+  if (!raw) return "there";
+  if (/^unnamed(\s+attendee)?$/i.test(raw)) return "there";
+  if (email) {
+    const lowerRaw = raw.toLowerCase();
+    const lowerEmail = email.toLowerCase();
+    if (lowerRaw === lowerEmail) return "there";
+    const local = lowerEmail.split("@")[0] ?? "";
+    const norm = (s: string) => s.replace(/[\s._\-+]+/g, "");
+    if (local && norm(lowerRaw) === norm(local)) return "there";
+  }
+  const first = raw.split(/\s+/)[0] ?? "";
+  return first || "there";
 }
 
 export function initialsOf(fullName: string | null | undefined) {
