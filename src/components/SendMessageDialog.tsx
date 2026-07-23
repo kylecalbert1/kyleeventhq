@@ -63,8 +63,22 @@ const GROUP_LABELS: Record<GroupKey, string> = {
   confirmed_not_registered: "Confirmed but not in Tito",
 };
 
-function firstName(full: string): string {
-  return (full ?? "").trim().split(/\s+/)[0] ?? "";
+// Resolve a greeting first name from a stored contact name only.
+// Never derive from an email address: doing so produced greetings like
+// "Hi rayotero323," when Tito registrants left the name field blank.
+function firstName(full: string | null | undefined, email?: string | null): string {
+  const raw = (full ?? "").trim();
+  if (!raw) return "";
+  if (/^unnamed(\s+attendee)?$/i.test(raw)) return "";
+  if (email) {
+    const lowerRaw = raw.toLowerCase();
+    const lowerEmail = email.toLowerCase();
+    if (lowerRaw === lowerEmail) return "";
+    const local = lowerEmail.split("@")[0] ?? "";
+    const norm = (s: string) => s.replace(/[\s._\-+]+/g, "");
+    if (local && norm(lowerRaw) === norm(local)) return "";
+  }
+  return raw.split(/\s+/)[0] ?? "";
 }
 
 type Ctx = {
@@ -271,7 +285,7 @@ export function SendMessageDialog({
       .map((s) => ({
         email: s.email!.toLowerCase(),
         name: s.name,
-        first_name: firstName(s.name),
+        first_name: firstName(s.name, s.email),
         company: s.company ?? null,
         job_title: s.title ?? null,
         session_title: s.session_title ?? null,
@@ -287,7 +301,7 @@ export function SendMessageDialog({
       .map((p) => ({
         email: p.email.toLowerCase(),
         name: p.name,
-        first_name: firstName(p.name),
+        first_name: firstName(p.name, p.email),
         company: p.company ?? null,
         job_title: p.job_title ?? null,
         session_title: null,
@@ -323,8 +337,10 @@ export function SendMessageDialog({
       if (p) return p;
       return {
         email,
-        name: email,
-        first_name: firstName(email.split("@")[0].replace(/[._-]+/g, " ")),
+        // No known name: keep name blank so downstream UIs show the email,
+        // and greeting placeholders fall back to the neutral "there".
+        name: "",
+        first_name: "",
         company: null,
         job_title: null,
         session_title: null,

@@ -122,7 +122,7 @@ function EventDetail() {
 
   function emailOne(s: any, ev: any) {
     if (!s.email) { toast.error("No email on file"); return; }
-    const firstName = firstNameOf(s.name);
+    const firstName = firstNameOf(s.name, s.email);
     const code = ev?.code ?? "our upcoming event";
     setConfirmEmail({
       to: s.email,
