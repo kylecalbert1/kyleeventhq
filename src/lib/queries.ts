@@ -18,6 +18,12 @@ import { listAgendaItems, listAgendaTemplates } from "@/lib/agenda.functions";
 import { listEventReleases, getEventReconciliation, getEventTitoLinks, listTitoEventsForPicker } from "@/lib/tito.functions";
 import { listEmailTemplates } from "@/lib/email-templates.functions";
 import { listPastSpeakers } from "@/lib/directory.functions";
+import { getUserSettings } from "@/lib/user-settings.functions";
+
+export const userSettingsQuery = queryOptions({
+  queryKey: ["userSettings"],
+  queryFn: () => getUserSettings(),
+});
 
 export const qk = {
   eventSummaries: () => ["eventSummaries"] as const,
