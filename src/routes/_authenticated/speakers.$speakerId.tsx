@@ -107,7 +107,7 @@ function SpeakerProfile() {
   }
 
   const stage = stageOf(speaker);
-  const firstName = firstNameOf(speaker.name);
+  const firstName = firstNameOf(speaker.name, speaker.email);
 
   const initials = speaker.name
     .split(/\s+/)
