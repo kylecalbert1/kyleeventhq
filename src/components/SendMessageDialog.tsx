@@ -638,16 +638,24 @@ export function SendMessageDialog({
                 <div className="bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold">
                   {eventName || "Event Ops"}
                 </div>
-                <div className="bg-white px-5 pt-4 pb-2 text-[13px] text-foreground">
-                  Hi {"{{first_name}}"},
-                </div>
                 <div
                   ref={bodyRef}
                   contentEditable
                   suppressContentEditableWarning
                   onInput={(e) => setBodyHtml((e.target as HTMLDivElement).innerHTML)}
-                  className="bg-white px-5 py-3 text-[13px] leading-relaxed text-foreground outline-none min-h-[220px] whitespace-pre-wrap"
+                  className="bg-white px-5 py-4 text-[13px] leading-relaxed text-foreground outline-none min-h-[240px] whitespace-pre-wrap [&_a]:text-primary [&_a]:underline"
                 />
+                {signatureHtml ? (
+                  <div
+                    className="bg-white px-5 pb-4 text-[13px] leading-relaxed text-foreground border-t border-dashed border-border pt-3 [&_a]:text-primary [&_a]:underline"
+                    dangerouslySetInnerHTML={{ __html: signatureHtml }}
+                    title="Signature (edit in Settings)"
+                  />
+                ) : (
+                  <div className="bg-white px-5 pb-3 text-[11px] text-muted-foreground italic">
+                    No signature set. Add one in Settings → Email signature.
+                  </div>
+                )}
                 <div className="bg-white px-5 py-3 border-t border-border text-[11px] text-muted-foreground">
                   {eventName} · {eventDate}
                   {venue ? ` · ${venue}` : ""}
