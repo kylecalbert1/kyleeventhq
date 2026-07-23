@@ -461,6 +461,8 @@ function EventDetail() {
               <SelectItem value="all">All ({counts.all})</SelectItem>
               <SelectItem value="confirmed">Confirmed ({counts.confirmed})</SelectItem>
               <SelectItem value="prospective">Prospective ({counts.prospective})</SelectItem>
+              <SelectItem value="in_conversation">In conversation ({counts.inConversation})</SelectItem>
+              <SelectItem value="responded">Responded ({counts.responded})</SelectItem>
               <SelectItem value="needs_chasing">Needs chasing ({counts.needsChasing})</SelectItem>
               <SelectItem value="missing_assets">
                 Missing bio or headshot ({counts.missingAssets})
