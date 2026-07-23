@@ -55,7 +55,7 @@ export const sendGmailEmail = createServerFn({ method: "POST" })
       );
     }
 
-    const raw = buildRawEmail(data);
+    const raw = buildRawEmail({ ...data, isHtml: data.isHtml });
     const res = await fetch(`${GATEWAY_URL}/users/me/messages/send`, {
       method: "POST",
       headers: {
