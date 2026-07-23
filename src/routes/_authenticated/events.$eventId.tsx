@@ -440,6 +440,8 @@ function EventDetail() {
 
       <OutreachKitCard eventId={eventId} />
 
+      <ConfirmationDraftsSection eventId={eventId} />
+
       {/* Speakers section: one search bar + one filter row */}
       <section className="space-y-3">
         <div className="accent-bar mb-2" />
