@@ -752,11 +752,13 @@ function ToggleBtn({
 
 function PreviewPane({
   subject,
+  bodyHtml,
   bodyPlain,
   firstRecipient,
   recipients,
 }: {
   subject: string;
+  bodyHtml: string;
   bodyPlain: string;
   firstRecipient: Recipient | undefined;
   recipients: Recipient[];
@@ -776,10 +778,15 @@ function PreviewPane({
           <div className="bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold">
             {subject}
           </div>
-          <pre className="bg-white px-5 py-4 text-[13px] whitespace-pre-wrap font-sans text-foreground leading-relaxed">
-            {bodyPlain}
-          </pre>
+          <div
+            className="bg-white px-5 py-4 text-[13px] whitespace-pre-wrap font-sans text-foreground leading-relaxed [&_a]:text-primary [&_a]:underline"
+            dangerouslySetInnerHTML={{ __html: bodyHtml }}
+          />
         </div>
+        <details className="mt-2 text-[11px] text-muted-foreground">
+          <summary className="cursor-pointer">Plain-text fallback</summary>
+          <pre className="mt-1 whitespace-pre-wrap font-sans">{bodyPlain}</pre>
+        </details>
       </div>
 
       <div className="surface-card p-4">
