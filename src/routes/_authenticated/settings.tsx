@@ -232,6 +232,8 @@ function SettingsPage() {
           />
         </div>
       </Card>
+
+      <SignatureCard />
     </div>
   );
 }
