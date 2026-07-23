@@ -30,6 +30,7 @@ import {
   eventTitoLinksQuery,
   eventQuery,
   pastSpeakersQuery,
+  userSettingsQuery,
 } from "@/lib/queries";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { logEmailSend } from "@/lib/email-sends.functions";
@@ -203,6 +204,7 @@ export function SendMessageDialog({
   const templatesQ = useQuery(emailTemplatesQuery);
   const titoLinksQ = useQuery(eventTitoLinksQuery(eventId));
   const pastQ = useQuery(pastSpeakersQuery(false));
+  const settingsQ = useQuery(userSettingsQuery);
 
   const [audienceMode, setAudienceMode] = useState<AudienceMode>("group");
   const [group, setGroup] = useState<GroupKey>(seedGroup ?? "current_confirmed");
@@ -238,9 +240,19 @@ export function SendMessageDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // Restore editable body innerHTML when returning from Preview (the div unmounts
+  // during preview, so React state is our source of truth).
+  useEffect(() => {
+    if (!previewing && bodyRef.current && bodyRef.current.innerHTML !== bodyHtml) {
+      bodyRef.current.innerHTML = bodyHtml;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewing]);
+
   const speakers = speakersQ.data ?? [];
   const past = pastQ.data ?? [];
-  const eventName = evQ.data ? `${evQ.data.code} - ${evQ.data.name}` : "";
+  // Use the plain event name in the header banner (no code prefix).
+  const eventName = evQ.data?.name ?? "";
   const eventDate = evQ.data?.event_date
     ? new Date(evQ.data.event_date).toLocaleDateString("en-GB", {
         day: "numeric",
@@ -251,6 +263,7 @@ export function SendMessageDialog({
   const venue = evQ.data?.venue ?? "";
   const speakerPassLink = titoLinksQ.data?.speaker_pass_link ?? "";
   const guestPassLink = titoLinksQ.data?.guest_pass_link ?? "";
+  const signatureHtml = settingsQ.data?.email_signature_html ?? "";
 
   const speakerRecipients = useMemo<Recipient[]>(() => {
     return speakers
@@ -376,10 +389,14 @@ export function SendMessageDialog({
     if (!t) return;
     setTemplateId(id);
     setSubject(t.subject);
-    setBodyHtml(escapeToInitialHtml(t.body));
+    // Make the greeting part of the editable body so it can be removed or reworded.
+    const bodyWithGreeting = /^\s*(hi|hello|dear)\b/i.test(t.body)
+      ? t.body
+      : `Hi {{first_name}},\n\n${t.body}`;
+    setBodyHtml(escapeToInitialHtml(bodyWithGreeting));
     setOriginalSubject(t.subject);
-    setOriginalBody(t.body);
-    if (bodyRef.current) bodyRef.current.innerHTML = escapeToInitialHtml(t.body);
+    setOriginalBody(bodyWithGreeting);
+    if (bodyRef.current) bodyRef.current.innerHTML = escapeToInitialHtml(bodyWithGreeting);
   }
 
   function resetToTemplate() {
@@ -417,16 +434,16 @@ export function SendMessageDialog({
     setSending(true);
     setSendError(null);
     setSendProgress({ done: 0, total });
-    const plainBody = htmlToPlain(bodyHtml);
     const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink };
     const successful: Array<{ email: string; name: string; speaker_id: string | null }> = [];
+    const fullHtml = signatureHtml ? `${bodyHtml}<br><br>${signatureHtml}` : bodyHtml;
     try {
       for (let i = 0; i < filteredRecipients.length; i++) {
         const r = filteredRecipients[i];
         const s = resolvePlaceholders(subject, r, ctx);
-        const b = resolvePlaceholders(plainBody, r, ctx);
+        const b = resolvePlaceholders(fullHtml, r, ctx);
         try {
-          await sendEmail({ data: { to: r.email, subject: s, body: b } });
+          await sendEmail({ data: { to: r.email, subject: s, body: b, isHtml: true } });
           successful.push({ email: r.email, name: r.name, speaker_id: r.speaker_id });
         } catch (err: any) {
           console.error("send failed", r.email, err);
@@ -441,7 +458,7 @@ export function SendMessageDialog({
             event_id: eventId,
             template_type: (tpl?.slug ?? "custom") as any,
             subject,
-            body: htmlToPlain(bodyHtml),
+            body: htmlToPlain(fullHtml),
             recipients: successful.map((r) => ({
               speaker_id: r.speaker_id,
               email: r.email,
@@ -462,7 +479,9 @@ export function SendMessageDialog({
   const firstR = filteredRecipients[0];
   const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink };
   const previewSubject = firstR ? resolvePlaceholders(subject, firstR, ctx) : subject;
-  const previewBodyPlain = firstR ? resolvePlaceholders(htmlToPlain(bodyHtml), firstR, ctx) : "";
+  const previewFullHtml = signatureHtml ? `${bodyHtml}<br><br>${signatureHtml}` : bodyHtml;
+  const previewBodyPlain = firstR ? resolvePlaceholders(htmlToPlain(previewFullHtml), firstR, ctx) : "";
+  const previewBodyHtml = firstR ? resolvePlaceholders(previewFullHtml, firstR, ctx) : previewFullHtml;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -480,6 +499,7 @@ export function SendMessageDialog({
         {previewing ? (
           <PreviewPane
             subject={previewSubject}
+            bodyHtml={previewBodyHtml}
             bodyPlain={previewBodyPlain}
             firstRecipient={firstR}
             recipients={filteredRecipients}
@@ -623,16 +643,24 @@ export function SendMessageDialog({
                 <div className="bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold">
                   {eventName || "Event Ops"}
                 </div>
-                <div className="bg-white px-5 pt-4 pb-2 text-[13px] text-foreground">
-                  Hi {"{{first_name}}"},
-                </div>
                 <div
                   ref={bodyRef}
                   contentEditable
                   suppressContentEditableWarning
                   onInput={(e) => setBodyHtml((e.target as HTMLDivElement).innerHTML)}
-                  className="bg-white px-5 py-3 text-[13px] leading-relaxed text-foreground outline-none min-h-[220px] whitespace-pre-wrap"
+                  className="bg-white px-5 py-4 text-[13px] leading-relaxed text-foreground outline-none min-h-[240px] whitespace-pre-wrap [&_a]:text-primary [&_a]:underline"
                 />
+                {signatureHtml ? (
+                  <div
+                    className="bg-white px-5 pb-4 text-[13px] leading-relaxed text-foreground border-t border-dashed border-border pt-3 [&_a]:text-primary [&_a]:underline"
+                    dangerouslySetInnerHTML={{ __html: signatureHtml }}
+                    title="Signature (edit in Settings)"
+                  />
+                ) : (
+                  <div className="bg-white px-5 pb-3 text-[11px] text-muted-foreground italic">
+                    No signature set. Add one in Settings → Email signature.
+                  </div>
+                )}
                 <div className="bg-white px-5 py-3 border-t border-border text-[11px] text-muted-foreground">
                   {eventName} · {eventDate}
                   {venue ? ` · ${venue}` : ""}
@@ -724,11 +752,13 @@ function ToggleBtn({
 
 function PreviewPane({
   subject,
+  bodyHtml,
   bodyPlain,
   firstRecipient,
   recipients,
 }: {
   subject: string;
+  bodyHtml: string;
   bodyPlain: string;
   firstRecipient: Recipient | undefined;
   recipients: Recipient[];
@@ -748,10 +778,15 @@ function PreviewPane({
           <div className="bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold">
             {subject}
           </div>
-          <pre className="bg-white px-5 py-4 text-[13px] whitespace-pre-wrap font-sans text-foreground leading-relaxed">
-            {bodyPlain}
-          </pre>
+          <div
+            className="bg-white px-5 py-4 text-[13px] whitespace-pre-wrap font-sans text-foreground leading-relaxed [&_a]:text-primary [&_a]:underline"
+            dangerouslySetInnerHTML={{ __html: bodyHtml }}
+          />
         </div>
+        <details className="mt-2 text-[11px] text-muted-foreground">
+          <summary className="cursor-pointer">Plain-text fallback</summary>
+          <pre className="mt-1 whitespace-pre-wrap font-sans">{bodyPlain}</pre>
+        </details>
       </div>
 
       <div className="surface-card p-4">

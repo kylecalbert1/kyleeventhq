@@ -10,13 +10,15 @@ function b64url(str: string) {
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function buildRawEmail(opts: { to: string; subject: string; body: string }) {
-  // Simple text/plain UTF-8 email
+function buildRawEmail(opts: { to: string; subject: string; body: string; isHtml?: boolean }) {
+  const contentType = opts.isHtml
+    ? 'text/html; charset="UTF-8"'
+    : 'text/plain; charset="UTF-8"';
   const lines = [
     `To: ${opts.to}`,
     `Subject: =?UTF-8?B?${Buffer.from(opts.subject, "utf-8").toString("base64")}?=`,
     "MIME-Version: 1.0",
-    'Content-Type: text/plain; charset="UTF-8"',
+    `Content-Type: ${contentType}`,
     "Content-Transfer-Encoding: 7bit",
     "",
     opts.body,
@@ -40,6 +42,7 @@ export const sendGmailEmail = createServerFn({ method: "POST" })
         to: z.string().email(),
         subject: z.string().min(1),
         body: z.string().min(1),
+        isHtml: z.boolean().optional(),
       })
       .parse(d),
   )
@@ -52,7 +55,7 @@ export const sendGmailEmail = createServerFn({ method: "POST" })
       );
     }
 
-    const raw = buildRawEmail(data);
+    const raw = buildRawEmail({ ...data, isHtml: data.isHtml });
     const res = await fetch(`${GATEWAY_URL}/users/me/messages/send`, {
       method: "POST",
       headers: {

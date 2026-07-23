@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Settings as SettingsIcon,
   Copy,
@@ -9,6 +9,11 @@ import {
   ShieldCheck,
   ShieldAlert,
   Webhook,
+  Bold,
+  Italic,
+  Link2,
+  Signature,
+  Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +24,9 @@ import {
   runAsanaNightlyNow,
   testAsanaConnection,
 } from "@/lib/sync-health.functions";
+import { userSettingsQuery } from "@/lib/queries";
+import { updateUserSettings } from "@/lib/user-settings.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -224,6 +232,8 @@ function SettingsPage() {
           />
         </div>
       </Card>
+
+      <SignatureCard />
     </div>
   );
 }
@@ -349,3 +359,91 @@ function formatRelative(iso: string): string {
 
 // Static export for the dashboard banner to consume without duplicating logic.
 export const _staleness = staleness;
+
+function SignatureCard() {
+  const qc = useQueryClient();
+  const q = useQuery(userSettingsQuery);
+  const updateFn = useServerFn(updateUserSettings);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [html, setHtml] = useState<string>("");
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    if (q.data && !dirty) {
+      const initial = q.data.email_signature_html ?? "";
+      setHtml(initial);
+      if (ref.current && ref.current.innerHTML !== initial) {
+        ref.current.innerHTML = initial;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q.data]);
+
+  const save = useMutation({
+    mutationFn: () => updateFn({ data: { email_signature_html: html } }),
+    onSuccess: () => {
+      toast.success("Signature saved");
+      setDirty(false);
+      qc.invalidateQueries({ queryKey: ["userSettings"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Save failed"),
+  });
+
+  function exec(cmd: string, val?: string) {
+    document.execCommand(cmd, false, val);
+    if (ref.current) {
+      setHtml(ref.current.innerHTML);
+      setDirty(true);
+    }
+  }
+  function insertLink() {
+    const url = prompt("Link URL", "https://");
+    if (!url) return;
+    exec("createLink", url);
+  }
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-sm font-semibold flex items-center gap-2">
+          <Signature className="h-4 w-4" />
+          Email signature
+        </h2>
+        <Button
+          size="sm"
+          onClick={() => save.mutate()}
+          disabled={!dirty || save.isPending}
+          className="rounded-full"
+        >
+          <Save className="h-3.5 w-3.5 mr-1.5" />
+          Save
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        Appended to every email you send from the Send message dialog. Use the toolbar
+        to add bold, italic, and links (e.g. Customer Success Collective).
+      </p>
+      <div className="flex items-center gap-1 mb-2">
+        <Button size="sm" variant="outline" onClick={() => exec("bold")} className="h-7 w-7 p-0">
+          <Bold className="h-3 w-3" />
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => exec("italic")} className="h-7 w-7 p-0">
+          <Italic className="h-3 w-3" />
+        </Button>
+        <Button size="sm" variant="outline" onClick={insertLink} className="h-7 w-7 p-0">
+          <Link2 className="h-3 w-3" />
+        </Button>
+      </div>
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={(e) => {
+          setHtml((e.target as HTMLDivElement).innerHTML);
+          setDirty(true);
+        }}
+        className="min-h-[140px] rounded-xl border-2 border-border bg-white px-4 py-3 text-[13px] leading-relaxed text-foreground outline-none [&_a]:text-primary [&_a]:underline whitespace-pre-wrap"
+      />
+    </Card>
+  );
+}
