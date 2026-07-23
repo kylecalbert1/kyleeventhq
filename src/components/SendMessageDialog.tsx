@@ -204,6 +204,7 @@ export function SendMessageDialog({
   const templatesQ = useQuery(emailTemplatesQuery);
   const titoLinksQ = useQuery(eventTitoLinksQuery(eventId));
   const pastQ = useQuery(pastSpeakersQuery(false));
+  const settingsQ = useQuery(userSettingsQuery);
 
   const [audienceMode, setAudienceMode] = useState<AudienceMode>("group");
   const [group, setGroup] = useState<GroupKey>(seedGroup ?? "current_confirmed");
@@ -239,9 +240,19 @@ export function SendMessageDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // Restore editable body innerHTML when returning from Preview (the div unmounts
+  // during preview, so React state is our source of truth).
+  useEffect(() => {
+    if (!previewing && bodyRef.current && bodyRef.current.innerHTML !== bodyHtml) {
+      bodyRef.current.innerHTML = bodyHtml;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewing]);
+
   const speakers = speakersQ.data ?? [];
   const past = pastQ.data ?? [];
-  const eventName = evQ.data ? `${evQ.data.code} - ${evQ.data.name}` : "";
+  // Use the plain event name in the header banner (no code prefix).
+  const eventName = evQ.data?.name ?? "";
   const eventDate = evQ.data?.event_date
     ? new Date(evQ.data.event_date).toLocaleDateString("en-GB", {
         day: "numeric",
@@ -252,6 +263,7 @@ export function SendMessageDialog({
   const venue = evQ.data?.venue ?? "";
   const speakerPassLink = titoLinksQ.data?.speaker_pass_link ?? "";
   const guestPassLink = titoLinksQ.data?.guest_pass_link ?? "";
+  const signatureHtml = settingsQ.data?.email_signature_html ?? "";
 
   const speakerRecipients = useMemo<Recipient[]>(() => {
     return speakers
