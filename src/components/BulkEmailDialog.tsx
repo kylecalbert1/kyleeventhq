@@ -47,6 +47,13 @@ type Speaker = {
 
 type SendStatus = "idle" | "sending" | "sent" | "failed" | "skipped";
 
+/**
+ * `initialTemplate` was historically one of a small hardcoded set of keys
+ * (custom / confirmation / banner_reminder / ...). Now that templates live
+ * in the `email_templates` table, it can also be a template slug from the
+ * DB. We still accept a string for backward compatibility with call sites
+ * that pass legacy keys.
+ */
 export function BulkEmailDialog({
   open,
   onOpenChange,
@@ -58,7 +65,7 @@ export function BulkEmailDialog({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   speakers: Speaker[];
-  initialTemplate?: TemplateKey;
+  initialTemplate?: string;
   eventId?: string | null;
   /**
    * Optional per-recipient AI-generated overrides keyed by speaker id.
@@ -69,9 +76,14 @@ export function BulkEmailDialog({
    */
   perRecipientDrafts?: Record<string, { subject: string; body: string }>;
 }) {
-  const [templateKey, setTemplateKey] = useState<TemplateKey>(initialTemplate ?? "custom");
-  const [subject, setSubject] = useState(TEMPLATES[initialTemplate ?? "custom"].subject);
-  const [body, setBody] = useState(TEMPLATES[initialTemplate ?? "custom"].body);
+  const templatesQ = useQuery(emailTemplatesQuery);
+  const settingsQ = useQuery(userSettingsQuery);
+  const signatureHtml = (settingsQ.data?.email_signature_html ?? "").trim();
+  const templates = templatesQ.data ?? [];
+
+  const [templateId, setTemplateId] = useState<string>(CUSTOM_TEMPLATE_ID);
+  const [subject, setSubject] = useState(CUSTOM_DEFAULT_SUBJECT);
+  const [body, setBody] = useState(CUSTOM_DEFAULT_BODY);
   const [confirmOne, setConfirmOne] = useState<
     (ConfirmDraft & { id: string }) | null
   >(null);
@@ -83,13 +95,23 @@ export function BulkEmailDialog({
   const logSend = useServerFn(logEmailSend);
   const qcInvalidate = useQueryClient();
 
+  // Seed subject/body when the dialog opens or the templates list arrives.
+  // `initialTemplate` may be either a legacy key or a DB slug; match on slug
+  // first, then fall back to the blank/custom state.
   useEffect(() => {
-    if (open && initialTemplate) {
-      setTemplateKey(initialTemplate);
-      setSubject(TEMPLATES[initialTemplate].subject);
-      setBody(TEMPLATES[initialTemplate].body);
+    if (!open || !templates.length) return;
+    if (initialTemplate) {
+      const match = templates.find((t) => t.slug === initialTemplate);
+      if (match) {
+        applyTemplate(match.id);
+        return;
+      }
     }
-  }, [open, initialTemplate]);
+    if (templateId === CUSTOM_TEMPLATE_ID) {
+      // Nothing to do - keep whatever the user is editing.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialTemplate, templates.length]);
 
   // Every time the recipient list changes (dialog reopens with a new selection),
   // default every recipient with an email to opted-in.
