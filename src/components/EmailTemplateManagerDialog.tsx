@@ -156,10 +156,11 @@ export function EmailTemplateManagerDialog({
                 </div>
                 <div>
                   <Label className="text-xs uppercase tracking-wider text-muted-foreground">Body</Label>
-                  <Textarea
+                  <RichTextEmailEditor
                     value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    className="mt-1 min-h-[280px] font-mono text-sm"
+                    onChange={setBody}
+                    className="mt-1"
+                    minRows={14}
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     Placeholders: {"{{first_name}} {{company}} {{job_title}} {{event_name}} {{event_date}} {{venue}} {{session_title}} {{speaker_pass_link}} {{guest_pass_link}} {{past_event_name}}"}
