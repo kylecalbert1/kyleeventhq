@@ -60,7 +60,10 @@ export function EmailTemplateManagerDialog({
     if (selected) {
       setName(selected.name);
       setSubject(selected.subject);
-      setBody(selected.body);
+      // Older seeded templates are stored as plain text with `**bold**`
+      // markdown and `\n` line breaks; coerce to HTML so the rich-text
+      // editor displays them correctly. New edits are saved as HTML.
+      setBody(toEmailHtml(selected.body));
     }
   }, [selected?.id]);
 
