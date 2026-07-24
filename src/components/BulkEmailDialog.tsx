@@ -261,7 +261,7 @@ export function BulkEmailDialog({
         logSend({
           data: {
             event_id: eventId ?? null,
-            template_type: templateKey,
+            template_type: activeTemplateSlug,
             subject,
             body,
             recipients: sentRecipients.map((r) => ({
@@ -330,31 +330,35 @@ export function BulkEmailDialog({
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Template</Label>
-                <Select value={templateKey} onValueChange={(v) => applyTemplate(v as TemplateKey)}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <Select value={templateId} onValueChange={(v) => applyTemplate(v)}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Choose a template" /></SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(TEMPLATES) as TemplateKey[]).map((k) => (
-                      <SelectItem key={k} value={k}>{TEMPLATES[k].label}</SelectItem>
+                    <SelectItem value={CUSTOM_TEMPLATE_ID}>Custom / blank</SelectItem>
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
-                  Picking a template pre-fills subject & body. Edits below stay local until you switch templates again.
+                  Templates are sourced from the Template Manager - edits there flow through here automatically.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Subject template</Label>
                   <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
                 </div>
-                <div className="space-y-1.5 md:row-span-2">
+                <div className="space-y-1.5">
                   <Label className="text-xs">Body template</Label>
-                  <Textarea
-                    rows={9}
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                  />
+                  <RichTextEmailEditor value={body} onChange={setBody} minRows={10} />
+                  <p className="text-[11px] text-muted-foreground">
+                    Bold, italic and links are preserved when the email is sent. Use{" "}
+                    <code className="bg-background px-1 py-0.5 rounded">{`{{firstName}}`}</code>{" "}
+                    as a merge tag.
+                  </p>
                 </div>
               </div>
             </>
