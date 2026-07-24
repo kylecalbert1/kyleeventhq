@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Send, X, Pencil, Mail } from "lucide-react";
+import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
+import { toEmailHtml } from "@/lib/email-format";
 import {
   listDraftsForEvent,
   updateSpeakerDraft,
@@ -43,7 +44,10 @@ export function ConfirmationDraftsSection({ eventId }: { eventId: string }) {
     const to = d.speakers.email;
     if (!to) return toast.error("Speaker has no email address");
     try {
-      const bodyHtml = body.replace(/\n/g, "<br/>");
+      // Coerce plain-text drafts (with `\n` and `**bold**`) into real HTML
+      // so Gmail renders line breaks and bold instead of running the whole
+      // message together on one line.
+      const bodyHtml = toEmailHtml(body);
       const withSig = signatureHtml
         ? `${bodyHtml}<br/><br/>${signatureHtml}`
         : bodyHtml;
@@ -102,6 +106,7 @@ export function ConfirmationDraftsSection({ eventId }: { eventId: string }) {
           const isEditing = !!editing[d.id];
           const subject = editing[d.id]?.subject ?? d.subject;
           const body = editing[d.id]?.body ?? d.body;
+          const bodyForEditor = toEmailHtml(body);
           return (
             <div key={d.id} className="rounded-lg bg-white border border-amber-200 p-4">
               <div className="flex items-start justify-between gap-3 mb-2">
@@ -153,21 +158,21 @@ export function ConfirmationDraftsSection({ eventId }: { eventId: string }) {
                       setEditing((s) => ({ ...s, [d.id]: { subject: e.target.value, body } }))
                     }
                   />
-                  <Textarea
-                    className="text-sm font-mono"
-                    rows={10}
-                    value={body}
-                    onChange={(e) =>
-                      setEditing((s) => ({ ...s, [d.id]: { subject, body: e.target.value } }))
+                  <RichTextEmailEditor
+                    value={bodyForEditor}
+                    onChange={(html) =>
+                      setEditing((s) => ({ ...s, [d.id]: { subject, body: html } }))
                     }
+                    minRows={10}
                   />
                 </>
               ) : (
                 <>
                   <div className="text-sm font-medium text-slate-700 mb-1">{subject}</div>
-                  <pre className="text-xs whitespace-pre-wrap text-slate-600 font-sans max-h-64 overflow-y-auto">
-                    {body}
-                  </pre>
+                  <div
+                    className="text-xs text-slate-600 max-h-64 overflow-y-auto [&_a]:text-primary [&_a]:underline"
+                    dangerouslySetInnerHTML={{ __html: bodyForEditor }}
+                  />
                 </>
               )}
             </div>
