@@ -443,9 +443,10 @@ export function BulkEmailDialog({
                           )}
                         </div>
                         <div className="mt-2 text-xs font-medium truncate">{r.rSubject}</div>
-                        <div className="mt-1 text-xs text-muted-foreground whitespace-pre-line line-clamp-3">
-                          {r.rBody}
-                        </div>
+                        <div
+                          className="mt-1 text-xs text-muted-foreground line-clamp-3 [&_a]:text-primary [&_a]:underline"
+                          dangerouslySetInnerHTML={{ __html: toEmailHtml(r.rBody) }}
+                        />
                         {st === "failed" && errors[r.id] && (
                           <div className="mt-2 text-xs text-red-700">{errors[r.id]}</div>
                         )}
