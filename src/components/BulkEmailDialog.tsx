@@ -128,11 +128,27 @@ export function BulkEmailDialog({
   }, [open, speakers]);
 
 
-  function applyTemplate(k: TemplateKey) {
-    setTemplateKey(k);
-    setSubject(TEMPLATES[k].subject);
-    setBody(TEMPLATES[k].body);
+  function applyTemplate(id: string) {
+    if (id === CUSTOM_TEMPLATE_ID) {
+      setTemplateId(CUSTOM_TEMPLATE_ID);
+      setSubject(CUSTOM_DEFAULT_SUBJECT);
+      setBody(CUSTOM_DEFAULT_BODY);
+      return;
+    }
+    const t = templates.find((x) => x.id === id);
+    if (!t) return;
+    setTemplateId(id);
+    setSubject(t.subject);
+    // Coerce stored plain-text (with `\n` and `**bold**`) into HTML so the
+    // rich-text editor and the eventual Gmail send both render correctly.
+    setBody(toEmailHtml(t.body));
   }
+
+  // Log-friendly slug: DB slug when available, otherwise "custom".
+  const activeTemplateSlug: TemplateType = (() => {
+    const t = templates.find((x) => x.id === templateId);
+    return (t?.slug ?? "custom") as TemplateType;
+  })();
 
   const send = useServerFn(sendGmailEmail);
   const checkConn = useServerFn(checkGmailConnected);
@@ -187,11 +203,21 @@ export function BulkEmailDialog({
     }
     setStatus((s) => ({ ...s, [r.id]: "sending" }));
     try {
+      // Every outbound message goes as HTML with `\n` → `<br/>` and any
+      // stray `**bold**` promoted to real `<strong>` tags, plus the user's
+      // saved signature. Without this, Gmail collapses the whole body to a
+      // single paragraph and shows literal asterisks.
+      const rawBody = override?.body ?? r.rBody;
+      const bodyHtml = toEmailHtml(rawBody);
+      const withSig = signatureHtml
+        ? `${bodyHtml}<br/><br/>${signatureHtml}`
+        : bodyHtml;
       await send({
         data: {
           to: r.email,
           subject: override?.subject ?? r.rSubject,
-          body: override?.body ?? r.rBody,
+          body: withSig,
+          isHtml: true,
         },
       });
       setStatus((s) => ({ ...s, [r.id]: "sent" }));
@@ -210,7 +236,7 @@ export function BulkEmailDialog({
       subject: r.rSubject,
       body: r.rBody,
       recipientName: r.name,
-      templateType: templateKey,
+      templateType: activeTemplateSlug,
       eventId: eventId ?? null,
       speakerId: r.id,
     });
