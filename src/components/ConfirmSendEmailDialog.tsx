@@ -11,8 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
+import { toEmailHtml } from "@/lib/email-format";
 import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
 
 export type ConfirmDraft = {
@@ -45,7 +46,10 @@ export function ConfirmSendEmailDialog({
   useEffect(() => {
     if (draft) {
       setSubject(draft.subject);
-      setBody(draft.body);
+      // Body may arrive as plain text (older callers) or HTML (rich-text
+      // callers). Normalize so the rich-text editor renders line breaks
+      // and any legacy `**bold**` markdown correctly.
+      setBody(toEmailHtml(draft.body));
     }
   }, [draft]);
 
@@ -115,11 +119,11 @@ export function ConfirmSendEmailDialog({
 
           <div className="space-y-1.5">
             <Label className="text-xs">Body</Label>
-            <Textarea
-              rows={10}
+            <RichTextEmailEditor
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={setBody}
               disabled={sending}
+              minRows={10}
             />
           </div>
         </div>

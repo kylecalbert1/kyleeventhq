@@ -11,8 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Label } from "@/components/ui/label";
+import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
+import { toEmailHtml } from "@/lib/email-format";
 import { Badge } from "@/components/ui/badge";
 import { emailTemplatesQuery } from "@/lib/queries";
 import {
@@ -58,7 +60,10 @@ export function EmailTemplateManagerDialog({
     if (selected) {
       setName(selected.name);
       setSubject(selected.subject);
-      setBody(selected.body);
+      // Older seeded templates are stored as plain text with `**bold**`
+      // markdown and `\n` line breaks; coerce to HTML so the rich-text
+      // editor displays them correctly. New edits are saved as HTML.
+      setBody(toEmailHtml(selected.body));
     }
   }, [selected?.id]);
 
@@ -151,10 +156,11 @@ export function EmailTemplateManagerDialog({
                 </div>
                 <div>
                   <Label className="text-xs uppercase tracking-wider text-muted-foreground">Body</Label>
-                  <Textarea
+                  <RichTextEmailEditor
                     value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    className="mt-1 min-h-[280px] font-mono text-sm"
+                    onChange={setBody}
+                    className="mt-1"
+                    minRows={14}
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     Placeholders: {"{{first_name}} {{company}} {{job_title}} {{event_name}} {{event_date}} {{venue}} {{session_title}} {{speaker_pass_link}} {{guest_pass_link}} {{past_event_name}}"}

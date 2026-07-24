@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -25,51 +24,19 @@ import { renderTemplate, firstNameOf } from "@/lib/gmail";
 import { sendGmailEmail, checkGmailConnected } from "@/lib/email.functions";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { BulkConfirmSendDialog } from "@/components/BulkConfirmSendDialog";
-import { logEmailSend } from "@/lib/email-sends.functions";
-import { eventTitoLinksQuery } from "@/lib/queries";
+import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
+import { toEmailHtml } from "@/lib/email-format";
+import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
+import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery } from "@/lib/queries";
 
-type TemplateKey =
-  | "custom"
-  | "confirmation"
-  | "banner_reminder"
-  | "bio_headshot_reminder"
-  | "follow_up";
+// Sentinel for the "start from a blank slate" option, since real template
+// IDs are UUIDs and won't collide with this value.
+const CUSTOM_TEMPLATE_ID = "__custom__";
 
-const TEMPLATES: Record<
-  TemplateKey,
-  { label: string; subject: string; body: string }
-> = {
-  custom: {
-    label: "Custom / blank",
-    subject: "Quick ask for {{firstName}} - event assets",
-    body:
-      "Hey {{firstName}},\n\nHope you're doing well! Could you send over your logo, headshot and short bio when you get a moment? It helps us finalise everything for the event.\n\nThanks so much!",
-  },
-  confirmation: {
-    label: "Speaker confirmation",
-    subject: "Confirming your session, {{firstName}} 🎉",
-    body:
-      "Hi {{firstName}},\n\nDelighted to confirm your session with us. We'll be in touch shortly with logistics, banner artwork and everything else you need.\n\nLet me know if any questions in the meantime.\n\nThanks!",
-  },
-  banner_reminder: {
-    label: "Banner request reminder",
-    subject: "Quick nudge on your speaker banner",
-    body:
-      "Hi {{firstName}},\n\nJust a quick nudge - our design team is putting speaker banners together this week. Could you confirm the title / description on your session is still accurate so we can lock it in?\n\nThanks!",
-  },
-  bio_headshot_reminder: {
-    label: "Bio & headshot reminder",
-    subject: "Sending over your bio & headshot?",
-    body:
-      "Hi {{firstName}},\n\nWhenever you get a minute, could you send over a short speaker bio (2–3 sentences) and a high-res headshot? We'll use them on the site and in promo.\n\nMuch appreciated!",
-  },
-  follow_up: {
-    label: "Follow-up - no reply",
-    subject: "Circling back, {{firstName}}",
-    body:
-      "Hi {{firstName}},\n\nJust circling back on my last note - happy to jump on a quick call if easier, otherwise a quick reply here works too. Would love to lock this in.\n\nThanks!",
-  },
-};
+const CUSTOM_DEFAULT_SUBJECT = "Quick ask for {{firstName}} - event assets";
+const CUSTOM_DEFAULT_BODY =
+  "Hi {{firstName}},<br/><br/>Hope you're doing well! Could you send over your logo, headshot and short bio when you get a moment? It helps us finalise everything for the event.<br/><br/>Thanks so much!";
+
 
 type Speaker = {
   id: string;
@@ -80,6 +47,13 @@ type Speaker = {
 
 type SendStatus = "idle" | "sending" | "sent" | "failed" | "skipped";
 
+/**
+ * `initialTemplate` was historically one of a small hardcoded set of keys
+ * (custom / confirmation / banner_reminder / ...). Now that templates live
+ * in the `email_templates` table, it can also be a template slug from the
+ * DB. We still accept a string for backward compatibility with call sites
+ * that pass legacy keys.
+ */
 export function BulkEmailDialog({
   open,
   onOpenChange,
@@ -91,7 +65,7 @@ export function BulkEmailDialog({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   speakers: Speaker[];
-  initialTemplate?: TemplateKey;
+  initialTemplate?: string;
   eventId?: string | null;
   /**
    * Optional per-recipient AI-generated overrides keyed by speaker id.
@@ -102,9 +76,14 @@ export function BulkEmailDialog({
    */
   perRecipientDrafts?: Record<string, { subject: string; body: string }>;
 }) {
-  const [templateKey, setTemplateKey] = useState<TemplateKey>(initialTemplate ?? "custom");
-  const [subject, setSubject] = useState(TEMPLATES[initialTemplate ?? "custom"].subject);
-  const [body, setBody] = useState(TEMPLATES[initialTemplate ?? "custom"].body);
+  const templatesQ = useQuery(emailTemplatesQuery);
+  const settingsQ = useQuery(userSettingsQuery);
+  const signatureHtml = (settingsQ.data?.email_signature_html ?? "").trim();
+  const templates = templatesQ.data ?? [];
+
+  const [templateId, setTemplateId] = useState<string>(CUSTOM_TEMPLATE_ID);
+  const [subject, setSubject] = useState(CUSTOM_DEFAULT_SUBJECT);
+  const [body, setBody] = useState(CUSTOM_DEFAULT_BODY);
   const [confirmOne, setConfirmOne] = useState<
     (ConfirmDraft & { id: string }) | null
   >(null);
@@ -116,13 +95,23 @@ export function BulkEmailDialog({
   const logSend = useServerFn(logEmailSend);
   const qcInvalidate = useQueryClient();
 
+  // Seed subject/body when the dialog opens or the templates list arrives.
+  // `initialTemplate` may be either a legacy key or a DB slug; match on slug
+  // first, then fall back to the blank/custom state.
   useEffect(() => {
-    if (open && initialTemplate) {
-      setTemplateKey(initialTemplate);
-      setSubject(TEMPLATES[initialTemplate].subject);
-      setBody(TEMPLATES[initialTemplate].body);
+    if (!open || !templates.length) return;
+    if (initialTemplate) {
+      const match = templates.find((t) => t.slug === initialTemplate);
+      if (match) {
+        applyTemplate(match.id);
+        return;
+      }
     }
-  }, [open, initialTemplate]);
+    if (templateId === CUSTOM_TEMPLATE_ID) {
+      // Nothing to do - keep whatever the user is editing.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialTemplate, templates.length]);
 
   // Every time the recipient list changes (dialog reopens with a new selection),
   // default every recipient with an email to opted-in.
@@ -139,11 +128,27 @@ export function BulkEmailDialog({
   }, [open, speakers]);
 
 
-  function applyTemplate(k: TemplateKey) {
-    setTemplateKey(k);
-    setSubject(TEMPLATES[k].subject);
-    setBody(TEMPLATES[k].body);
+  function applyTemplate(id: string) {
+    if (id === CUSTOM_TEMPLATE_ID) {
+      setTemplateId(CUSTOM_TEMPLATE_ID);
+      setSubject(CUSTOM_DEFAULT_SUBJECT);
+      setBody(CUSTOM_DEFAULT_BODY);
+      return;
+    }
+    const t = templates.find((x) => x.id === id);
+    if (!t) return;
+    setTemplateId(id);
+    setSubject(t.subject);
+    // Coerce stored plain-text (with `\n` and `**bold**`) into HTML so the
+    // rich-text editor and the eventual Gmail send both render correctly.
+    setBody(toEmailHtml(t.body));
   }
+
+  // Log-friendly slug: DB slug when available, otherwise "custom".
+  const activeTemplateSlug: TemplateType = (() => {
+    const t = templates.find((x) => x.id === templateId);
+    return (t?.slug ?? "custom") as TemplateType;
+  })();
 
   const send = useServerFn(sendGmailEmail);
   const checkConn = useServerFn(checkGmailConnected);
@@ -198,11 +203,21 @@ export function BulkEmailDialog({
     }
     setStatus((s) => ({ ...s, [r.id]: "sending" }));
     try {
+      // Every outbound message goes as HTML with `\n` → `<br/>` and any
+      // stray `**bold**` promoted to real `<strong>` tags, plus the user's
+      // saved signature. Without this, Gmail collapses the whole body to a
+      // single paragraph and shows literal asterisks.
+      const rawBody = override?.body ?? r.rBody;
+      const bodyHtml = toEmailHtml(rawBody);
+      const withSig = signatureHtml
+        ? `${bodyHtml}<br/><br/>${signatureHtml}`
+        : bodyHtml;
       await send({
         data: {
           to: r.email,
           subject: override?.subject ?? r.rSubject,
-          body: override?.body ?? r.rBody,
+          body: withSig,
+          isHtml: true,
         },
       });
       setStatus((s) => ({ ...s, [r.id]: "sent" }));
@@ -221,7 +236,7 @@ export function BulkEmailDialog({
       subject: r.rSubject,
       body: r.rBody,
       recipientName: r.name,
-      templateType: templateKey,
+      templateType: activeTemplateSlug,
       eventId: eventId ?? null,
       speakerId: r.id,
     });
@@ -246,7 +261,7 @@ export function BulkEmailDialog({
         logSend({
           data: {
             event_id: eventId ?? null,
-            template_type: templateKey,
+            template_type: activeTemplateSlug,
             subject,
             body,
             recipients: sentRecipients.map((r) => ({
@@ -315,31 +330,35 @@ export function BulkEmailDialog({
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Template</Label>
-                <Select value={templateKey} onValueChange={(v) => applyTemplate(v as TemplateKey)}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <Select value={templateId} onValueChange={(v) => applyTemplate(v)}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Choose a template" /></SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(TEMPLATES) as TemplateKey[]).map((k) => (
-                      <SelectItem key={k} value={k}>{TEMPLATES[k].label}</SelectItem>
+                    <SelectItem value={CUSTOM_TEMPLATE_ID}>Custom / blank</SelectItem>
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
-                  Picking a template pre-fills subject & body. Edits below stay local until you switch templates again.
+                  Templates are sourced from the Template Manager - edits there flow through here automatically.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Subject template</Label>
                   <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
                 </div>
-                <div className="space-y-1.5 md:row-span-2">
+                <div className="space-y-1.5">
                   <Label className="text-xs">Body template</Label>
-                  <Textarea
-                    rows={9}
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                  />
+                  <RichTextEmailEditor value={body} onChange={setBody} minRows={10} />
+                  <p className="text-[11px] text-muted-foreground">
+                    Bold, italic and links are preserved when the email is sent. Use{" "}
+                    <code className="bg-background px-1 py-0.5 rounded">{`{{firstName}}`}</code>{" "}
+                    as a merge tag.
+                  </p>
                 </div>
               </div>
             </>
@@ -424,9 +443,10 @@ export function BulkEmailDialog({
                           )}
                         </div>
                         <div className="mt-2 text-xs font-medium truncate">{r.rSubject}</div>
-                        <div className="mt-1 text-xs text-muted-foreground whitespace-pre-line line-clamp-3">
-                          {r.rBody}
-                        </div>
+                        <div
+                          className="mt-1 text-xs text-muted-foreground line-clamp-3 [&_a]:text-primary [&_a]:underline"
+                          dangerouslySetInnerHTML={{ __html: toEmailHtml(r.rBody) }}
+                        />
                         {st === "failed" && errors[r.id] && (
                           <div className="mt-2 text-xs text-red-700">{errors[r.id]}</div>
                         )}
