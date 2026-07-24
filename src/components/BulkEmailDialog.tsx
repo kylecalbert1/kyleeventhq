@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -25,51 +24,19 @@ import { renderTemplate, firstNameOf } from "@/lib/gmail";
 import { sendGmailEmail, checkGmailConnected } from "@/lib/email.functions";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
 import { BulkConfirmSendDialog } from "@/components/BulkConfirmSendDialog";
-import { logEmailSend } from "@/lib/email-sends.functions";
-import { eventTitoLinksQuery } from "@/lib/queries";
+import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
+import { toEmailHtml } from "@/lib/email-format";
+import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
+import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery } from "@/lib/queries";
 
-type TemplateKey =
-  | "custom"
-  | "confirmation"
-  | "banner_reminder"
-  | "bio_headshot_reminder"
-  | "follow_up";
+// Sentinel for the "start from a blank slate" option, since real template
+// IDs are UUIDs and won't collide with this value.
+const CUSTOM_TEMPLATE_ID = "__custom__";
 
-const TEMPLATES: Record<
-  TemplateKey,
-  { label: string; subject: string; body: string }
-> = {
-  custom: {
-    label: "Custom / blank",
-    subject: "Quick ask for {{firstName}} - event assets",
-    body:
-      "Hey {{firstName}},\n\nHope you're doing well! Could you send over your logo, headshot and short bio when you get a moment? It helps us finalise everything for the event.\n\nThanks so much!",
-  },
-  confirmation: {
-    label: "Speaker confirmation",
-    subject: "Confirming your session, {{firstName}} 🎉",
-    body:
-      "Hi {{firstName}},\n\nDelighted to confirm your session with us. We'll be in touch shortly with logistics, banner artwork and everything else you need.\n\nLet me know if any questions in the meantime.\n\nThanks!",
-  },
-  banner_reminder: {
-    label: "Banner request reminder",
-    subject: "Quick nudge on your speaker banner",
-    body:
-      "Hi {{firstName}},\n\nJust a quick nudge - our design team is putting speaker banners together this week. Could you confirm the title / description on your session is still accurate so we can lock it in?\n\nThanks!",
-  },
-  bio_headshot_reminder: {
-    label: "Bio & headshot reminder",
-    subject: "Sending over your bio & headshot?",
-    body:
-      "Hi {{firstName}},\n\nWhenever you get a minute, could you send over a short speaker bio (2–3 sentences) and a high-res headshot? We'll use them on the site and in promo.\n\nMuch appreciated!",
-  },
-  follow_up: {
-    label: "Follow-up - no reply",
-    subject: "Circling back, {{firstName}}",
-    body:
-      "Hi {{firstName}},\n\nJust circling back on my last note - happy to jump on a quick call if easier, otherwise a quick reply here works too. Would love to lock this in.\n\nThanks!",
-  },
-};
+const CUSTOM_DEFAULT_SUBJECT = "Quick ask for {{firstName}} - event assets";
+const CUSTOM_DEFAULT_BODY =
+  "Hi {{firstName}},<br/><br/>Hope you're doing well! Could you send over your logo, headshot and short bio when you get a moment? It helps us finalise everything for the event.<br/><br/>Thanks so much!";
+
 
 type Speaker = {
   id: string;
