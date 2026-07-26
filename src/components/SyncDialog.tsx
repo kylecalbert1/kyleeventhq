@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -47,7 +49,7 @@ import {
   applyBioSuggestion,
   revertBio,
 } from "@/lib/sync.functions";
-import { createSpeaker } from "@/lib/speakers.functions";
+import { createSpeaker, listSpeakers } from "@/lib/speakers.functions";
 import { eventsQuery } from "@/lib/queries";
 
 type Confidence = "high" | "medium" | "low";
@@ -69,6 +71,7 @@ type Item =
       subject: string;
       snippet: string;
       from: string;
+      speaker_email: string | null;
       matched_speaker:
         | { id: string; name: string; email: string; previous_status: string }
         | null;
@@ -156,17 +159,23 @@ export function SyncDialog({
     warnings: string[];
   } | null>(null);
   const [running, setRunning] = useState(false);
+  const [resolving, setResolving] = useState<Extract<Item, { kind: "email" }> | null>(null);
 
   const fetchLeads = useServerFn(fetchLeadSuggestions);
   const fetchEmails = useServerFn(fetchEmailSuggestions);
   const create = useServerFn(createSpeaker);
   const apply = useServerFn(applyEmailSuggestion);
-  const revert = useServerFn(setSpeakerStatus);
+  const setStatus = useServerFn(setSpeakerStatus);
   const fetchBanners = useServerFn(fetchBannerVerification);
   const revertBanner = useServerFn(revertBannerStatus);
   const fetchBios = useServerFn(fetchBioSuggestions);
   const applyBio = useServerFn(applyBioSuggestion);
   const revertBioFn = useServerFn(revertBio);
+  const allSpeakers = useQuery({
+    queryKey: ["allSpeakers"],
+    queryFn: () => listSpeakers({ data: {} }),
+    enabled: open,
+  });
 
   async function runAllScans() {
     setRunning(true);
@@ -240,6 +249,7 @@ export function SyncDialog({
               subject: s.subject,
               snippet: s.snippet,
               from: s.from,
+              speaker_email: s.speaker_email ?? null,
               matched_speaker: s.matched_speaker,
               suggested_status: s.suggested_status,
               reasoning: s.reasoning,
@@ -379,8 +389,8 @@ export function SyncDialog({
 
 
   async function applyEmail(it: Extract<Item, { kind: "email" }>) {
-    if (!it.matched_speaker) {
-      toast.error("No matching speaker record for this thread");
+    if (!it.matched_speaker || it.suggested_status === "unclear") {
+      setResolving(it);
       return;
     }
     const prev = it.matched_speaker.previous_status as
@@ -401,18 +411,81 @@ export function SyncDialog({
       qc.invalidateQueries({ queryKey: ["speakers"] });
       toast.success(`Updated ${name}`, {
         duration: 12000,
-        action: {
-          label: "Undo",
-          onClick: async () => {
-            try {
-              await revert({ data: { speaker_id: speakerId, status: prev } });
-              qc.invalidateQueries({ queryKey: ["speakers"] });
-              toast.success(`Reverted ${name} to ${prev}`);
-            } catch (e) {
-              toast.error(e instanceof Error ? e.message : "Undo failed");
-            }
+          action: {
+            label: "Undo",
+            onClick: async () => {
+              try {
+                await setStatus({ data: { speaker_id: speakerId, status: prev } });
+                qc.invalidateQueries({ queryKey: ["speakers"] });
+                toast.success(`Reverted ${name} to ${prev}`);
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Undo failed");
+              }
+            },
           },
-        },
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to apply");
+    }
+  }
+
+  async function resolveEmail(
+    it: Extract<Item, { kind: "email" }>,
+    resolution: {
+      speakerId?: string;
+      newSpeaker?: { eventId: string; name: string; email: string };
+      status: "confirmed" | "declined" | "responded" | "in_conversation";
+    },
+  ) {
+    let speakerId: string;
+    let speakerName: string;
+    let previousStatus: string;
+    try {
+      if (resolution.newSpeaker) {
+        const row = await create({
+          data: {
+            event_id: resolution.newSpeaker.eventId,
+            name: resolution.newSpeaker.name,
+            email: resolution.newSpeaker.email,
+            status: resolution.status,
+            banner_status: "not_started",
+            linkedin_post_confirmed: false,
+          } as never,
+        });
+        speakerId = row.id;
+        speakerName = row.name;
+        previousStatus = "new";
+      } else if (resolution.speakerId) {
+        const speaker = allSpeakers.data?.find((s) => s.id === resolution.speakerId);
+        if (!speaker) throw new Error("Speaker not found");
+        speakerId = speaker.id;
+        speakerName = speaker.name;
+        previousStatus = speaker.status;
+        await setStatus({
+          data: { speaker_id: speakerId, status: resolution.status },
+        });
+      } else {
+        throw new Error("Choose a speaker or create a new one");
+      }
+      setResolving(null);
+      setDismissed((s) => new Set(s).add(it.key));
+      qc.invalidateQueries({ queryKey: ["speakers"] });
+      toast.success(`Updated ${speakerName}`, {
+        duration: 12000,
+            action: {
+              label: "Undo",
+              onClick: async () => {
+                try {
+                  await setStatus({
+                    data: { speaker_id: speakerId, status: previousStatus as any },
+                  });
+                  qc.invalidateQueries({ queryKey: ["speakers"] });
+                  toast.success(`Reverted ${speakerName} to ${previousStatus}`);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Undo failed");
+                }
+              },
+            },
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to apply");
@@ -591,6 +664,16 @@ export function SyncDialog({
             />
           ))}
         </div>
+
+        {resolving && (
+          <ResolveEmailDialog
+            item={resolving}
+            speakers={allSpeakers.data ?? []}
+            events={(events.data ?? []).map((e) => ({ id: e.id, code: e.code, name: e.name }))}
+            onClose={() => setResolving(null)}
+            onResolve={(resolution) => resolveEmail(resolving, resolution)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -832,18 +915,13 @@ function ActionButton({
     );
   }
   if (item.kind === "email") {
-    const disabled =
-      !item.matched_speaker || item.suggested_status === "unclear";
     return (
       <Button
         size="sm"
         onClick={() => onAction()}
-        disabled={disabled}
         title={
           !item.matched_speaker
-            ? "No matching speaker on file"
-            : item.suggested_status === "unclear"
-            ? "Nothing conclusive to apply"
+            ? "Match or create a speaker, then apply status"
             : "Update speaker status"
         }
       >
@@ -907,5 +985,180 @@ function ConnectPrompt({
         </div>
       </div>
     </div>
+  );
+}
+
+function parseFromHeader(from: string): { name: string; email: string } {
+  const m = from.match(/^(.*?)\s*<([^>]+)>$/);
+  if (m) {
+    const name = m[1].replace(/^"|"$/g, "").trim();
+    return { name, email: m[2].trim() };
+  }
+  return { name: "", email: from.trim() };
+}
+
+function ResolveEmailDialog({
+  item,
+  speakers,
+  events,
+  onClose,
+  onResolve,
+}: {
+  item: Extract<Item, { kind: "email" }>;
+  speakers: Array<{ id: string; name: string; email: string | null; status: string; event_id?: string }>;
+  events: Array<{ id: string; code: string; name: string }>;
+  onClose: () => void;
+  onResolve: (resolution: {
+    speakerId?: string;
+    newSpeaker?: { eventId: string; name: string; email: string };
+    status: "confirmed" | "declined" | "responded" | "in_conversation";
+  }) => void;
+}) {
+  const parsed = parseFromHeader(item.from);
+  const matchedEmail = (item.speaker_email ?? item.matched_speaker?.email ?? parsed.email).toLowerCase().trim();
+  const matchedByEmail = speakers.find((s) => (s.email ?? "").toLowerCase().trim() === matchedEmail);
+  const [mode, setMode] = useState<"existing" | "new">(matchedByEmail || item.matched_speaker ? "existing" : "new");
+  const [speakerId, setSpeakerId] = useState<string>(item.matched_speaker?.id ?? matchedByEmail?.id ?? "");
+  const [eventId, setEventId] = useState<string>(events[0]?.id ?? "");
+  const [name, setName] = useState<string>(item.matched_speaker?.name ?? matchedByEmail?.name ?? parsed.name ?? "");
+  const [email, setEmail] = useState<string>(matchedEmail || "");
+  const [status, setStatus] = useState<"confirmed" | "declined" | "responded" | "in_conversation">(
+    item.suggested_status === "unclear" ? "responded" : item.suggested_status === "needs_approval" ? "responded" : item.suggested_status,
+  );
+  const [submitting, setSubmitting] = useState(false);
+
+  const speakerOptions = useMemo(
+    () =>
+      speakers.map((s) => ({
+        value: s.id,
+        label: `${s.name} (${s.email ?? "no email"})`,
+        keywords: `${s.email ?? ""} ${events.find((e) => e.id === s.event_id)?.code ?? ""}`,
+      })),
+    [speakers, events],
+  );
+
+  const eventOptions = useMemo(
+    () => events.map((e) => ({ value: e.id, label: `${e.code} - ${e.name}` })),
+    [events],
+  );
+
+  const canSubmit =
+    mode === "existing" ? !!speakerId : !!eventId && !!name.trim() && !!email.trim();
+
+  async function handleSubmit() {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    try {
+      if (mode === "existing") {
+        onResolve({ speakerId, status });
+      } else {
+        onResolve({ newSpeaker: { eventId, name: name.trim(), email: email.trim() }, status });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && !submitting && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Apply status</DialogTitle>
+          <DialogDescription>
+            Choose which speaker this thread represents and what status to set.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs">
+            <div className="font-medium truncate">{item.subject}</div>
+            <div className="text-muted-foreground truncate">{item.from}</div>
+            <div className="italic mt-1">AI: {item.reasoning}</div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Status</Label>
+            <Select value={status} onValueChange={(v) => setStatus(v as any)}>
+              <SelectTrigger className="text-xs h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="declined">Declined</SelectItem>
+                <SelectItem value="responded">Responded</SelectItem>
+                <SelectItem value="in_conversation">In conversation</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={mode === "existing" ? "default" : "outline"}
+                onClick={() => setMode("existing")}
+                className="text-xs"
+              >
+                Existing speaker
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={mode === "new" ? "default" : "outline"}
+                onClick={() => setMode("new")}
+                className="text-xs"
+              >
+                Create new speaker
+              </Button>
+            </div>
+
+            {mode === "existing" ? (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Speaker</Label>
+                <SearchableSelect
+                  options={speakerOptions}
+                  value={speakerId}
+                  onValueChange={setSpeakerId}
+                  placeholder="Search speakers…"
+                  searchPlaceholder="Search by name, email, or event…"
+                />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Event</Label>
+                  <SearchableSelect
+                    options={eventOptions}
+                    value={eventId}
+                    onValueChange={setEventId}
+                    placeholder="Search events…"
+                    searchPlaceholder="Search events…"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Name</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8 text-xs" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Email</Label>
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-8 text-xs" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" size="sm" onClick={onClose} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={handleSubmit} disabled={!canSubmit || submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+            Apply status
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

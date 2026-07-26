@@ -334,6 +334,7 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       subject: string;
       snippet: string;
       from: string;
+      speaker_email: string | null;
       matched_speaker: { id: string; name: string; email: string; previous_status: string } | null;
       suggested_status: "confirmed" | "declined" | "needs_approval" | "unclear";
       confidence: "high" | "medium" | "low";
@@ -376,6 +377,7 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
 
         // Match speaker by any email address involved across the thread
         let matched: EmailSuggestion["matched_speaker"] = null;
+        let matchedEmail: string | null = null;
         const involvedAll = messages
           .flatMap((m) => [header(m.payload.headers, "From"), header(m.payload.headers, "To")])
           .join(" ")
@@ -388,6 +390,7 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
               email: sp.email,
               previous_status: sp.status,
             };
+            matchedEmail = sp.email;
             break;
           }
         }
@@ -398,6 +401,7 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
           subject: subject || "(no subject)",
           snippet: lastBody.slice(0, 220).replace(/\s+/g, " ").trim(),
           from,
+          speaker_email: matchedEmail,
           matched_speaker: matched,
           suggested_status: ai.suggested_status,
           confidence: ai.confidence,
@@ -421,7 +425,7 @@ export const setSpeakerStatus = createServerFn({ method: "POST" })
     z
       .object({
         speaker_id: z.string().uuid(),
-        status: z.enum(["contacted", "in_conversation", "responded", "confirmed", "declined"]),
+        status: z.enum(["new", "contacted", "in_conversation", "responded", "confirmed", "declined"]),
       })
       .parse(d),
   )
