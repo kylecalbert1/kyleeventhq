@@ -243,6 +243,7 @@ export function SyncDialog({
               subject: s.subject,
               snippet: s.snippet,
               from: s.from,
+              speaker_email: s.speaker_email ?? null,
               matched_speaker: s.matched_speaker,
               suggested_status: s.suggested_status,
               reasoning: s.reasoning,
