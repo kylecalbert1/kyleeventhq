@@ -905,18 +905,13 @@ function ActionButton({
     );
   }
   if (item.kind === "email") {
-    const disabled =
-      !item.matched_speaker || item.suggested_status === "unclear";
     return (
       <Button
         size="sm"
         onClick={() => onAction()}
-        disabled={disabled}
         title={
           !item.matched_speaker
-            ? "No matching speaker on file"
-            : item.suggested_status === "unclear"
-            ? "Nothing conclusive to apply"
+            ? "Match or create a speaker, then apply status"
             : "Update speaker status"
         }
       >
