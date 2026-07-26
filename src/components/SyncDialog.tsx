@@ -411,18 +411,18 @@ export function SyncDialog({
       qc.invalidateQueries({ queryKey: ["speakers"] });
       toast.success(`Updated ${name}`, {
         duration: 12000,
-        action: {
-          label: "Undo",
-          onClick: async () => {
-            try {
-              await revert({ data: { speaker_id: speakerId, status: prev } });
-              qc.invalidateQueries({ queryKey: ["speakers"] });
-              toast.success(`Reverted ${name} to ${prev}`);
-            } catch (e) {
-              toast.error(e instanceof Error ? e.message : "Undo failed");
-            }
+          action: {
+            label: "Undo",
+            onClick: async () => {
+              try {
+                await setStatus({ data: { speaker_id: speakerId, status: prev } });
+                qc.invalidateQueries({ queryKey: ["speakers"] });
+                toast.success(`Reverted ${name} to ${prev}`);
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Undo failed");
+              }
+            },
           },
-        },
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to apply");
