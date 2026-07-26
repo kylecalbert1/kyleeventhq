@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -47,7 +49,7 @@ import {
   applyBioSuggestion,
   revertBio,
 } from "@/lib/sync.functions";
-import { createSpeaker } from "@/lib/speakers.functions";
+import { createSpeaker, listSpeakers } from "@/lib/speakers.functions";
 import { eventsQuery } from "@/lib/queries";
 
 type Confidence = "high" | "medium" | "low";
