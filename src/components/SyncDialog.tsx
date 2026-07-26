@@ -384,8 +384,8 @@ export function SyncDialog({
 
 
   async function applyEmail(it: Extract<Item, { kind: "email" }>) {
-    if (!it.matched_speaker) {
-      toast.error("No matching speaker record for this thread");
+    if (!it.matched_speaker || it.suggested_status === "unclear") {
+      setResolving(it);
       return;
     }
     const prev = it.matched_speaker.previous_status as
@@ -413,6 +413,69 @@ export function SyncDialog({
               await revert({ data: { speaker_id: speakerId, status: prev } });
               qc.invalidateQueries({ queryKey: ["speakers"] });
               toast.success(`Reverted ${name} to ${prev}`);
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Undo failed");
+            }
+          },
+        },
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to apply");
+    }
+  }
+
+  async function resolveEmail(
+    it: Extract<Item, { kind: "email" }>,
+    resolution: {
+      speakerId?: string;
+      newSpeaker?: { eventId: string; name: string; email: string };
+      status: "confirmed" | "declined" | "responded" | "in_conversation";
+    },
+  ) {
+    let speakerId: string;
+    let speakerName: string;
+    let previousStatus: string;
+    try {
+      if (resolution.newSpeaker) {
+        const row = await create({
+          data: {
+            event_id: resolution.newSpeaker.eventId,
+            name: resolution.newSpeaker.name,
+            email: resolution.newSpeaker.email,
+            status: resolution.status,
+            banner_status: "not_started",
+            linkedin_post_confirmed: false,
+          } as never,
+        });
+        speakerId = row.id;
+        speakerName = row.name;
+        previousStatus = "new";
+      } else if (resolution.speakerId) {
+        const speaker = allSpeakers.data?.find((s) => s.id === resolution.speakerId);
+        if (!speaker) throw new Error("Speaker not found");
+        speakerId = speaker.id;
+        speakerName = speaker.name;
+        previousStatus = speaker.status;
+        await setStatus({
+          data: { speaker_id: speakerId, status: resolution.status },
+        });
+      } else {
+        throw new Error("Choose a speaker or create a new one");
+      }
+      setResolving(null);
+      setDismissed((s) => new Set(s).add(it.key));
+      qc.invalidateQueries({ queryKey: ["speakers"] });
+      toast.success(`Updated ${speakerName}`, {
+        duration: 12000,
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await revert({
+                data: { speaker_id: speakerId, status: previousStatus as any },
+              });
+              qc.invalidateQueries({ queryKey: ["speakers"] });
+              toast.success(`Reverted ${speakerName} to ${previousStatus}`);
             } catch (e) {
               toast.error(e instanceof Error ? e.message : "Undo failed");
             }
