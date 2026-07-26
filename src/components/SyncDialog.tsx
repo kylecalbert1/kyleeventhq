@@ -159,6 +159,7 @@ export function SyncDialog({
     warnings: string[];
   } | null>(null);
   const [running, setRunning] = useState(false);
+  const [resolving, setResolving] = useState<Extract<Item, { kind: "email" }> | null>(null);
 
   const fetchLeads = useServerFn(fetchLeadSuggestions);
   const fetchEmails = useServerFn(fetchEmailSuggestions);
