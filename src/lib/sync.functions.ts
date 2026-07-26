@@ -334,6 +334,7 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       subject: string;
       snippet: string;
       from: string;
+      speaker_email: string | null;
       matched_speaker: { id: string; name: string; email: string; previous_status: string } | null;
       suggested_status: "confirmed" | "declined" | "needs_approval" | "unclear";
       confidence: "high" | "medium" | "low";
