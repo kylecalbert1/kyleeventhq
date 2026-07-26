@@ -982,8 +982,186 @@ function ConnectPrompt({
           >
             Open Connectors →
           </a>
+          </div>
         </div>
       </div>
-    </div>
+    );
+  }
+
+  return null;
+}
+
+function parseFromHeader(from: string): { name: string; email: string } {
+  const m = from.match(/^(.*?)\s*<([^>]+)>$/);
+  if (m) {
+    const name = m[1].replace(/^"|"$/g, "").trim();
+    return { name, email: m[2].trim() };
+  }
+  return { name: "", email: from.trim() };
+}
+
+function ResolveEmailDialog({
+  item,
+  speakers,
+  events,
+  onClose,
+  onResolve,
+}: {
+  item: Extract<Item, { kind: "email" }>;
+  speakers: Array<{ id: string; name: string; email: string | null; status: string; event_id?: string }>;
+  events: Array<{ id: string; code: string; name: string }>;
+  onClose: () => void;
+  onResolve: (resolution: {
+    speakerId?: string;
+    newSpeaker?: { eventId: string; name: string; email: string };
+    status: "confirmed" | "declined" | "responded" | "in_conversation";
+  }) => void;
+}) {
+  const parsed = parseFromHeader(item.from);
+  const matchedEmail = (item.speaker_email ?? item.matched_speaker?.email ?? parsed.email).toLowerCase().trim();
+  const matchedByEmail = speakers.find((s) => (s.email ?? "").toLowerCase().trim() === matchedEmail);
+  const [mode, setMode] = useState<"existing" | "new">(matchedByEmail || item.matched_speaker ? "existing" : "new");
+  const [speakerId, setSpeakerId] = useState<string>(item.matched_speaker?.id ?? matchedByEmail?.id ?? "");
+  const [eventId, setEventId] = useState<string>(events[0]?.id ?? "");
+  const [name, setName] = useState<string>(item.matched_speaker?.name ?? matchedByEmail?.name ?? parsed.name ?? "");
+  const [email, setEmail] = useState<string>(matchedEmail || "");
+  const [status, setStatus] = useState<"confirmed" | "declined" | "responded" | "in_conversation">(
+    item.suggested_status === "unclear" ? "responded" : item.suggested_status === "needs_approval" ? "responded" : item.suggested_status,
+  );
+  const [submitting, setSubmitting] = useState(false);
+
+  const speakerOptions = useMemo(
+    () =>
+      speakers.map((s) => ({
+        value: s.id,
+        label: `${s.name} (${s.email ?? "no email"})`,
+        keywords: `${s.email ?? ""} ${events.find((e) => e.id === s.event_id)?.code ?? ""}`,
+      })),
+    [speakers, events],
+  );
+
+  const eventOptions = useMemo(
+    () => events.map((e) => ({ value: e.id, label: `${e.code} - ${e.name}` })),
+    [events],
+  );
+
+  const canSubmit =
+    mode === "existing" ? !!speakerId : !!eventId && !!name.trim() && !!email.trim();
+
+  async function handleSubmit() {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    try {
+      if (mode === "existing") {
+        onResolve({ speakerId, status });
+      } else {
+        onResolve({ newSpeaker: { eventId, name: name.trim(), email: email.trim() }, status });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && !submitting && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Apply status</DialogTitle>
+          <DialogDescription>
+            Choose which speaker this thread represents and what status to set.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs">
+            <div className="font-medium truncate">{item.subject}</div>
+            <div className="text-muted-foreground truncate">{item.from}</div>
+            <div className="italic mt-1">AI: {item.reasoning}</div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Status</Label>
+            <Select value={status} onValueChange={(v) => setStatus(v as any)}>
+              <SelectTrigger className="text-xs h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="declined">Declined</SelectItem>
+                <SelectItem value="responded">Responded</SelectItem>
+                <SelectItem value="in_conversation">In conversation</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={mode === "existing" ? "default" : "outline"}
+                onClick={() => setMode("existing")}
+                className="text-xs"
+              >
+                Existing speaker
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={mode === "new" ? "default" : "outline"}
+                onClick={() => setMode("new")}
+                className="text-xs"
+              >
+                Create new speaker
+              </Button>
+            </div>
+
+            {mode === "existing" ? (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Speaker</Label>
+                <SearchableSelect
+                  options={speakerOptions}
+                  value={speakerId}
+                  onValueChange={setSpeakerId}
+                  placeholder="Search speakers…"
+                  searchPlaceholder="Search by name, email, or event…"
+                />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Event</Label>
+                  <SearchableSelect
+                    options={eventOptions}
+                    value={eventId}
+                    onValueChange={setEventId}
+                    placeholder="Search events…"
+                    searchPlaceholder="Search events…"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Name</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8 text-xs" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Email</Label>
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-8 text-xs" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" size="sm" onClick={onClose} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={handleSubmit} disabled={!canSubmit || submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+            Apply status
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
