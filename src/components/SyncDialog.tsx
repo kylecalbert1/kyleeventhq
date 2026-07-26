@@ -165,12 +165,17 @@ export function SyncDialog({
   const fetchEmails = useServerFn(fetchEmailSuggestions);
   const create = useServerFn(createSpeaker);
   const apply = useServerFn(applyEmailSuggestion);
-  const revert = useServerFn(setSpeakerStatus);
+  const setStatus = useServerFn(setSpeakerStatus);
   const fetchBanners = useServerFn(fetchBannerVerification);
   const revertBanner = useServerFn(revertBannerStatus);
   const fetchBios = useServerFn(fetchBioSuggestions);
   const applyBio = useServerFn(applyBioSuggestion);
   const revertBioFn = useServerFn(revertBio);
+  const allSpeakers = useQuery({
+    queryKey: ["allSpeakers"],
+    queryFn: () => listSpeakers({ data: {} }),
+    enabled: open,
+  });
 
   async function runAllScans() {
     setRunning(true);
