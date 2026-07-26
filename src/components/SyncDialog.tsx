@@ -982,13 +982,10 @@ function ConnectPrompt({
           >
             Open Connectors →
           </a>
-          </div>
         </div>
       </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 }
 
 function parseFromHeader(from: string): { name: string; email: string } {
