@@ -71,6 +71,7 @@ type Item =
       subject: string;
       snippet: string;
       from: string;
+      speaker_email: string | null;
       matched_speaker:
         | { id: string; name: string; email: string; previous_status: string }
         | null;
