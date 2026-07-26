@@ -425,7 +425,7 @@ export const setSpeakerStatus = createServerFn({ method: "POST" })
     z
       .object({
         speaker_id: z.string().uuid(),
-        status: z.enum(["contacted", "in_conversation", "responded", "confirmed", "declined"]),
+        status: z.enum(["new", "contacted", "in_conversation", "responded", "confirmed", "declined"]),
       })
       .parse(d),
   )
