@@ -664,6 +664,16 @@ export function SyncDialog({
             />
           ))}
         </div>
+
+        {resolving && (
+          <ResolveEmailDialog
+            item={resolving}
+            speakers={allSpeakers.data ?? []}
+            events={(events.data ?? []).map((e) => ({ id: e.id, code: e.code, name: e.name }))}
+            onClose={() => setResolving(null)}
+            onResolve={(resolution) => resolveEmail(resolving, resolution)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
