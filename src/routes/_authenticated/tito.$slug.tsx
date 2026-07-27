@@ -108,6 +108,13 @@ function TitoEventDetail() {
     });
   }, [tickets, q, releaseFilter, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, lookupHistory, lookupTracked]);
 
+  // Keep large events snappy: render a page of cards at a time.
+  const [visibleCount, setVisibleCount] = useState(TICKET_PAGE);
+  useEffect(() => {
+    setVisibleCount(TICKET_PAGE);
+  }, [q, releaseFilter, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, slug]);
+
+
 
 
   const allSelected = filtered.length > 0 && filtered.every((r) => selected.has(r.id));
