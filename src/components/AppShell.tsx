@@ -19,12 +19,14 @@ type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boo
 
 const NAV_PRIMARY: NavItem[] = [
   { to: "/", label: "Events", icon: LayoutGrid, exact: true },
+  { to: "/tito", label: "All Tito events", icon: Ticket },
   { to: "/speakers", label: "Speakers", icon: Users },
   { to: "/agenda", label: "Agenda", icon: ListChecks },
   { to: "/outreach", label: "Outreach", icon: Megaphone },
   { to: "/website", label: "Website", icon: Globe },
   { to: "/reply-needed", label: "Reply needed", icon: Reply },
 ];
+
 
 const NAV_OPS: NavItem[] = [
   { to: "/milestones", label: "Kickoff & washup", icon: CalendarDays },
