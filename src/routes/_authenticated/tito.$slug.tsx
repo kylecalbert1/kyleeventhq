@@ -1,6 +1,6 @@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getTitoEventDetail, tagAsSpeakerCandidates, generateOutreachDrafts } from "@/lib/tito.functions";
 import { listEvents } from "@/lib/events.functions";
@@ -33,6 +33,8 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
 import { JobTitleFilter, parseKeywordList, matchesJobTitleFilters } from "@/components/tito/JobTitleFilter";
 
+
+const TICKET_PAGE = 100;
 
 export const Route = createFileRoute("/_authenticated/tito/$slug")({
   component: TitoEventDetail,
@@ -369,7 +371,7 @@ function TitoEventDetail() {
                 <div className="text-center pt-1">
                   <Button
                     variant="outline"
-                    onClick={() => setVisibleCount((v) => v + TICKET_PAGE)}
+                    onClick={() => setVisibleCount((v: number) => v + TICKET_PAGE)}
                   >
                     Show more ({filtered.length - visibleCount} remaining)
                   </Button>
