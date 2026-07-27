@@ -341,7 +341,7 @@ function TitoEventDetail() {
             </Card>
           ) : (
             <div className="flex flex-col gap-3">
-              {filtered.map((t) => (
+              {filtered.slice(0, visibleCount).map((t) => (
                 <TitoAttendeeCard
                   key={t.id}
                   a={t as TitoAttendee}
@@ -357,8 +357,19 @@ function TitoEventDetail() {
                   trackedIn={lookupTracked(t.email)}
                 />
               ))}
+              {filtered.length > visibleCount && (
+                <div className="text-center pt-1">
+                  <Button
+                    variant="outline"
+                    onClick={() => setVisibleCount((v) => v + TICKET_PAGE)}
+                  >
+                    Show more ({filtered.length - visibleCount} remaining)
+                  </Button>
+                </div>
+              )}
             </div>
           )}
+
 
           <TitoAttendeeDetailDialog
             attendee={detailAttendee}
