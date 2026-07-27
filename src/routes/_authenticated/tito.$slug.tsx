@@ -1,6 +1,6 @@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getTitoEventDetail, tagAsSpeakerCandidates, generateOutreachDrafts } from "@/lib/tito.functions";
 import { listEvents } from "@/lib/events.functions";
@@ -33,6 +33,8 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
 import { JobTitleFilter, parseKeywordList, matchesJobTitleFilters } from "@/components/tito/JobTitleFilter";
 
+
+const TICKET_PAGE = 100;
 
 export const Route = createFileRoute("/_authenticated/tito/$slug")({
   component: TitoEventDetail,
@@ -108,6 +110,13 @@ function TitoEventDetail() {
     });
   }, [tickets, q, releaseFilter, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, lookupHistory, lookupTracked]);
 
+  // Keep large events snappy: render a page of cards at a time.
+  const [visibleCount, setVisibleCount] = useState(TICKET_PAGE);
+  useEffect(() => {
+    setVisibleCount(TICKET_PAGE);
+  }, [q, releaseFilter, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, slug]);
+
+
 
 
   const allSelected = filtered.length > 0 && filtered.every((r) => selected.has(r.id));
@@ -127,11 +136,12 @@ function TitoEventDetail() {
     <div className="p-6 md:p-8 animate-fade-in space-y-6">
       <div>
         <Link
-          to="/speaker-sourcing"
+          to="/tito"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to Speaker Prospecting
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to all Tito events
         </Link>
+
       </div>
 
       {isLoading || !event ? (
@@ -341,7 +351,7 @@ function TitoEventDetail() {
             </Card>
           ) : (
             <div className="flex flex-col gap-3">
-              {filtered.map((t) => (
+              {filtered.slice(0, visibleCount).map((t) => (
                 <TitoAttendeeCard
                   key={t.id}
                   a={t as TitoAttendee}
@@ -357,8 +367,19 @@ function TitoEventDetail() {
                   trackedIn={lookupTracked(t.email)}
                 />
               ))}
+              {filtered.length > visibleCount && (
+                <div className="text-center pt-1">
+                  <Button
+                    variant="outline"
+                    onClick={() => setVisibleCount((v: number) => v + TICKET_PAGE)}
+                  >
+                    Show more ({filtered.length - visibleCount} remaining)
+                  </Button>
+                </div>
+              )}
             </div>
           )}
+
 
           <TitoAttendeeDetailDialog
             attendee={detailAttendee}
