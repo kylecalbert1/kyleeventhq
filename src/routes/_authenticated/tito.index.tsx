@@ -3,14 +3,19 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, CalendarDays, Users, Ticket } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { listTitoEventsWithStats } from "@/lib/tito.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/tito/")({
   component: TitoArchive,
 });
-
-const PAGE = 60;
 
 function formatDate(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -23,31 +28,85 @@ function formatDate(iso: string | null | undefined): string | null {
   });
 }
 
+const MONTHS =
+  /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/gi;
+
+/**
+ * Tito events carry no venue/city column (the sync never persisted one and the
+ * event payload has no location field), so we derive the city from the title,
+ * which consistently follows "X Summit | City Year".
+ */
+function cityFromTitle(title: string | null | undefined): string | null {
+  if (!title) return null;
+  let tail = title.includes("|") ? title.split("|").pop()! : title;
+  tail = tail
+    .replace(/\b(19|20)\d{2}\b/g, " ")
+    .replace(MONTHS, " ")
+    .replace(/[|:,–-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!title.includes("|")) {
+    // "Controller Summit New York 2027" → take words after Summit/Festival/etc.
+    const m = tail.match(
+      /\b(summit|festival|conference|forum|awards|week|day|days)\b\s+(.*)$/i,
+    );
+    tail = m ? m[2].trim() : "";
+  }
+  if (!tail || tail.length > 30) return null;
+  return tail
+    .split(" ")
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+
 function TitoArchive() {
   const { data, isLoading } = useQuery({
     queryKey: ["tito-events-with-stats"],
     queryFn: () => listTitoEventsWithStats(),
   });
   const [q, setQ] = useState("");
-  const [visible, setVisible] = useState(PAGE);
+  const [year, setYear] = useState("all");
+  const [location, setLocation] = useState("all");
 
   const events = data ?? [];
 
+  const decorated = useMemo(
+    () =>
+      events.map((e: any) => ({
+        ...e,
+        _city: cityFromTitle(e.title),
+        _year: e.start_date ? String(new Date(e.start_date).getFullYear()) : null,
+      })),
+    [events],
+  );
+
+  const years = useMemo(() => {
+    const s = new Set<string>();
+    for (const e of decorated) if (e._year) s.add(e._year);
+    return Array.from(s).sort((a, b) => Number(b) - Number(a));
+  }, [decorated]);
+
+  const locations = useMemo(() => {
+    const s = new Set<string>();
+    for (const e of decorated) if (e._city) s.add(e._city);
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [decorated]);
+
   const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    const rows = term
-      ? events.filter((e) =>
-          `${e.title ?? ""} ${e.slug ?? ""}`.toLowerCase().includes(term),
-        )
-      : events;
+    const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const rows = decorated.filter((e: any) => {
+      if (year !== "all" && e._year !== year) return false;
+      if (location !== "all" && e._city !== location) return false;
+      if (!terms.length) return true;
+      const hay = `${e.title ?? ""} ${e.slug ?? ""} ${e._city ?? ""} ${e._year ?? ""}`.toLowerCase();
+      return terms.every((t) => hay.includes(t));
+    });
     return [...rows].sort((a, b) => {
       const ta = a.start_date ? new Date(a.start_date).getTime() : -Infinity;
       const tb = b.start_date ? new Date(b.start_date).getTime() : -Infinity;
       return tb - ta;
     });
-  }, [events, q]);
-
-  const shown = filtered.slice(0, visible);
+  }, [decorated, q, year, location]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -63,55 +122,68 @@ function TitoArchive() {
             </p>
           </div>
           <div className="text-sm text-slate-500 tabular-nums">
-            {events.length.toLocaleString()} events
+            {filtered.length.toLocaleString()} of {events.length.toLocaleString()} events
           </div>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            className="pl-9 h-10 bg-card border-slate-200 shadow-sm"
-            placeholder="Search events by name, city, venue…"
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              setVisible(PAGE);
-            }}
-          />
+        <div className="flex flex-wrap gap-3">
+          <div className="relative min-w-[260px] flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              className="pl-9 h-10 bg-card border-slate-200 shadow-sm"
+              placeholder="Search events by name, city, year…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
+          <Select value={year} onValueChange={setYear}>
+            <SelectTrigger className="h-10 w-[140px] bg-card border-slate-200 shadow-sm">
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="all">All years</SelectItem>
+              {years.map((y) => (
+                <SelectItem key={y} value={y}>
+                  {y}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={location} onValueChange={setLocation}>
+            <SelectTrigger className="h-10 w-[180px] bg-card border-slate-200 shadow-sm">
+              <SelectValue placeholder="Location" />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="all">All locations</SelectItem>
+              {locations.map((l) => (
+                <SelectItem key={l} value={l}>
+                  {l}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {isLoading ? (
           <div className="surface-card p-12 text-center text-sm text-slate-500">
             Loading Tito events…
           </div>
-        ) : shown.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="surface-card p-12 text-center text-sm text-slate-500">
-            No Tito events match “{q}”.
+            No Tito events match your filters.
           </div>
         ) : (
-          <>
-            <div className="space-y-3">
-              {shown.map((e) => (
-                <TitoEventCard key={e.slug} e={e} />
-              ))}
-            </div>
-            {filtered.length > shown.length && (
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setVisible((v) => v + PAGE)}
-                  className="rounded-full border-2 border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Show more ({filtered.length - shown.length} remaining)
-                </button>
-              </div>
-            )}
-          </>
+          <div className="space-y-3">
+            {filtered.map((e: any) => (
+              <TitoEventCard key={e.slug} e={e} />
+            ))}
+          </div>
         )}
       </div>
     </div>
   );
 }
+
 
 function TitoEventCard({ e }: { e: any }) {
   const date = formatDate(e.start_date);
