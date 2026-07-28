@@ -36,9 +36,11 @@ export function BoardSpeakerCard({
 }) {
   const chip = STATUS_CHIP[s.status as string] ?? STATUS_CHIP.new;
   const alert = outreachAlert(s);
-  const showAlert = alert && (alert.type === "reply" || alert.type === "follow_up");
+  const showAlert = alert && (alert.type === "reply" || alert.type === "follow_up") ? alert : null;
+  const AlertIcon = showAlert?.icon ?? null;
   const roleLine = [s.title, s.company].filter(Boolean).join(" at ");
   const showTicks = s.status === "confirmed";
+
 
   return (
     <div
