@@ -61,11 +61,12 @@ export function BoardSpeakerCard({
       <div className="mt-2 flex flex-wrap items-center gap-1">
         <StatusPill className={cn(chip.cls, "text-[10px]")}>{chip.label}</StatusPill>
         {showAlert && (
-          <StatusPill className={cn(alert!.cls, "text-[10px]")}>
-            {alert!.icon ? <alert!.icon className="h-3 w-3" /> : null}
-            {alert!.label}
+          <StatusPill className={cn(showAlert.cls, "text-[10px]")}>
+            {AlertIcon ? <AlertIcon className="h-3 w-3" /> : null}
+            {showAlert.label}
           </StatusPill>
         )}
+
         {duplicate && (
           <button
             type="button"
