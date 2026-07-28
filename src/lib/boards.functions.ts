@@ -347,7 +347,7 @@ export const moveSpeakerToColumn = createServerFn({ method: "POST" })
 
     const { error: upErr } = await context.supabase
       .from("speakers")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.speaker_id);
     if (upErr) throw new Error(upErr.message);
     return { ok: true };
@@ -397,7 +397,7 @@ export const mergeSpeakers = createServerFn({ method: "POST" })
     if (Object.keys(patch).length) {
       const { error: upErr } = await context.supabase
         .from("speakers")
-        .update(patch)
+        .update(patch as never)
         .eq("id", survivor.id);
       if (upErr) throw new Error(upErr.message);
     }
