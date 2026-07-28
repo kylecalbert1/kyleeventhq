@@ -25,6 +25,7 @@ import { Route as AuthenticatedBannersRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAsanaRouteImport } from './routes/_authenticated/asana'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as AuthenticatedTitoIndexRouteImport } from './routes/_authenticated/tito.index'
+import { Route as AuthenticatedBoardsIndexRouteImport } from './routes/_authenticated/boards.index'
 import { Route as AuthenticatedTitoSlugRouteImport } from './routes/_authenticated/tito.$slug'
 import { Route as AuthenticatedSpeakersSpeakerIdRouteImport } from './routes/_authenticated/speakers.$speakerId'
 import { Route as AuthenticatedEventsEventIdRouteImport } from './routes/_authenticated/events.$eventId'
@@ -114,6 +115,12 @@ const AuthenticatedTitoIndexRoute = AuthenticatedTitoIndexRouteImport.update({
   path: '/tito/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBoardsIndexRoute =
+  AuthenticatedBoardsIndexRouteImport.update({
+    id: '/boards/',
+    path: '/boards/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTitoSlugRoute = AuthenticatedTitoSlugRouteImport.update({
   id: '/tito/$slug',
   path: '/tito/$slug',
@@ -168,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/tito/$slug': typeof AuthenticatedTitoSlugRoute
+  '/boards/': typeof AuthenticatedBoardsIndexRoute
   '/tito/': typeof AuthenticatedTitoIndexRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
   '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
@@ -191,6 +199,7 @@ export interface FileRoutesByTo {
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/tito/$slug': typeof AuthenticatedTitoSlugRoute
+  '/boards': typeof AuthenticatedBoardsIndexRoute
   '/tito': typeof AuthenticatedTitoIndexRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
   '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
@@ -216,6 +225,7 @@ export interface FileRoutesById {
   '/_authenticated/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/_authenticated/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/_authenticated/tito/$slug': typeof AuthenticatedTitoSlugRoute
+  '/_authenticated/boards/': typeof AuthenticatedBoardsIndexRoute
   '/_authenticated/tito/': typeof AuthenticatedTitoIndexRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
   '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/speakers/$speakerId'
     | '/tito/$slug'
+    | '/boards/'
     | '/tito/'
     | '/api/public/hooks/asana-nightly'
     | '/api/public/hooks/tito-nightly'
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/speakers/$speakerId'
     | '/tito/$slug'
+    | '/boards'
     | '/tito'
     | '/api/public/hooks/asana-nightly'
     | '/api/public/hooks/tito-nightly'
@@ -288,6 +300,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$eventId'
     | '/_authenticated/speakers/$speakerId'
     | '/_authenticated/tito/$slug'
+    | '/_authenticated/boards/'
     | '/_authenticated/tito/'
     | '/api/public/hooks/asana-nightly'
     | '/api/public/hooks/tito-nightly'
@@ -416,6 +429,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTitoIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/boards/': {
+      id: '/_authenticated/boards/'
+      path: '/boards'
+      fullPath: '/boards/'
+      preLoaderRoute: typeof AuthenticatedBoardsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tito/$slug': {
       id: '/_authenticated/tito/$slug'
       path: '/tito/$slug'
@@ -490,6 +510,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedEventsEventIdRoute: typeof AuthenticatedEventsEventIdRoute
   AuthenticatedTitoSlugRoute: typeof AuthenticatedTitoSlugRoute
+  AuthenticatedBoardsIndexRoute: typeof AuthenticatedBoardsIndexRoute
   AuthenticatedTitoIndexRoute: typeof AuthenticatedTitoIndexRoute
 }
 
@@ -509,6 +530,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedEventsEventIdRoute: AuthenticatedEventsEventIdRoute,
   AuthenticatedTitoSlugRoute: AuthenticatedTitoSlugRoute,
+  AuthenticatedBoardsIndexRoute: AuthenticatedBoardsIndexRoute,
   AuthenticatedTitoIndexRoute: AuthenticatedTitoIndexRoute,
 }
 

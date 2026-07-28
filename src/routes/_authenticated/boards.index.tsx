@@ -19,7 +19,7 @@ import { softCard } from "@/components/speakers/SpeakerListCard";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/boards")({
+export const Route = createFileRoute("/_authenticated/boards/")({
   head: () => ({
     meta: [
       { title: "Speaker boards — Event Command Centre" },
