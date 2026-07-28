@@ -446,11 +446,12 @@ function BoardPage() {
                     </StatusPill>
                   </td>
                   <td className="p-3 text-muted-foreground">
-                    {s.session_format ? (labels.sessionFormat?.[s.session_format] ?? s.session_format) : "—"}
+                    {s.session_format ? ((labels.sessionFormat as Record<string, string>)[s.session_format] ?? s.session_format) : "—"}
                   </td>
                   <td className="p-3 text-muted-foreground">
                     {s.outreach_channel
-                      ? (labels.channel?.[s.outreach_channel] ?? s.outreach_channel)
+                      ? ((labels.outreachChannel as Record<string, string>)[s.outreach_channel] ??
+                        s.outreach_channel)
                       : "—"}
                   </td>
                   <td className="p-3" onClick={(e) => e.stopPropagation()}>
