@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Mail, AlertTriangle, CheckCircle2, XCircle, Loader2, Send, ExternalLink } from "lucide-react";
+import { Mail, AlertTriangle, CheckCircle2, XCircle, Loader2, Send, ExternalLink, Settings2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
 import { toEmailHtml } from "@/lib/email-format";
 import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
 import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery } from "@/lib/queries";
+import { EmailTemplateManagerDialog } from "@/components/EmailTemplateManagerDialog";
 
 // Sentinel for the "start from a blank slate" option, since real template
 // IDs are UUIDs and won't collide with this value.
@@ -92,6 +93,7 @@ export function BulkEmailDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [optedIn, setOptedIn] = useState<Record<string, boolean>>({});
   const [sendingAll, setSendingAll] = useState(false);
+  const [templateManagerOpen, setTemplateManagerOpen] = useState(false);
   const logSend = useServerFn(logEmailSend);
   const qcInvalidate = useQueryClient();
 
@@ -546,6 +548,11 @@ export function BulkEmailDialog({
             body: r.rBody,
           }))}
         onConfirm={performSendAll}
+      />
+
+      <EmailTemplateManagerDialog
+        open={templateManagerOpen}
+        onOpenChange={setTemplateManagerOpen}
       />
     </Dialog>
   );
