@@ -681,6 +681,76 @@ export type Database = {
           },
         ]
       }
+      speaker_board_columns: {
+        Row: {
+          board_id: string
+          created_at: string
+          id: string
+          kind: string | null
+          name: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          board_id: string
+          created_at?: string
+          id?: string
+          kind?: string | null
+          name: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          board_id?: string
+          created_at?: string
+          id?: string
+          kind?: string | null
+          name?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_board_columns_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "speaker_boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      speaker_boards: {
+        Row: {
+          created_at: string
+          event_id: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_boards_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       speaker_email_drafts: {
         Row: {
           body: string
@@ -740,6 +810,7 @@ export type Database = {
           bio_and_headshot_received: boolean
           bio_received: boolean
           bio_text: string | null
+          board_column_id: string | null
           call_scheduled: boolean
           call_scheduled_at: string | null
           company: string | null
@@ -774,6 +845,7 @@ export type Database = {
           bio_and_headshot_received?: boolean
           bio_received?: boolean
           bio_text?: string | null
+          board_column_id?: string | null
           call_scheduled?: boolean
           call_scheduled_at?: string | null
           company?: string | null
@@ -808,6 +880,7 @@ export type Database = {
           bio_and_headshot_received?: boolean
           bio_received?: boolean
           bio_text?: string | null
+          board_column_id?: string | null
           call_scheduled?: boolean
           call_scheduled_at?: string | null
           company?: string | null
@@ -838,6 +911,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "speakers_board_column_id_fkey"
+            columns: ["board_column_id"]
+            isOneToOne: false
+            referencedRelation: "speaker_board_columns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "speakers_copied_from_speaker_id_fkey"
             columns: ["copied_from_speaker_id"]
