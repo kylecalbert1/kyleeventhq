@@ -329,7 +329,19 @@ export function BulkEmailDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs">Template</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Template</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setTemplateManagerOpen(true)}
+                  >
+                    <Settings2 className="h-3.5 w-3.5 mr-1" />
+                    Manage templates
+                  </Button>
+                </div>
                 <Select value={templateId} onValueChange={(v) => applyTemplate(v)}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Choose a template" /></SelectTrigger>
                   <SelectContent>
@@ -342,7 +354,7 @@ export function BulkEmailDialog({
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
-                  Templates are sourced from the Template Manager - edits there flow through here automatically.
+                  Create, edit or delete saved templates with <b>Manage templates</b> - changes show up here straight away.
                 </p>
               </div>
 
