@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Mail, AlertTriangle, CheckCircle2, XCircle, Loader2, Send, ExternalLink } from "lucide-react";
+import { Mail, AlertTriangle, CheckCircle2, XCircle, Loader2, Send, ExternalLink, Settings2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
 import { toEmailHtml } from "@/lib/email-format";
 import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
 import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery } from "@/lib/queries";
+import { EmailTemplateManagerDialog } from "@/components/EmailTemplateManagerDialog";
 
 // Sentinel for the "start from a blank slate" option, since real template
 // IDs are UUIDs and won't collide with this value.
@@ -92,6 +93,7 @@ export function BulkEmailDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [optedIn, setOptedIn] = useState<Record<string, boolean>>({});
   const [sendingAll, setSendingAll] = useState(false);
+  const [templateManagerOpen, setTemplateManagerOpen] = useState(false);
   const logSend = useServerFn(logEmailSend);
   const qcInvalidate = useQueryClient();
 
@@ -329,7 +331,19 @@ export function BulkEmailDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs">Template</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Template</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setTemplateManagerOpen(true)}
+                  >
+                    <Settings2 className="h-3.5 w-3.5 mr-1" />
+                    Manage templates
+                  </Button>
+                </div>
                 <Select value={templateId} onValueChange={(v) => applyTemplate(v)}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Choose a template" /></SelectTrigger>
                   <SelectContent>
@@ -342,7 +356,7 @@ export function BulkEmailDialog({
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
-                  Templates are sourced from the Template Manager - edits there flow through here automatically.
+                  Create, edit or delete saved templates with <b>Manage templates</b> - changes show up here straight away.
                 </p>
               </div>
 
@@ -534,6 +548,11 @@ export function BulkEmailDialog({
             body: r.rBody,
           }))}
         onConfirm={performSendAll}
+      />
+
+      <EmailTemplateManagerDialog
+        open={templateManagerOpen}
+        onOpenChange={setTemplateManagerOpen}
       />
     </Dialog>
   );

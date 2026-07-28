@@ -70,6 +70,9 @@ function TitoEventDetail() {
   const [jobTitleExclude, setJobTitleExclude] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detailAttendee, setDetailAttendee] = useState<TitoAttendee | null>(null);
+  // Single-attendee compose: reuse the same Gmail + templates flow as the
+  // bulk action rather than handing off to the OS mail client.
+  const [soloEmail, setSoloEmail] = useState<TitoAttendee | null>(null);
 
 
   const event = data?.event;
@@ -359,7 +362,7 @@ function TitoEventDetail() {
                   onToggle={(v) => toggle(t.id, v)}
                   onOpenDetail={() => setDetailAttendee(t as TitoAttendee)}
                   onEmail={() => {
-                    if (t.email) window.location.href = `mailto:${t.email}`;
+                    if (t.email) setSoloEmail(t as TitoAttendee);
                   }}
                   onAddNote={() => setDetailAttendee(t as TitoAttendee)}
                   showEvent={false}
@@ -385,6 +388,21 @@ function TitoEventDetail() {
             attendee={detailAttendee}
             open={!!detailAttendee}
             onOpenChange={(v) => { if (!v) setDetailAttendee(null); }}
+          />
+
+          <BulkEmailDialog
+            open={!!soloEmail}
+            onOpenChange={(o) => { if (!o) setSoloEmail(null); }}
+            speakers={
+              soloEmail
+                ? [{
+                    id: soloEmail.id,
+                    name: soloEmail.name ?? "Unknown",
+                    email: soloEmail.email ?? null,
+                    company: soloEmail.company_name ?? null,
+                  }]
+                : []
+            }
           />
 
           <BulkEmailDialog
