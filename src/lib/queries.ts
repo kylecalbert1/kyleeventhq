@@ -19,6 +19,7 @@ import { listEventReleases, getEventReconciliation, getEventTitoLinks, listTitoE
 import { listEmailTemplates } from "@/lib/email-templates.functions";
 import { listPastSpeakers } from "@/lib/directory.functions";
 import { getUserSettings } from "@/lib/user-settings.functions";
+import { listBoards, getBoard } from "@/lib/boards.functions";
 
 export const userSettingsQuery = queryOptions({
   queryKey: ["userSettings"],
@@ -169,3 +170,16 @@ export const overdueWebsiteAsanaQuery = queryOptions({
   queryFn: () => getOverdueWebsiteAsanaCount(),
   refetchInterval: 5 * 60_000,
 });
+
+/* ---------------- speaker boards ---------------- */
+
+export const boardsQuery = queryOptions({
+  queryKey: ["speakerBoards"],
+  queryFn: () => listBoards(),
+});
+
+export const boardQuery = (boardId: string) =>
+  queryOptions({
+    queryKey: ["speakerBoard", boardId],
+    queryFn: () => getBoard({ data: { board_id: boardId } }),
+  });
