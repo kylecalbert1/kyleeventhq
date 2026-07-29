@@ -323,6 +323,7 @@ export function BulkEmailDialog({
           </details>
         )}
 
+        <div className="space-y-4">
 
           {!connQuery.isLoading && !connected && (
             <div className="rounded-md border border-amber-300 bg-amber-50/70 px-3 py-3 text-sm text-amber-900 space-y-2">
