@@ -62,6 +62,7 @@ export function BulkEmailDialog({
   initialTemplate,
   eventId,
   perRecipientDrafts,
+  excludedRecipients,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -76,7 +77,14 @@ export function BulkEmailDialog({
    * app's Gmail integration.
    */
   perRecipientDrafts?: Record<string, { subject: string; body: string }>;
+  /**
+   * People the caller dropped from the selection before opening the dialog
+   * (e.g. Tito ticket-type exclusions). Surfaced as an expandable notice so
+   * the removal is never invisible, but never blocks the send.
+   */
+  excludedRecipients?: { id: string; name: string; email: string | null; reason?: string | null }[];
 }) {
+
   const templatesQ = useQuery(emailTemplatesQuery);
   const settingsQ = useQuery(userSettingsQuery);
   const signatureHtml = (settingsQ.data?.email_signature_html ?? "").trim();
