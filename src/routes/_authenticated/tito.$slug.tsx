@@ -398,10 +398,12 @@ function TitoEventDetail() {
                 Compose email
               </Button>
               <DraftButton
-                disabled={selected.size === 0}
-                ticketIds={Array.from(selected)}
+                disabled={selectedAttendees.length === 0}
+                ticketIds={selectedAttendees.map((t) => t.id)}
                 tickets={filtered as TitoAttendee[]}
+                excludedRecipients={excludedSelected}
               />
+
             </div>
           </div>
 
