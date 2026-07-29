@@ -545,11 +545,14 @@ function DraftButton({
   disabled,
   ticketIds,
   tickets,
+  excludedRecipients,
 }: {
   disabled: boolean;
   ticketIds: string[];
   tickets: TitoAttendee[];
+  excludedRecipients?: { id: string; name: string; email: string | null; reason?: string | null }[];
 }) {
+
   const [open, setOpen] = useState(false);
   const [ctx, setCtx] = useState("");
   const [angle, setAngle] = useState("");
