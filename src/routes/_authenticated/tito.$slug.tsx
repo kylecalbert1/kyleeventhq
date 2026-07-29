@@ -265,26 +265,13 @@ function TitoEventDetail() {
                   onChange={(e) => setQ(e.target.value)}
                 />
               </div>
-              <Select value={releaseFilter} onValueChange={setReleaseFilter}>
-                <SelectTrigger className="w-56 h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All ticket types</SelectItem>
-                  {releaseTitles.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               {hasFilters && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setQ("");
-                    setReleaseFilter("all");
+                    setTicketInclude([]);
                   }}
                   className="h-8"
                 >
@@ -292,6 +279,17 @@ function TitoEventDetail() {
                 </Button>
               )}
             </div>
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <TicketTypeFilter
+                options={releaseTitles}
+                include={ticketInclude}
+                exclude={ticketExclude}
+                onIncludeChange={setTicketInclude}
+                onExcludeChange={updateTicketExclude}
+                onClearPersistedExcludes={() => saveExcludes.mutate([])}
+              />
+            </div>
+
             <div className="flex flex-wrap items-center gap-3 mt-2 pt-2 border-t border-slate-100">
               <div className="inline-flex rounded-md border bg-white p-0.5 text-xs">
                 {(["all", "never", "contacted"] as const).map((k) => {
