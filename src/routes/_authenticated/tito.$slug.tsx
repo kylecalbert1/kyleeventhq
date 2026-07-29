@@ -38,6 +38,8 @@ import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDi
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
 import { JobTitleFilter, parseKeywordList, matchesJobTitleFilters } from "@/components/tito/JobTitleFilter";
+import { TicketTypeFilter, matchesTicketTypeFilters } from "@/components/tito/TicketTypeFilter";
+
 
 
 const TICKET_PAGE = 100;
