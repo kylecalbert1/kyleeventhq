@@ -193,7 +193,7 @@ function TitoEventDetail() {
     });
   }
 
-  const hasFilters = q.trim() !== "" || releaseFilter !== "all";
+  const hasFilters = q.trim() !== "" || ticketInclude.length > 0;
 
   return (
     <div className="p-6 md:p-8 animate-fade-in space-y-6">
