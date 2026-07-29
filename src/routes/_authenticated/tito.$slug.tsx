@@ -61,7 +61,9 @@ function TitoEventDetail() {
   const upcomingEvents = useQuery({ queryKey: ["events"], queryFn: () => listEvents() });
 
   const [q, setQ] = useState("");
-  const [releaseFilter, setReleaseFilter] = useState<string>("all");
+  const [ticketInclude, setTicketInclude] = useState<string[]>([]);
+  const [ticketExclude, setTicketExclude] = useState<string[]>([]);
+  const [excludesLoaded, setExcludesLoaded] = useState(false);
   const [tagFilter, setTagFilter] = useState<"all" | "tagged" | "untagged">("all");
   const [contactFilter, setContactFilter] = useState<"all" | "never" | "contacted">("all");
   const [hideTracked, setHideTracked] = useState(false);
@@ -74,6 +76,27 @@ function TitoEventDetail() {
   // bulk action rather than handing off to the OS mail client.
   const [soloEmail, setSoloEmail] = useState<TitoAttendee | null>(null);
 
+  // Ticket-type excludes persist across every Tito event (sponsor passes etc.);
+  // includes stay per-event.
+  const settingsQ = useQuery(userSettingsQuery);
+  const saveSettings = useServerFn(updateUserSettings);
+  const saveExcludes = useMutation({
+    mutationFn: (list: string[]) =>
+      saveSettings({ data: { excluded_ticket_types: list } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: userSettingsQuery.queryKey }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  useEffect(() => {
+    if (excludesLoaded || !settingsQ.data) return;
+    setTicketExclude(settingsQ.data.excluded_ticket_types ?? []);
+    setExcludesLoaded(true);
+  }, [settingsQ.data, excludesLoaded]);
+
+  function updateTicketExclude(list: string[]) {
+    setTicketExclude(list);
+    saveExcludes.mutate(list);
+  }
 
   const event = data?.event;
   const tickets = data?.tickets ?? [];
@@ -81,8 +104,10 @@ function TitoEventDetail() {
   const releaseTitles = useMemo(() => {
     const s = new Set<string>();
     for (const t of tickets) if (t.release_title) s.add(t.release_title);
+    // Keep persisted excludes visible even if this event has no such pass yet.
+    for (const e of ticketExclude) s.add(e);
     return Array.from(s).sort();
-  }, [tickets]);
+  }, [tickets, ticketExclude]);
 
   const attendeeEmails = useMemo(
 
@@ -97,7 +122,8 @@ function TitoEventDetail() {
     const inc = parseKeywordList(jobTitleInclude);
     const exc = parseKeywordList(jobTitleExclude);
     return tickets.filter((t) => {
-      if (releaseFilter !== "all" && t.release_title !== releaseFilter) return false;
+      if (!matchesTicketTypeFilters(t.release_title, ticketInclude, ticketExclude))
+        return false;
       const isTagged = ((t as TitoAttendee).tagged_events ?? []).length > 0;
       if (tagFilter === "tagged" && !isTagged) return false;
       if (tagFilter === "untagged" && isTagged) return false;
@@ -111,13 +137,39 @@ function TitoEventDetail() {
       const hay = `${t.name ?? ""} ${t.email ?? ""} ${t.company_name ?? ""} ${t.job_title ?? ""}`.toLowerCase();
       return hay.includes(term);
     });
-  }, [tickets, q, releaseFilter, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, lookupHistory, lookupTracked]);
+  }, [tickets, q, ticketInclude, ticketExclude, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, lookupHistory, lookupTracked]);
+
+  // Anyone still selected but knocked out by the ticket-type exclusion:
+  // dropped from the send, surfaced in the compose dialog.
+  const excludedSelected = useMemo(
+    () =>
+      tickets
+        .filter(
+          (t) =>
+            selected.has(t.id) &&
+            !!t.release_title &&
+            ticketExclude.includes(t.release_title),
+        )
+        .map((t) => ({
+          id: t.id,
+          name: t.name ?? "Unknown",
+          email: (t.email as string | null) ?? null,
+          reason: t.release_title as string | null,
+        })),
+    [tickets, selected, ticketExclude],
+  );
+
+  const selectedAttendees = useMemo(
+    () => filtered.filter((t) => selected.has(t.id)),
+    [filtered, selected],
+  );
 
   // Keep large events snappy: render a page of cards at a time.
   const [visibleCount, setVisibleCount] = useState(TICKET_PAGE);
   useEffect(() => {
     setVisibleCount(TICKET_PAGE);
-  }, [q, releaseFilter, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, slug]);
+  }, [q, ticketInclude, ticketExclude, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, slug]);
+
 
 
 
