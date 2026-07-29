@@ -6,6 +6,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { getTitoEventDetail, tagAsSpeakerCandidates, generateOutreachDrafts } from "@/lib/tito.functions";
 import { updateUserSettings } from "@/lib/user-settings.functions";
 import { userSettingsQuery } from "@/lib/queries";
+import { listEvents } from "@/lib/events.functions";
+
+
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
