@@ -1334,16 +1334,19 @@ export type Database = {
       user_settings: {
         Row: {
           email_signature_html: string
+          excluded_ticket_types: string[]
           updated_at: string
           user_id: string
         }
         Insert: {
           email_signature_html?: string
+          excluded_ticket_types?: string[]
           updated_at?: string
           user_id: string
         }
         Update: {
           email_signature_html?: string
+          excluded_ticket_types?: string[]
           updated_at?: string
           user_id?: string
         }

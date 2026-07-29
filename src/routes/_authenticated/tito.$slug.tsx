@@ -2,21 +2,20 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { getTitoEventDetail, tagAsSpeakerCandidates, generateOutreachDrafts } from "@/lib/tito.functions";
+import { updateUserSettings } from "@/lib/user-settings.functions";
+import { userSettingsQuery } from "@/lib/queries";
 import { listEvents } from "@/lib/events.functions";
+
+
+
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +31,8 @@ import { TitoAttendeeDetailDialog } from "@/components/tito/TitoAttendeeDetailDi
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
 import { JobTitleFilter, parseKeywordList, matchesJobTitleFilters } from "@/components/tito/JobTitleFilter";
+import { TicketTypeFilter, matchesTicketTypeFilters } from "@/components/tito/TicketTypeFilter";
+
 
 
 const TICKET_PAGE = 100;
@@ -61,7 +62,9 @@ function TitoEventDetail() {
   const upcomingEvents = useQuery({ queryKey: ["events"], queryFn: () => listEvents() });
 
   const [q, setQ] = useState("");
-  const [releaseFilter, setReleaseFilter] = useState<string>("all");
+  const [ticketInclude, setTicketInclude] = useState<string[]>([]);
+  const [ticketExclude, setTicketExclude] = useState<string[]>([]);
+  const [excludesLoaded, setExcludesLoaded] = useState(false);
   const [tagFilter, setTagFilter] = useState<"all" | "tagged" | "untagged">("all");
   const [contactFilter, setContactFilter] = useState<"all" | "never" | "contacted">("all");
   const [hideTracked, setHideTracked] = useState(false);
@@ -74,6 +77,27 @@ function TitoEventDetail() {
   // bulk action rather than handing off to the OS mail client.
   const [soloEmail, setSoloEmail] = useState<TitoAttendee | null>(null);
 
+  // Ticket-type excludes persist across every Tito event (sponsor passes etc.);
+  // includes stay per-event.
+  const settingsQ = useQuery(userSettingsQuery);
+  const saveSettings = useServerFn(updateUserSettings);
+  const saveExcludes = useMutation({
+    mutationFn: (list: string[]) =>
+      saveSettings({ data: { excluded_ticket_types: list } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: userSettingsQuery.queryKey }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  useEffect(() => {
+    if (excludesLoaded || !settingsQ.data) return;
+    setTicketExclude(settingsQ.data.excluded_ticket_types ?? []);
+    setExcludesLoaded(true);
+  }, [settingsQ.data, excludesLoaded]);
+
+  function updateTicketExclude(list: string[]) {
+    setTicketExclude(list);
+    saveExcludes.mutate(list);
+  }
 
   const event = data?.event;
   const tickets = data?.tickets ?? [];
@@ -81,8 +105,10 @@ function TitoEventDetail() {
   const releaseTitles = useMemo(() => {
     const s = new Set<string>();
     for (const t of tickets) if (t.release_title) s.add(t.release_title);
+    // Keep persisted excludes visible even if this event has no such pass yet.
+    for (const e of ticketExclude) s.add(e);
     return Array.from(s).sort();
-  }, [tickets]);
+  }, [tickets, ticketExclude]);
 
   const attendeeEmails = useMemo(
 
@@ -97,7 +123,8 @@ function TitoEventDetail() {
     const inc = parseKeywordList(jobTitleInclude);
     const exc = parseKeywordList(jobTitleExclude);
     return tickets.filter((t) => {
-      if (releaseFilter !== "all" && t.release_title !== releaseFilter) return false;
+      if (!matchesTicketTypeFilters(t.release_title, ticketInclude, ticketExclude))
+        return false;
       const isTagged = ((t as TitoAttendee).tagged_events ?? []).length > 0;
       if (tagFilter === "tagged" && !isTagged) return false;
       if (tagFilter === "untagged" && isTagged) return false;
@@ -111,13 +138,39 @@ function TitoEventDetail() {
       const hay = `${t.name ?? ""} ${t.email ?? ""} ${t.company_name ?? ""} ${t.job_title ?? ""}`.toLowerCase();
       return hay.includes(term);
     });
-  }, [tickets, q, releaseFilter, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, lookupHistory, lookupTracked]);
+  }, [tickets, q, ticketInclude, ticketExclude, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, lookupHistory, lookupTracked]);
+
+  // Anyone still selected but knocked out by the ticket-type exclusion:
+  // dropped from the send, surfaced in the compose dialog.
+  const excludedSelected = useMemo(
+    () =>
+      tickets
+        .filter(
+          (t) =>
+            selected.has(t.id) &&
+            !!t.release_title &&
+            ticketExclude.includes(t.release_title),
+        )
+        .map((t) => ({
+          id: t.id,
+          name: t.name ?? "Unknown",
+          email: (t.email as string | null) ?? null,
+          reason: t.release_title as string | null,
+        })),
+    [tickets, selected, ticketExclude],
+  );
+
+  const selectedAttendees = useMemo(
+    () => filtered.filter((t) => selected.has(t.id)),
+    [filtered, selected],
+  );
 
   // Keep large events snappy: render a page of cards at a time.
   const [visibleCount, setVisibleCount] = useState(TICKET_PAGE);
   useEffect(() => {
     setVisibleCount(TICKET_PAGE);
-  }, [q, releaseFilter, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, slug]);
+  }, [q, ticketInclude, ticketExclude, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, slug]);
+
 
 
 
@@ -133,7 +186,7 @@ function TitoEventDetail() {
     });
   }
 
-  const hasFilters = q.trim() !== "" || releaseFilter !== "all";
+  const hasFilters = q.trim() !== "" || ticketInclude.length > 0;
 
   return (
     <div className="p-6 md:p-8 animate-fade-in space-y-6">
@@ -213,26 +266,13 @@ function TitoEventDetail() {
                   onChange={(e) => setQ(e.target.value)}
                 />
               </div>
-              <Select value={releaseFilter} onValueChange={setReleaseFilter}>
-                <SelectTrigger className="w-56 h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All ticket types</SelectItem>
-                  {releaseTitles.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               {hasFilters && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setQ("");
-                    setReleaseFilter("all");
+                    setTicketInclude([]);
                   }}
                   className="h-8"
                 >
@@ -240,6 +280,17 @@ function TitoEventDetail() {
                 </Button>
               )}
             </div>
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <TicketTypeFilter
+                options={releaseTitles}
+                include={ticketInclude}
+                exclude={ticketExclude}
+                onIncludeChange={setTicketInclude}
+                onExcludeChange={updateTicketExclude}
+                onClearPersistedExcludes={() => saveExcludes.mutate([])}
+              />
+            </div>
+
             <div className="flex flex-wrap items-center gap-3 mt-2 pt-2 border-t border-slate-100">
               <div className="inline-flex rounded-md border bg-white p-0.5 text-xs">
                 {(["all", "never", "contacted"] as const).map((k) => {
@@ -340,10 +391,12 @@ function TitoEventDetail() {
                 Compose email
               </Button>
               <DraftButton
-                disabled={selected.size === 0}
-                ticketIds={Array.from(selected)}
+                disabled={selectedAttendees.length === 0}
+                ticketIds={selectedAttendees.map((t) => t.id)}
                 tickets={filtered as TitoAttendee[]}
+                excludedRecipients={excludedSelected}
               />
+
             </div>
           </div>
 
@@ -408,16 +461,16 @@ function TitoEventDetail() {
           <BulkEmailDialog
             open={composeOpen}
             onOpenChange={setComposeOpen}
-            speakers={filtered
-              .filter((t) => selected.has(t.id))
-              .map((t) => ({
-                id: t.id,
-                name: t.name ?? "Unknown",
-                email: t.email ?? null,
-                company: t.company_name ?? null,
-              }))}
+            speakers={selectedAttendees.map((t) => ({
+              id: t.id,
+              name: t.name ?? "Unknown",
+              email: t.email ?? null,
+              company: t.company_name ?? null,
+            }))}
+            excludedRecipients={excludedSelected}
             initialTemplate="custom"
           />
+
         </>
       )}
     </div>
@@ -485,11 +538,14 @@ function DraftButton({
   disabled,
   ticketIds,
   tickets,
+  excludedRecipients,
 }: {
   disabled: boolean;
   ticketIds: string[];
   tickets: TitoAttendee[];
+  excludedRecipients?: { id: string; name: string; email: string | null; reason?: string | null }[];
 }) {
+
   const [open, setOpen] = useState(false);
   const [ctx, setCtx] = useState("");
   const [angle, setAngle] = useState("");
@@ -578,7 +634,9 @@ function DraftButton({
         }}
         speakers={speakers}
         perRecipientDrafts={drafts ?? undefined}
+        excludedRecipients={excludedRecipients}
         initialTemplate="custom"
+
       />
     </>
   );

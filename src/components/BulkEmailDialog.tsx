@@ -62,6 +62,7 @@ export function BulkEmailDialog({
   initialTemplate,
   eventId,
   perRecipientDrafts,
+  excludedRecipients,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -76,7 +77,14 @@ export function BulkEmailDialog({
    * app's Gmail integration.
    */
   perRecipientDrafts?: Record<string, { subject: string; body: string }>;
+  /**
+   * People the caller dropped from the selection before opening the dialog
+   * (e.g. Tito ticket-type exclusions). Surfaced as an expandable notice so
+   * the removal is never invisible, but never blocks the send.
+   */
+  excludedRecipients?: { id: string; name: string; email: string | null; reason?: string | null }[];
 }) {
+
   const templatesQ = useQuery(emailTemplatesQuery);
   const settingsQ = useQuery(userSettingsQuery);
   const signatureHtml = (settingsQ.data?.email_signature_html ?? "").trim();
@@ -285,6 +293,7 @@ export function BulkEmailDialog({
 
   const sentCount = Object.values(status).filter((s) => s === "sent").length;
   const failedCount = Object.values(status).filter((s) => s === "failed").length;
+  const excluded = excludedRecipients ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -296,7 +305,26 @@ export function BulkEmailDialog({
           </DialogTitle>
         </DialogHeader>
 
+        {excluded.length > 0 && (
+          <details className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <summary className="cursor-pointer font-medium">
+              {excluded.length} recipient{excluded.length === 1 ? "" : "s"} excluded by
+              ticket type
+            </summary>
+            <ul className="mt-2 space-y-1">
+              {excluded.map((r) => (
+                <li key={r.id} className="flex flex-wrap gap-x-2">
+                  <span className="font-medium">{r.name}</span>
+                  {r.email && <span className="opacity-70">{r.email}</span>}
+                  {r.reason && <span className="opacity-70">· {r.reason}</span>}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
         <div className="space-y-4">
+
           {!connQuery.isLoading && !connected && (
             <div className="rounded-md border border-amber-300 bg-amber-50/70 px-3 py-3 text-sm text-amber-900 space-y-2">
               <div className="flex items-center gap-2 font-medium">

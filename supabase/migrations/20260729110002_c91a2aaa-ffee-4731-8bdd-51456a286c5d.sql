@@ -1,0 +1,1 @@
+ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS excluded_ticket_types text[] NOT NULL DEFAULT '{}'::text[];
