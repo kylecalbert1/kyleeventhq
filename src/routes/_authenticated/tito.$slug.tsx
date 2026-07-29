@@ -466,16 +466,16 @@ function TitoEventDetail() {
           <BulkEmailDialog
             open={composeOpen}
             onOpenChange={setComposeOpen}
-            speakers={filtered
-              .filter((t) => selected.has(t.id))
-              .map((t) => ({
-                id: t.id,
-                name: t.name ?? "Unknown",
-                email: t.email ?? null,
-                company: t.company_name ?? null,
-              }))}
+            speakers={selectedAttendees.map((t) => ({
+              id: t.id,
+              name: t.name ?? "Unknown",
+              email: t.email ?? null,
+              company: t.company_name ?? null,
+            }))}
+            excludedRecipients={excludedSelected}
             initialTemplate="custom"
           />
+
         </>
       )}
     </div>
