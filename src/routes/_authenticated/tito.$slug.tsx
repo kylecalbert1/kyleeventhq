@@ -641,7 +641,9 @@ function DraftButton({
         }}
         speakers={speakers}
         perRecipientDrafts={drafts ?? undefined}
+        excludedRecipients={excludedRecipients}
         initialTemplate="custom"
+
       />
     </>
   );
