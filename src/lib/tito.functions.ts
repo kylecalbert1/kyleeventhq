@@ -1652,22 +1652,19 @@ export const backfillSpeakerFromTicket = createServerFn({ method: "POST" })
       t.name ??
       ([t.first_name, t.last_name].filter(Boolean).join(" ").trim() || "Unnamed attendee");
 
-    const { data: row, error } = await context.supabase
-      .from("speakers")
-      .insert({
-        event_id: data.event_id,
-        name,
-        email: t.email ?? null,
-        company: t.company_name ?? null,
-        title: t.job_title ?? null,
-        status: "confirmed",
-        banner_status: "not_started",
-        linkedin_post_confirmed: false,
-        source: "tito",
-        source_ticket_id: data.ticket_id,
-      })
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
+    const { findOrMergeSpeaker } = await import("@/lib/speaker-dedupe.server");
+    const { row } = await findOrMergeSpeaker(context.supabase, {
+      event_id: data.event_id,
+      name,
+      email: t.email ?? null,
+      company: t.company_name ?? null,
+      title: t.job_title ?? null,
+      status: "confirmed",
+      banner_status: "not_started",
+      linkedin_post_confirmed: false,
+      source: "tito",
+      source_ticket_id: data.ticket_id,
+    });
     return row;
+
   });
