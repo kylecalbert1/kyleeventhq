@@ -1186,8 +1186,9 @@ export const tagAsSpeakerCandidates = createServerFn({ method: "POST" })
     const eventName = ev?.name ?? "Event";
 
     return {
-      added: rows.length,
-      skipped: tickets.length - rows.length,
+      added: created.length,
+      skipped: tickets.length - created.length,
+
       created: (inserted ?? []).map((s) => ({
         speaker_id: s.id,
         ticket_id: s.source_ticket_id as string,
