@@ -44,6 +44,8 @@ type Speaker = {
   name: string;
   email?: string | null;
   company?: string | null;
+  title?: string | null;
+  session_title?: string | null;
 };
 
 type SendStatus = "idle" | "sending" | "sent" | "failed" | "skipped";
