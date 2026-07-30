@@ -27,7 +27,7 @@ import { BulkConfirmSendDialog } from "@/components/BulkConfirmSendDialog";
 import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
 import { toEmailHtml } from "@/lib/email-format";
 import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
-import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery } from "@/lib/queries";
+import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery, eventQuery } from "@/lib/queries";
 import { EmailTemplateManagerDialog } from "@/components/EmailTemplateManagerDialog";
 
 // Sentinel for the "start from a blank slate" option, since real template
