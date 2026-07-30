@@ -49,6 +49,9 @@ type EventRow = {
   speaker_target?: number | null;
   external_agenda_url?: string | null;
   tito_slug?: string | null;
+  sales_contact_name?: string | null;
+  sales_contact_email?: string | null;
+  sales_contact_booking_link?: string | null;
 };
 
 const initial = {
@@ -71,6 +74,9 @@ const initial = {
   speaker_target: 15,
   external_agenda_url: "",
   tito_slug: "",
+  sales_contact_name: "",
+  sales_contact_email: "",
+  sales_contact_booking_link: "",
 };
 
 export function EventFormDialog({
@@ -112,6 +118,9 @@ export function EventFormDialog({
         speaker_target: event.speaker_target ?? 15,
         external_agenda_url: event.external_agenda_url ?? "",
         tito_slug: event.tito_slug ?? "",
+        sales_contact_name: event.sales_contact_name ?? "",
+        sales_contact_email: event.sales_contact_email ?? "",
+        sales_contact_booking_link: event.sales_contact_booking_link ?? "",
       });
     } else {
       setForm(initial);
@@ -136,6 +145,9 @@ export function EventFormDialog({
         speaker_target: Number(form.speaker_target) || 15,
         external_agenda_url: form.external_agenda_url.trim() || null,
         tito_slug: form.tito_slug.trim() || null,
+        sales_contact_name: form.sales_contact_name.trim() || null,
+        sales_contact_email: form.sales_contact_email.trim() || null,
+        sales_contact_booking_link: form.sales_contact_booking_link.trim() || null,
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
@@ -293,6 +305,31 @@ export function EventFormDialog({
             </div>
             <p className="text-xs text-muted-foreground">
               Links this event to its Tito registration so releases, ticket counts and reconciliation show up on the event page.
+            </p>
+          </Field>
+          <Field label="Delegate sales contact (optional)" full>
+            <div className="grid grid-cols-3 gap-3">
+              <Input
+                placeholder="Name"
+                value={form.sales_contact_name}
+                onChange={(e) => setForm({ ...form, sales_contact_name: e.target.value })}
+              />
+              <Input
+                type="email"
+                placeholder="Email"
+                value={form.sales_contact_email}
+                onChange={(e) => setForm({ ...form, sales_contact_email: e.target.value })}
+              />
+              <Input
+                type="url"
+                placeholder="Booking link"
+                value={form.sales_contact_booking_link}
+                onChange={(e) => setForm({ ...form, sales_contact_booking_link: e.target.value })}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Used by the {"{{sales_contact_name}}"}, {"{{sales_contact_email}}"} and{" "}
+              {"{{sales_contact_booking_link}}"} merge tags in email templates.
             </p>
           </Field>
           <Field label="Asana Timeline project link (optional)" full>

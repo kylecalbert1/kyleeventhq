@@ -191,6 +191,9 @@ export function BulkEmailDialog({
       })
     : "";
   const venue = evQ.data?.venue ?? "";
+  const salesContactName = evQ.data?.sales_contact_name ?? "";
+  const salesContactEmail = evQ.data?.sales_contact_email ?? "";
+  const salesContactBookingLink = evQ.data?.sales_contact_booking_link ?? "";
 
   const rows = useMemo(() => {
     return speakers.map((s) => {
@@ -209,6 +212,9 @@ export function BulkEmailDialog({
         company: s.company ?? "",
         speaker_pass_link: speakerPassLink,
         guest_pass_link: guestPassLink,
+        sales_contact_name: salesContactName,
+        sales_contact_email: salesContactEmail,
+        sales_contact_booking_link: salesContactBookingLink,
       };
       const override = perRecipientDrafts?.[s.id];
       return {
@@ -219,7 +225,7 @@ export function BulkEmailDialog({
         hasCustomDraft: !!override,
       };
     });
-  }, [speakers, subject, body, perRecipientDrafts, speakerPassLink, guestPassLink, eventName, eventDate, venue]);
+  }, [speakers, subject, body, perRecipientDrafts, speakerPassLink, guestPassLink, eventName, eventDate, venue, salesContactName, salesContactEmail, salesContactBookingLink]);
 
   const missingEmail = rows.filter((r) => !r.email).length;
   const sendable = rows.filter((r) => r.email);

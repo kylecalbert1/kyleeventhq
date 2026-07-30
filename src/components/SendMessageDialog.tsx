@@ -87,6 +87,9 @@ type Ctx = {
   venue: string;
   speakerPassLink: string;
   guestPassLink: string;
+  salesContactName: string;
+  salesContactEmail: string;
+  salesContactBookingLink: string;
 };
 function resolvePlaceholders(text: string, r: Recipient, ctx: Ctx): string {
   const map: Record<string, string> = {
@@ -100,6 +103,9 @@ function resolvePlaceholders(text: string, r: Recipient, ctx: Ctx): string {
     speaker_pass_link: ctx.speakerPassLink,
     guest_pass_link: ctx.guestPassLink,
     past_event_name: r.past_event_name ?? "",
+    sales_contact_name: ctx.salesContactName,
+    sales_contact_email: ctx.salesContactEmail,
+    sales_contact_booking_link: ctx.salesContactBookingLink,
   };
   return text.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_m, k) => map[k.toLowerCase()] ?? `{{${k}}}`);
 }
@@ -139,6 +145,9 @@ const PLACEHOLDERS: Array<{ key: string; label: string }> = [
   { key: "speaker_pass_link", label: "Speaker pass link" },
   { key: "guest_pass_link", label: "Guest pass link" },
   { key: "past_event_name", label: "Past event name" },
+  { key: "sales_contact_name", label: "Sales contact name" },
+  { key: "sales_contact_email", label: "Sales contact email" },
+  { key: "sales_contact_booking_link", label: "Sales contact booking link" },
 ];
 
 // ---------- Small building blocks ----------
@@ -275,6 +284,9 @@ export function SendMessageDialog({
       })
     : "";
   const venue = evQ.data?.venue ?? "";
+  const salesContactName = evQ.data?.sales_contact_name ?? "";
+  const salesContactEmail = evQ.data?.sales_contact_email ?? "";
+  const salesContactBookingLink = evQ.data?.sales_contact_booking_link ?? "";
   const speakerPassLink = titoLinksQ.data?.speaker_pass_link ?? "";
   const guestPassLink = titoLinksQ.data?.guest_pass_link ?? "";
   const signatureHtml = settingsQ.data?.email_signature_html ?? "";
@@ -450,7 +462,7 @@ export function SendMessageDialog({
     setSending(true);
     setSendError(null);
     setSendProgress({ done: 0, total });
-    const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink };
+    const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink };
     const successful: Array<{ email: string; name: string; speaker_id: string | null }> = [];
     const fullHtml = signatureHtml ? `${bodyHtml}<br><br>${signatureHtml}` : bodyHtml;
     try {
@@ -493,7 +505,7 @@ export function SendMessageDialog({
   }
 
   const firstR = filteredRecipients[0];
-  const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink };
+  const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink };
   const previewSubject = firstR ? resolvePlaceholders(subject, firstR, ctx) : subject;
   const previewFullHtml = signatureHtml ? `${bodyHtml}<br><br>${signatureHtml}` : bodyHtml;
   const previewBodyPlain = firstR ? resolvePlaceholders(htmlToPlain(previewFullHtml), firstR, ctx) : "";
