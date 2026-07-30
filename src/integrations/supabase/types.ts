@@ -422,6 +422,9 @@ export type Database = {
           proof1_due: string | null
           proof2_done: boolean
           proof2_due: string | null
+          sales_contact_booking_link: string | null
+          sales_contact_email: string | null
+          sales_contact_name: string | null
           self_status: Database["public"]["Enums"]["self_status"]
           signoff_done: boolean
           speaker_target: number
@@ -451,6 +454,9 @@ export type Database = {
           proof1_due?: string | null
           proof2_done?: boolean
           proof2_due?: string | null
+          sales_contact_booking_link?: string | null
+          sales_contact_email?: string | null
+          sales_contact_name?: string | null
           self_status?: Database["public"]["Enums"]["self_status"]
           signoff_done?: boolean
           speaker_target?: number
@@ -480,6 +486,9 @@ export type Database = {
           proof1_due?: string | null
           proof2_done?: boolean
           proof2_due?: string | null
+          sales_contact_booking_link?: string | null
+          sales_contact_email?: string | null
+          sales_contact_name?: string | null
           self_status?: Database["public"]["Enums"]["self_status"]
           signoff_done?: boolean
           speaker_target?: number
