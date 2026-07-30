@@ -27,7 +27,7 @@ import { BulkConfirmSendDialog } from "@/components/BulkConfirmSendDialog";
 import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
 import { toEmailHtml } from "@/lib/email-format";
 import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
-import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery } from "@/lib/queries";
+import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery, eventQuery } from "@/lib/queries";
 import { EmailTemplateManagerDialog } from "@/components/EmailTemplateManagerDialog";
 
 // Sentinel for the "start from a blank slate" option, since real template
@@ -44,6 +44,8 @@ type Speaker = {
   name: string;
   email?: string | null;
   company?: string | null;
+  title?: string | null;
+  session_title?: string | null;
 };
 
 type SendStatus = "idle" | "sending" | "sent" | "failed" | "skipped";
@@ -177,12 +179,33 @@ export function BulkEmailDialog({
   const speakerPassLink = titoLinksQ.data?.speaker_pass_link ?? "";
   const guestPassLink = titoLinksQ.data?.guest_pass_link ?? "";
 
+  // Event details so DB templates' {{event_name}} / {{event_date}} / {{venue}}
+  // resolve exactly like they do in SendMessageDialog.
+  const evQ = useQuery({ ...eventQuery(eventId ?? ""), enabled: !!eventId });
+  const eventName = evQ.data?.name ?? "";
+  const eventDate = evQ.data?.event_date
+    ? new Date(evQ.data.event_date).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
+  const venue = evQ.data?.venue ?? "";
+
   const rows = useMemo(() => {
     return speakers.map((s) => {
       const firstName = firstNameOf(s.name, s.email);
       const vars = {
+        // camelCase kept for the built-in Custom / blank template
         firstName,
         name: s.name,
+        // snake_case keys used by saved DB templates
+        first_name: firstName,
+        job_title: s.title ?? "",
+        session_title: s.session_title ?? "",
+        event_name: eventName,
+        event_date: eventDate,
+        venue,
         company: s.company ?? "",
         speaker_pass_link: speakerPassLink,
         guest_pass_link: guestPassLink,
@@ -196,7 +219,7 @@ export function BulkEmailDialog({
         hasCustomDraft: !!override,
       };
     });
-  }, [speakers, subject, body, perRecipientDrafts, speakerPassLink, guestPassLink]);
+  }, [speakers, subject, body, perRecipientDrafts, speakerPassLink, guestPassLink, eventName, eventDate, venue]);
 
   const missingEmail = rows.filter((r) => !r.email).length;
   const sendable = rows.filter((r) => r.email);
