@@ -80,7 +80,43 @@ type TitoEvent = {
   title: string;
   start_date?: string;
   end_date?: string;
+  /** Tito's "The location of the event." attribute - used as the venue string. */
+  location?: string;
 };
+
+/**
+ * Copy Tito event locations onto matching `events.venue`, but only when the
+ * venue is currently blank. Never overwrites a manually entered venue.
+ */
+async function backfillVenuesFromTito(
+  supabase: {
+    from: (t: string) => any;
+  },
+  locationsBySlug: Map<string, string>,
+) {
+  const slugs = Array.from(locationsBySlug.keys());
+  if (!slugs.length) return 0;
+  const { data: rows } = await supabase
+    .from("events")
+    .select("id, venue, tito_slug")
+    .in("tito_slug", slugs);
+  let updated = 0;
+  for (const row of (rows ?? []) as Array<{
+    id: string;
+    venue: string | null;
+    tito_slug: string | null;
+  }>) {
+    if (row.venue && row.venue.trim()) continue;
+    const loc = row.tito_slug ? locationsBySlug.get(row.tito_slug) : null;
+    if (!loc || !loc.trim()) continue;
+    const { error } = await supabase
+      .from("events")
+      .update({ venue: loc.trim() })
+      .eq("id", row.id);
+    if (!error) updated++;
+  }
+  return updated;
+}
 
 async function titoFetch(path: string, token: string, params?: Record<string, string | number>) {
   const url = new URL(`${TITO_BASE}${path}`);
