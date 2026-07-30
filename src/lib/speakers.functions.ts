@@ -44,14 +44,11 @@ export const createSpeaker = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => SpeakerInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
-      .from("speakers")
-      .insert(data)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
+    const { findOrMergeSpeaker } = await import("@/lib/speaker-dedupe.server");
+    const { row } = await findOrMergeSpeaker(context.supabase, data);
     return row;
   });
+
 
 export const updateSpeaker = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
