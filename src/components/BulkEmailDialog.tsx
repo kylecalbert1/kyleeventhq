@@ -191,6 +191,9 @@ export function BulkEmailDialog({
       })
     : "";
   const venue = evQ.data?.venue ?? "";
+  const salesContactName = evQ.data?.sales_contact_name ?? "";
+  const salesContactEmail = evQ.data?.sales_contact_email ?? "";
+  const salesContactBookingLink = evQ.data?.sales_contact_booking_link ?? "";
 
   const rows = useMemo(() => {
     return speakers.map((s) => {
