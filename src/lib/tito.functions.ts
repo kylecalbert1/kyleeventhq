@@ -1398,6 +1398,11 @@ export async function syncSingleEventBySlug(
       { onConflict: "slug" },
     );
 
+  if (ev.location && ev.location.trim()) {
+    await backfillVenuesFromTito(supabase as any, new Map([[ev.slug, ev.location.trim()]]));
+  }
+
+
   // 2) Releases
   const releases = await fetchAllReleases(ACCOUNT, ev.slug, token);
   if (releases.length) {
