@@ -76,9 +76,10 @@ export function BulkConfirmSendDialog({
                 <div className="mt-1.5 text-xs font-medium truncate">
                   {r.subject}
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground whitespace-pre-line line-clamp-4">
-                  {r.body}
-                </div>
+                <div
+                  className="mt-1 text-xs text-muted-foreground line-clamp-4"
+                  dangerouslySetInnerHTML={{ __html: toEmailHtml(r.body) }}
+                ></div>
               </div>
             ))}
           </div>
