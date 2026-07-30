@@ -1167,11 +1167,15 @@ export const tagAsSpeakerCandidates = createServerFn({ method: "POST" })
 
     if (!rows.length) return { added: 0, skipped: tickets.length, created: [] };
 
-    const { data: inserted, error: insErr } = await context.supabase
-      .from("speakers")
-      .insert(rows)
-      .select("id, event_id, status, source_ticket_id");
-    if (insErr) throw new Error(insErr.message);
+    const { findOrMergeSpeakers } = await import("@/lib/speaker-dedupe.server");
+    const { created, mergedRows } = await findOrMergeSpeakers(context.supabase, rows);
+    const inserted = [...created, ...mergedRows].map((r: any) => ({
+      id: r.id,
+      event_id: r.event_id,
+      status: r.status,
+      source_ticket_id: r.source_ticket_id,
+    }));
+
 
     // Look up event name once for the response payload.
     const { data: ev } = await context.supabase
@@ -1182,8 +1186,9 @@ export const tagAsSpeakerCandidates = createServerFn({ method: "POST" })
     const eventName = ev?.name ?? "Event";
 
     return {
-      added: rows.length,
-      skipped: tickets.length - rows.length,
+      added: created.length,
+      skipped: tickets.length - created.length,
+
       created: (inserted ?? []).map((s) => ({
         speaker_id: s.id,
         ticket_id: s.source_ticket_id as string,
@@ -1647,22 +1652,19 @@ export const backfillSpeakerFromTicket = createServerFn({ method: "POST" })
       t.name ??
       ([t.first_name, t.last_name].filter(Boolean).join(" ").trim() || "Unnamed attendee");
 
-    const { data: row, error } = await context.supabase
-      .from("speakers")
-      .insert({
-        event_id: data.event_id,
-        name,
-        email: t.email ?? null,
-        company: t.company_name ?? null,
-        title: t.job_title ?? null,
-        status: "confirmed",
-        banner_status: "not_started",
-        linkedin_post_confirmed: false,
-        source: "tito",
-        source_ticket_id: data.ticket_id,
-      })
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
+    const { findOrMergeSpeaker } = await import("@/lib/speaker-dedupe.server");
+    const { row } = await findOrMergeSpeaker(context.supabase, {
+      event_id: data.event_id,
+      name,
+      email: t.email ?? null,
+      company: t.company_name ?? null,
+      title: t.job_title ?? null,
+      status: "confirmed",
+      banner_status: "not_started",
+      linkedin_post_confirmed: false,
+      source: "tito",
+      source_ticket_id: data.ticket_id,
+    });
     return row;
+
   });

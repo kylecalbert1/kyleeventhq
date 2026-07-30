@@ -293,10 +293,14 @@ export const tagDirectoryForEvent = createServerFn({ method: "POST" })
           : "Tagged from past speakers.",
         source: "directory",
       }));
-    if (toInsert.length === 0) return { ok: true, inserted: 0, skipped: already.size };
-    const { error } = await context.supabase.from("speakers").insert(toInsert);
-    if (error) throw new Error(error.message);
-    return { ok: true, inserted: toInsert.length, skipped: already.size };
+    const { findOrMergeSpeakers } = await import("@/lib/speaker-dedupe.server");
+    const { created } = await findOrMergeSpeakers(context.supabase, toInsert);
+    return {
+      ok: true,
+      inserted: created.length,
+      skipped: data.people.length - created.length,
+    };
+
   });
 
 /** Admin: list & re-tag Tito events by business_line. Kept here so the settings dialog can call it. */
