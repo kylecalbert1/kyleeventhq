@@ -76,7 +76,7 @@ function firstName(full: string | null | undefined, email?: string | null): stri
     if (lowerRaw === lowerEmail) return "";
     const local = lowerEmail.split("@")[0] ?? "";
     const norm = (s: string) => s.replace(/[\s._\-+]+/g, "");
-    if (local && norm(lowerRaw) === norm(local)) return "";
+    if (!raw.includes(" ") && local && norm(lowerRaw) === norm(local)) return "";
   }
   return raw.split(/\s+/)[0] ?? "";
 }

@@ -69,7 +69,7 @@ export function firstNameOf(
     if (lowerRaw === lowerEmail) return "there";
     const local = lowerEmail.split("@")[0] ?? "";
     const norm = (s: string) => s.replace(/[\s._\-+]+/g, "");
-    if (local && norm(lowerRaw) === norm(local)) return "there";
+    if (!raw.includes(" ") && local && norm(lowerRaw) === norm(local)) return "there";
   }
   const first = raw.split(/\s+/)[0] ?? "";
   return first || "there";
