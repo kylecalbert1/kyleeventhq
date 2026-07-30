@@ -1167,11 +1167,15 @@ export const tagAsSpeakerCandidates = createServerFn({ method: "POST" })
 
     if (!rows.length) return { added: 0, skipped: tickets.length, created: [] };
 
-    const { data: inserted, error: insErr } = await context.supabase
-      .from("speakers")
-      .insert(rows)
-      .select("id, event_id, status, source_ticket_id");
-    if (insErr) throw new Error(insErr.message);
+    const { findOrMergeSpeakers } = await import("@/lib/speaker-dedupe.server");
+    const { created, mergedRows } = await findOrMergeSpeakers(context.supabase, rows);
+    const inserted = [...created, ...mergedRows].map((r: any) => ({
+      id: r.id,
+      event_id: r.event_id,
+      status: r.status,
+      source_ticket_id: r.source_ticket_id,
+    }));
+
 
     // Look up event name once for the response payload.
     const { data: ev } = await context.supabase
