@@ -179,6 +179,7 @@ function EventDetail() {
   const needsRegIds = useMemo(() => {
     const ids = new Set<string>();
     for (const r of recon.data?.needsRegistration ?? []) ids.add(r.id);
+    for (const r of recon.data?.unreachable ?? []) ids.add(r.id);
     return ids;
   }, [recon.data]);
 
