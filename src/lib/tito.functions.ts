@@ -80,7 +80,43 @@ type TitoEvent = {
   title: string;
   start_date?: string;
   end_date?: string;
+  /** Tito's "The location of the event." attribute - used as the venue string. */
+  location?: string;
 };
+
+/**
+ * Copy Tito event locations onto matching `events.venue`, but only when the
+ * venue is currently blank. Never overwrites a manually entered venue.
+ */
+async function backfillVenuesFromTito(
+  supabase: {
+    from: (t: string) => any;
+  },
+  locationsBySlug: Map<string, string>,
+) {
+  const slugs = Array.from(locationsBySlug.keys());
+  if (!slugs.length) return 0;
+  const { data: rows } = await supabase
+    .from("events")
+    .select("id, venue, tito_slug")
+    .in("tito_slug", slugs);
+  let updated = 0;
+  for (const row of (rows ?? []) as Array<{
+    id: string;
+    venue: string | null;
+    tito_slug: string | null;
+  }>) {
+    if (row.venue && row.venue.trim()) continue;
+    const loc = row.tito_slug ? locationsBySlug.get(row.tito_slug) : null;
+    if (!loc || !loc.trim()) continue;
+    const { error } = await supabase
+      .from("events")
+      .update({ venue: loc.trim() })
+      .eq("id", row.id);
+    if (!error) updated++;
+  }
+  return updated;
+}
 
 async function titoFetch(path: string, token: string, params?: Record<string, string | number>) {
   const url = new URL(`${TITO_BASE}${path}`);
@@ -244,6 +280,7 @@ export const syncTito = createServerFn({ method: "POST" })
       title: e.title ?? e.slug,
       start_date: e.start_date ?? null,
       end_date: e.end_date ?? null,
+      location: e.location ?? null,
       is_past: Boolean(e.end_date && new Date(e.end_date) < new Date()),
       last_synced_at: new Date().toISOString(),
     }));
@@ -253,6 +290,15 @@ export const syncTito = createServerFn({ method: "POST" })
         .upsert(eventRows, { onConflict: "slug" });
       if (error) throw new Error(`tito_events upsert: ${error.message}`);
     }
+
+    await backfillVenuesFromTito(
+      context.supabase as any,
+      new Map(
+        dedupedEvents
+          .filter((e) => e.location && e.location.trim())
+          .map((e) => [e.slug, e.location!.trim()] as const),
+      ),
+    );
 
     let ticketCount = 0;
     let answerCount = 0;
@@ -679,11 +725,21 @@ export const syncTitoByUrl = createServerFn({ method: "POST" })
           title: ev.title ?? ev.slug,
           start_date: ev.start_date ?? null,
           end_date: ev.end_date ?? null,
+          location: ev.location ?? null,
           is_past: Boolean(ev.end_date && new Date(ev.end_date) < new Date()),
           last_synced_at: new Date().toISOString(),
         },
         { onConflict: "slug" },
       );
+
+    if (ev.location && ev.location.trim()) {
+      await backfillVenuesFromTito(
+        context.supabase as any,
+        new Map([[ev.slug, ev.location.trim()]]),
+      );
+    }
+
+
 
     // Existing tickets for this event → to compute new-vs-updated.
     const { data: existingRows } = await context.supabase
@@ -1335,11 +1391,17 @@ export async function syncSingleEventBySlug(
         title: ev.title ?? ev.slug,
         start_date: ev.start_date ?? null,
         end_date: ev.end_date ?? null,
+        location: ev.location ?? null,
         is_past: Boolean(ev.end_date && new Date(ev.end_date) < new Date()),
         last_synced_at: new Date().toISOString(),
       },
       { onConflict: "slug" },
     );
+
+  if (ev.location && ev.location.trim()) {
+    await backfillVenuesFromTito(supabase as any, new Map([[ev.slug, ev.location.trim()]]));
+  }
+
 
   // 2) Releases
   const releases = await fetchAllReleases(ACCOUNT, ev.slug, token);

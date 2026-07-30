@@ -1175,6 +1175,7 @@ export type Database = {
           is_past: boolean
           last_synced_at: string | null
           last_webhook_at: string | null
+          location: string | null
           slug: string
           start_date: string | null
           title: string
@@ -1188,6 +1189,7 @@ export type Database = {
           is_past?: boolean
           last_synced_at?: string | null
           last_webhook_at?: string | null
+          location?: string | null
           slug: string
           start_date?: string | null
           title: string
@@ -1201,6 +1203,7 @@ export type Database = {
           is_past?: boolean
           last_synced_at?: string | null
           last_webhook_at?: string | null
+          location?: string | null
           slug?: string
           start_date?: string | null
           title?: string
