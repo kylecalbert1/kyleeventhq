@@ -87,6 +87,9 @@ type Ctx = {
   venue: string;
   speakerPassLink: string;
   guestPassLink: string;
+  salesContactName: string;
+  salesContactEmail: string;
+  salesContactBookingLink: string;
 };
 function resolvePlaceholders(text: string, r: Recipient, ctx: Ctx): string {
   const map: Record<string, string> = {
@@ -100,6 +103,9 @@ function resolvePlaceholders(text: string, r: Recipient, ctx: Ctx): string {
     speaker_pass_link: ctx.speakerPassLink,
     guest_pass_link: ctx.guestPassLink,
     past_event_name: r.past_event_name ?? "",
+    sales_contact_name: ctx.salesContactName,
+    sales_contact_email: ctx.salesContactEmail,
+    sales_contact_booking_link: ctx.salesContactBookingLink,
   };
   return text.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_m, k) => map[k.toLowerCase()] ?? `{{${k}}}`);
 }
