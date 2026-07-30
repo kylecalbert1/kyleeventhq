@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Send, Loader2, ShieldAlert } from "lucide-react";
+import { toEmailHtml } from "@/lib/email-format";
 import {
   Dialog,
   DialogContent,
