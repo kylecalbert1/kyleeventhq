@@ -26,6 +26,9 @@ const EventInput = z.object({
   speaker_target: z.number().int().min(0).optional(),
   external_agenda_url: z.string().nullable().optional(),
   tito_slug: z.string().nullable().optional(),
+  sales_contact_name: z.string().nullable().optional(),
+  sales_contact_email: z.string().nullable().optional(),
+  sales_contact_booking_link: z.string().nullable().optional(),
 });
 
 export const listEvents = createServerFn({ method: "GET" })
