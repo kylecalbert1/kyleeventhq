@@ -291,6 +291,15 @@ export const syncTito = createServerFn({ method: "POST" })
       if (error) throw new Error(`tito_events upsert: ${error.message}`);
     }
 
+    await backfillVenuesFromTito(
+      context.supabase as any,
+      new Map(
+        dedupedEvents
+          .filter((e) => e.location && e.location.trim())
+          .map((e) => [e.slug, e.location!.trim()] as const),
+      ),
+    );
+
     let ticketCount = 0;
     let answerCount = 0;
     let ticketFetchSkipped = 0;
