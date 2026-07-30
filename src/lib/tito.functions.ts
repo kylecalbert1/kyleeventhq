@@ -280,6 +280,7 @@ export const syncTito = createServerFn({ method: "POST" })
       title: e.title ?? e.slug,
       start_date: e.start_date ?? null,
       end_date: e.end_date ?? null,
+      location: e.location ?? null,
       is_past: Boolean(e.end_date && new Date(e.end_date) < new Date()),
       last_synced_at: new Date().toISOString(),
     }));
