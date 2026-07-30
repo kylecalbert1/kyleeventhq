@@ -732,6 +732,15 @@ export const syncTitoByUrl = createServerFn({ method: "POST" })
         { onConflict: "slug" },
       );
 
+    if (ev.location && ev.location.trim()) {
+      await backfillVenuesFromTito(
+        context.supabase as any,
+        new Map([[ev.slug, ev.location.trim()]]),
+      );
+    }
+
+
+
     // Existing tickets for this event → to compute new-vs-updated.
     const { data: existingRows } = await context.supabase
       .from("tito_tickets")
