@@ -141,25 +141,22 @@ export const copySpeakerToEvent = createServerFn({ method: "POST" })
     if (srcErr) throw new Error(srcErr.message);
     if (!src) throw new Error("Source speaker not found");
 
-    const { data: row, error } = await context.supabase
-      .from("speakers")
-      .insert({
-        event_id: data.target_event_id,
-        name: src.name,
-        email: src.email,
-        company: src.company,
-        title: src.title,
-        linkedin_url: src.linkedin_url,
-        notes: src.notes ? `Copied from past speaker.\n\n${src.notes}` : "Copied from past speaker.",
-        session_format: src.session_format,
-        status: "new",
-        banner_status: "not_started",
-        linkedin_post_confirmed: false,
-        copied_from_speaker_id: data.source_speaker_id,
-        source: "recurring",
-      })
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
+    const { findOrMergeSpeaker } = await import("@/lib/speaker-dedupe.server");
+    const { row } = await findOrMergeSpeaker(context.supabase, {
+      event_id: data.target_event_id,
+      name: src.name,
+      email: src.email,
+      company: src.company,
+      title: src.title,
+      linkedin_url: src.linkedin_url,
+      notes: src.notes ? `Copied from past speaker.\n\n${src.notes}` : "Copied from past speaker.",
+      session_format: src.session_format,
+      status: "new",
+      banner_status: "not_started",
+      linkedin_post_confirmed: false,
+      copied_from_speaker_id: data.source_speaker_id,
+      source: "recurring",
+    });
     return row;
+
   });
