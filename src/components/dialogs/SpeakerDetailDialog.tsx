@@ -8,8 +8,6 @@ import {
   ExternalLink,
   Pencil,
   Mic,
-  CheckCircle2,
-  AlertTriangle,
   Clock,
   MessageSquare,
   Send,
