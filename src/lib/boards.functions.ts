@@ -10,22 +10,8 @@ const DEFAULT_COLUMNS: Array<{ name: string; position: number; kind: string }> =
   { name: "Declined", position: 4, kind: "declined" },
 ];
 
-/** Status implied by a column kind. Custom columns (kind null) imply nothing. */
-export function statusForKind(kind: string | null | undefined): string | null {
-  switch (kind) {
-    case "interest":
-      return "new";
-    case "in_conversation":
-      return "in_conversation";
-    case "confirmed":
-    case "registered":
-      return "confirmed";
-    case "declined":
-      return "declined";
-    default:
-      return null;
-  }
-}
+export { statusForKind } from "@/lib/board-status";
+
 
 export const listBoards = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
