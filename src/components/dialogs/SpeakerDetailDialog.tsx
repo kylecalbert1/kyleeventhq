@@ -27,6 +27,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { labels, pillClass, type OutreachChannel } from "@/lib/status";
 import { listSpeakerActivity } from "@/lib/speakers.functions";
 import { initialsOf } from "@/lib/gmail";
+import { linkedinSearchUrl } from "@/lib/linkedin-search";
 
 function bhDone(s: any): boolean {
   if (typeof s?.bio_and_headshot_received === "boolean") return s.bio_and_headshot_received;
