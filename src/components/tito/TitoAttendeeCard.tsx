@@ -11,6 +11,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { linkedinSearchUrl } from "@/lib/linkedin-search";
 import { softCard, eventChipCls } from "@/components/speakers/SpeakerListCard";
 import {
   type ContactHistory,
@@ -66,6 +67,7 @@ export function TitoAttendeeCard({
 }) {
   const titleAtCompany = [a.job_title, a.company_name].filter(Boolean).join(" at ");
   const lastSent = formatSentShort(history?.last_sent_at);
+  const liSearch = linkedinSearchUrl(a.name, a.company_name);
 
   return (
     <div
@@ -147,7 +149,7 @@ export function TitoAttendeeCard({
             {a.email && (
               <span className="text-sm text-slate-600 truncate">{a.email}</span>
             )}
-            {a.linkedin_url && (
+            {a.linkedin_url ? (
               <a
                 href={a.linkedin_url}
                 target="_blank"
@@ -158,6 +160,20 @@ export function TitoAttendeeCard({
                 <Linkedin className="h-3 w-3" />
                 LinkedIn
               </a>
+            ) : (
+              liSearch && (
+                <a
+                  href={liSearch}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  title="Search LinkedIn for this person"
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-slate-50 hover:bg-sky-50 text-slate-600 hover:text-sky-700 ring-1 ring-slate-200 hover:ring-sky-200 text-[11px] font-medium transition-colors"
+                >
+                  <Linkedin className="h-3 w-3" />
+                  Find on LinkedIn
+                </a>
+              )
             )}
             {a.location && (
               <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
