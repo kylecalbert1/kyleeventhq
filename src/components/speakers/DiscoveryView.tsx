@@ -278,6 +278,8 @@ export function DiscoveryView() {
       else n.add(id);
       return n;
     });
+  }
+
   function selectAllVisible() {
     setSelected((prev) => {
       const n = new Set(prev);
@@ -289,6 +291,7 @@ export function DiscoveryView() {
   function clearSelection() {
     setSelected(new Set());
   }
+
 
 
 
