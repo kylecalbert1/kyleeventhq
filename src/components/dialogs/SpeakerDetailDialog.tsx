@@ -96,6 +96,10 @@ export function SpeakerDetailDialog({
   });
 
   const stage = useMemo(() => (speaker ? stageOf(speaker) : null), [speaker]);
+  const liSearch = useMemo(
+    () => linkedinSearchUrl(speaker?.name, speaker?.company),
+    [speaker?.name, speaker?.company]
+  );
   if (!speaker) return null;
   const initials = initialsOf(speaker.name);
 
@@ -157,6 +161,16 @@ export function SpeakerDetailDialog({
               <Button size="sm" variant="outline" onClick={onEmail} disabled={!speaker.email}>
                 <Mail className="h-4 w-4 mr-1.5" /> Email
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!liSearch}
+                onClick={() => {
+                  if (liSearch) window.open(liSearch, "_blank", "noopener,noreferrer");
+                }}
+              >
+                <Linkedin className="h-4 w-4 mr-1.5" /> Find on LinkedIn
+              </Button>
               <Button size="sm" onClick={onEdit}>
                 <Pencil className="h-4 w-4 mr-1.5" /> Edit
               </Button>
@@ -203,12 +217,6 @@ export function SpeakerDetailDialog({
                   <ExternalLink className="h-3 w-3 opacity-60" />
                 </a>
               )}
-            </div>
-
-            <SectionTitle>Assets</SectionTitle>
-            <div className="space-y-1.5">
-              <AssetRow ok={bhDone(speaker)} label="Bio & headshot" />
-              <AssetRow ok={speaker.linkedin_post_confirmed} label="LinkedIn post confirmed" />
             </div>
 
             {speaker.session_title && (
@@ -300,20 +308,6 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
       {children}
-    </div>
-  );
-}
-
-function AssetRow({ ok, label }: { ok: boolean; label: string }) {
-  return (
-    <div className={`flex items-center gap-2 text-sm ${ok ? "text-emerald-800" : "text-orange-800"}`}>
-      {ok ? (
-        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-      ) : (
-        <AlertTriangle className="h-4 w-4 text-orange-500" />
-      )}
-      <span className="flex-1">{label}</span>
-      <span className="text-xs font-medium">{ok ? "Received" : "Missing"}</span>
     </div>
   );
 }
