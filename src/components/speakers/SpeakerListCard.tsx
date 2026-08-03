@@ -24,8 +24,8 @@ import {
 } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import { openGmailThread, gmailThreadUrl } from "@/lib/gmail";
-import {
 import { gmailComposeUrl } from "@/lib/gmail-compose";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
