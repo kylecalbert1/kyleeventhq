@@ -12,6 +12,7 @@ import { Mail, Linkedin, MapPin, CalendarDays, Building2, Briefcase } from "luci
 import { cn } from "@/lib/utils";
 import type { TitoAttendee } from "./TitoAttendeeCard";
 import { linkedinSearchUrl } from "@/lib/linkedin-search";
+import { gmailComposeUrl, openGmailCompose } from "@/lib/gmail-compose";
 
 function initialsOf(name: string | null): string {
   if (!name) return "?";
@@ -84,7 +85,9 @@ export function TitoAttendeeDetailDialog({
             </div>
             {a.email ? (
               <a
-                href={`mailto:${a.email}`}
+                href={gmailComposeUrl(a.email)}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-2 text-indigo-700 hover:underline"
               >
                 <Mail className="h-4 w-4" />
@@ -162,7 +165,7 @@ export function TitoAttendeeDetailDialog({
               <Button
                 variant="outline"
                 onClick={() => {
-                  window.location.href = `mailto:${a.email}`;
+                  openGmailCompose(a.email);
                 }}
               >
                 <Mail className="h-4 w-4 mr-2" />
