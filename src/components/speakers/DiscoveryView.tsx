@@ -280,6 +280,21 @@ export function DiscoveryView() {
     });
   }
 
+  function selectAllVisible() {
+    setSelected((prev) => {
+      const n = new Set(prev);
+      visibleResults.forEach((r) => n.add(r.id));
+      return n;
+    });
+  }
+
+  function clearSelection() {
+    setSelected(new Set());
+  }
+
+
+
+
   function toggleYear(y: number) {
     setSelectedYears((prev) => (prev.includes(y) ? prev.filter((v) => v !== y) : [...prev, y]));
   }
@@ -619,7 +634,29 @@ export function DiscoveryView() {
                   {" "}search result{results.length === 1 ? "" : "s"}
                   {selected.size > 0 ? ` · ${selected.size} selected` : ""}
                 </div>
+                {results.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={selectAllVisible}
+                      className="text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+                      disabled={visibleResults.length === 0}
+                    >
+                      Select all
+                    </button>
+                    {selected.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearSelection}
+                        className="text-xs font-medium text-slate-500 hover:text-slate-700 hover:underline"
+                      >
+                        Clear selection
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5">
+
                   {(["all", "never", "before"] as const).map((v) => {
                     const on = contactedFilter === v;
                     const label =
