@@ -628,36 +628,35 @@ export function DiscoveryView() {
           <div className="rounded-xl bg-white border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden">
             <div className="flex items-center justify-between p-3 border-b bg-slate-50/50 gap-3 flex-wrap">
               <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="text-sm font-medium text-slate-700">
-                    {visibleResults.length}
-                    {visibleResults.length !== results.length ? ` of ${results.length}` : ""}
-                    {" "}search result{results.length === 1 ? "" : "s"}
-                    {selected.size > 0 ? ` · ${selected.size} selected` : ""}
-                  </div>
-                  {results.length > 0 && (
-                    <div className="flex items-center gap-2">
+                <div className="text-sm font-medium text-slate-700">
+                  {visibleResults.length}
+                  {visibleResults.length !== results.length ? ` of ${results.length}` : ""}
+                  {" "}search result{results.length === 1 ? "" : "s"}
+                  {selected.size > 0 ? ` · ${selected.size} selected` : ""}
+                </div>
+                {results.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={selectAllVisible}
+                      className="text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+                      disabled={visibleResults.length === 0}
+                    >
+                      Select all
+                    </button>
+                    {selected.size > 0 && (
                       <button
                         type="button"
-                        onClick={selectAllVisible}
-                        className="text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
-                        disabled={visibleResults.length === 0}
+                        onClick={clearSelection}
+                        className="text-xs font-medium text-slate-500 hover:text-slate-700 hover:underline"
                       >
-                        Select all
+                        Clear selection
                       </button>
-                      {selected.size > 0 && (
-                        <button
-                          type="button"
-                          onClick={clearSelection}
-                          className="text-xs font-medium text-slate-500 hover:text-slate-700 hover:underline"
-                        >
-                          Clear selection
-                        </button>
-                      )}
-                    </div>
-                  )}
-
+                    )}
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5">
+
                   {(["all", "never", "before"] as const).map((v) => {
                     const on = contactedFilter === v;
                     const label =
