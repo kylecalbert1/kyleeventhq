@@ -5,7 +5,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ChevronDown, X } from "lucide-react";
 
@@ -44,6 +43,8 @@ function MultiSelect({
     tone === "emerald"
       ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
       : "bg-rose-50 text-rose-700 ring-rose-200";
+
+  const allSelected = options.length > 0 && options.every((o) => value.includes(o));
 
   function toggle(opt: string, on: boolean) {
     onChange(on ? [...value, opt] : value.filter((v) => v !== opt));
@@ -98,7 +99,23 @@ function MultiSelect({
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-72 p-0">
-          <ScrollArea className="max-h-72">
+          {options.length > 0 && (
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
+              <span className="text-[11px] text-muted-foreground">
+                {value.length} of {options.length} selected
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  allSelected ? onChange([]) : onChange([...options])
+                }
+                className="text-[11px] font-semibold text-primary hover:underline"
+              >
+                {allSelected ? "Clear all" : "Select all"}
+              </button>
+            </div>
+          )}
+          <div className="max-h-72 overflow-y-auto overscroll-contain">
             <div className="p-2 space-y-1">
               {options.length === 0 && (
                 <p className="px-2 py-3 text-xs text-muted-foreground">
@@ -119,7 +136,7 @@ function MultiSelect({
                 </label>
               ))}
             </div>
-          </ScrollArea>
+          </div>
         </PopoverContent>
       </Popover>
       <p className="mt-1 text-[10px] text-muted-foreground">{hint}</p>
