@@ -278,7 +278,19 @@ export function DiscoveryView() {
       else n.add(id);
       return n;
     });
+  function selectAllVisible() {
+    setSelected((prev) => {
+      const n = new Set(prev);
+      visibleResults.forEach((r) => n.add(r.id));
+      return n;
+    });
   }
+
+  function clearSelection() {
+    setSelected(new Set());
+  }
+
+
 
   function toggleYear(y: number) {
     setSelectedYears((prev) => (prev.includes(y) ? prev.filter((v) => v !== y) : [...prev, y]));
