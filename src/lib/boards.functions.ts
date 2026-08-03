@@ -10,22 +10,10 @@ const DEFAULT_COLUMNS: Array<{ name: string; position: number; kind: string }> =
   { name: "Declined", position: 4, kind: "declined" },
 ];
 
-/** Status implied by a column kind. Custom columns (kind null) imply nothing. */
-export function statusForKind(kind: string | null | undefined): string | null {
-  switch (kind) {
-    case "interest":
-      return "new";
-    case "in_conversation":
-      return "in_conversation";
-    case "confirmed":
-    case "registered":
-      return "confirmed";
-    case "declined":
-      return "declined";
-    default:
-      return null;
-  }
-}
+import { statusForKind } from "@/lib/board-status";
+
+export { statusForKind };
+
 
 export const listBoards = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -407,4 +395,125 @@ export const mergeSpeakers = createServerFn({ method: "POST" })
       .eq("id", loser.id);
     if (delErr) throw new Error(delErr.message);
     return { ok: true, merged_fields: Object.keys(patch) };
+  });
+
+/** Manually add a speaker card to a board column. */
+export const createBoardSpeaker = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        board_id: z.string().uuid(),
+        column_id: z.string().uuid(),
+        name: z.string().min(1),
+        title: z.string().nullable().optional(),
+        company: z.string().nullable().optional(),
+        email: z.string().nullable().optional(),
+        source: z.string().nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { findOrMergeSpeaker } = await import("@/lib/speaker-dedupe.server");
+
+    const { data: board, error: bErr } = await context.supabase
+      .from("speaker_boards")
+      .select("id, event_id")
+      .eq("id", data.board_id)
+      .maybeSingle();
+    if (bErr) throw new Error(bErr.message);
+    if (!board?.event_id)
+      throw new Error("This board isn't linked to an event, so speakers can't be added to it.");
+
+    const { data: col, error: cErr } = await context.supabase
+      .from("speaker_board_columns")
+      .select("id, kind")
+      .eq("id", data.column_id)
+      .maybeSingle();
+    if (cErr) throw new Error(cErr.message);
+    if (!col) throw new Error("Column not found");
+
+    const status = statusForKind(col.kind) ?? "new";
+    const { row } = await findOrMergeSpeaker(context.supabase, {
+      event_id: board.event_id,
+      name: data.name.trim(),
+      title: data.title?.trim() || null,
+      company: data.company?.trim() || null,
+      email: data.email?.trim() || null,
+      status,
+      banner_status: "not_started",
+      linkedin_post_confirmed: false,
+      source: data.source?.trim() || "manual",
+      board_column_id: col.id,
+    });
+    if (row?.board_column_id !== col.id) {
+      await context.supabase
+        .from("speakers")
+        .update({ board_column_id: col.id })
+        .eq("id", row.id);
+    }
+    return row;
+  });
+
+/**
+ * Remove a card. By default we only take it off the board (the speaker record
+ * survives); `delete_record` deletes the speaker outright.
+ */
+export const removeSpeakerFromBoard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({ speaker_id: z.string().uuid(), delete_record: z.boolean().optional() })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    if (data.delete_record) {
+      const { error } = await context.supabase
+        .from("speakers")
+        .delete()
+        .eq("id", data.speaker_id);
+      if (error) throw new Error(error.message);
+      return { ok: true, deleted: true };
+    }
+    const { error } = await context.supabase
+      .from("speakers")
+      .update({ board_column_id: null })
+      .eq("id", data.speaker_id);
+    if (error) throw new Error(error.message);
+    return { ok: true, deleted: false };
+  });
+
+/** Asana projects the connected account can see, for the import picker. */
+export const listAsanaProjectsForImport = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { listAsanaProjects } = await import("@/lib/asana-board-import.server");
+    try {
+      return { connected: true as const, projects: await listAsanaProjects() };
+    } catch (e) {
+      console.error("Asana project list failed", e);
+      return {
+        connected: false as const,
+        projects: [] as Array<{ gid: string; name: string; workspace: string }>,
+        error: e instanceof Error ? e.message : "Asana request failed",
+      };
+    }
+  });
+
+/** Import an Asana project's tasks onto this board as speaker cards. */
+export const importAsanaBoard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ board_id: z.string().uuid(), project: z.string().min(1) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { importAsanaProjectToBoard, parseAsanaProject } = await import(
+      "@/lib/asana-board-import.server"
+    );
+    const gid = parseAsanaProject(data.project);
+    if (!gid) throw new Error("Couldn't read an Asana project id from that link.");
+    return importAsanaProjectToBoard(context.supabase, {
+      board_id: data.board_id,
+      project_gid: gid,
+    });
   });

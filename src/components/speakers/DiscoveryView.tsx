@@ -68,6 +68,7 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
 import { JobTitleFilter, parseKeywordList, matchesJobTitleFilters } from "@/components/tito/JobTitleFilter";
 import { isPastEvent } from "@/lib/event-lifecycle";
+import { openGmailCompose } from "@/lib/gmail-compose";
 
 // Rendered as an embedded view inside /speakers when "Find new candidates" mode is on.
 
@@ -699,7 +700,7 @@ export function DiscoveryView() {
                       onToggle={() => toggle(r.id)}
                       onOpenDetail={() => setDetailAttendee(r as TitoAttendee)}
                       onEmail={() => {
-                        if (r.email) window.location.href = `mailto:${r.email}`;
+                        if (r.email) openGmailCompose(r.email);
                       }}
                       onAddNote={() => setDetailAttendee(r as TitoAttendee)}
                       history={lookupHistory(r.email)}

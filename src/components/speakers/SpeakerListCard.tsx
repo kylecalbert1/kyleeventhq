@@ -24,6 +24,7 @@ import {
 } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import { openGmailThread, gmailThreadUrl } from "@/lib/gmail";
+import { gmailComposeUrl } from "@/lib/gmail-compose";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -309,7 +310,9 @@ export function SpeakerListCard({
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {s.email && (
               <a
-                href={`mailto:${s.email}`}
+                href={gmailComposeUrl(s.email)}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
                 className="text-sm text-slate-600 hover:text-indigo-700 hover:underline truncate"
               >

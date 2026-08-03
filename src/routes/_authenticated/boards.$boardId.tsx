@@ -14,6 +14,8 @@ import {
   ChevronUp,
   GripVertical,
   Loader2,
+  UserPlus,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,6 +34,8 @@ import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { BoardSpeakerCard, onSiteOf } from "@/components/boards/BoardSpeakerCard";
 import { DuplicateCompareDialog } from "@/components/boards/DuplicateCompareDialog";
+import { AddBoardSpeakerDialog } from "@/components/boards/AddBoardSpeakerDialog";
+import { AsanaImportDialog } from "@/components/boards/AsanaImportDialog";
 import { boardQuery } from "@/lib/queries";
 import {
   moveSpeakerToColumn,
@@ -40,6 +44,7 @@ import {
   deleteBoardColumn,
   reorderBoardColumns,
   setSpeakerOnSite,
+  removeSpeakerFromBoard,
 } from "@/lib/boards.functions";
 import { labels } from "@/lib/status";
 import { cn } from "@/lib/utils";
@@ -89,6 +94,10 @@ function BoardPage() {
   const [dragCol, setDragCol] = useState<string | null>(null);
   const [declinedOpen, setDeclinedOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [addSpeakerCol, setAddSpeakerCol] = useState<string | null>(null);
+  const [addSpeakerOpen, setAddSpeakerOpen] = useState(false);
+  const [asanaOpen, setAsanaOpen] = useState(false);
+  const [removing, setRemoving] = useState<any | null>(null);
   const [deleteCol, setDeleteCol] = useState<any | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortAsc, setSortAsc] = useState(true);
@@ -96,6 +105,7 @@ function BoardPage() {
   const move = useServerFn(moveSpeakerToColumn);
   const onSiteFn = useServerFn(setSpeakerOnSite);
   const reorder = useServerFn(reorderBoardColumns);
+  const removeFn = useServerFn(removeSpeakerFromBoard);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["speakerBoard", boardId] });
@@ -112,6 +122,15 @@ function BoardPage() {
     mutationFn: (v: { speaker_id: string; on_site: boolean }) => onSiteFn({ data: v }),
     onSuccess: invalidate,
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+  const removeMut = useMutation({
+    mutationFn: (v: { speaker_id: string; delete_record: boolean }) => removeFn({ data: v }),
+    onSuccess: (r: any) => {
+      invalidate();
+      setRemoving(null);
+      toast.success(r?.deleted ? "Speaker deleted" : "Removed from board");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to remove"),
   });
   const reorderMut = useMutation({
     mutationFn: (ordered_ids: string[]) => reorder({ data: { board_id: boardId, ordered_ids } }),
@@ -258,8 +277,19 @@ function BoardPage() {
               <LayoutGrid className="h-3.5 w-3.5" /> Board
             </button>
           </div>
+          <Button variant="outline" onClick={() => setAsanaOpen(true)}>
+            <Download className="h-4 w-4 mr-1.5" /> Import from Asana
+          </Button>
           <Button variant="outline" onClick={() => setAddOpen(true)}>
             <Plus className="h-4 w-4 mr-1.5" /> Add column
+          </Button>
+          <Button
+            onClick={() => {
+              setAddSpeakerCol(null);
+              setAddSpeakerOpen(true);
+            }}
+          >
+            <UserPlus className="h-4 w-4 mr-1.5" /> Add speaker
           </Button>
         </div>
       </div>
@@ -322,6 +352,10 @@ function BoardPage() {
                   count={byColumn[col.id]?.length ?? 0}
                   onDragStart={() => setDragCol(col.id)}
                   onDelete={() => setDeleteCol(col)}
+                  onAddSpeaker={() => {
+                    setAddSpeakerCol(col.id);
+                    setAddSpeakerOpen(true);
+                  }}
                   boardId={boardId}
                 />
                 <div className="space-y-2 min-h-24 px-1 pb-1">
@@ -337,6 +371,7 @@ function BoardPage() {
                         duplicate={dupGroups.has(s.id)}
                         onOpenDetail={() => setDetail(s)}
                         onOpenDuplicate={() => setDupFor(dupGroups.get(s.id) ?? null)}
+                        onRemove={() => setRemoving(s)}
                       />
                     ))
                   )}
@@ -390,6 +425,7 @@ function BoardPage() {
                         duplicate={dupGroups.has(s.id)}
                         onOpenDetail={() => setDetail(s)}
                         onOpenDuplicate={() => setDupFor(dupGroups.get(s.id) ?? null)}
+                        onRemove={() => setRemoving(s)}
                       />
                     ))
                   )}
@@ -522,6 +558,46 @@ function BoardPage() {
         candidates={dupFor ?? []}
         boardId={boardId}
       />
+      <AddBoardSpeakerDialog
+        open={addSpeakerOpen}
+        onOpenChange={setAddSpeakerOpen}
+        boardId={boardId}
+        columns={columns as any}
+        defaultColumnId={addSpeakerCol}
+      />
+      <AsanaImportDialog open={asanaOpen} onOpenChange={setAsanaOpen} boardId={boardId} />
+      <Dialog open={!!removing} onOpenChange={(o) => !o && setRemoving(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove "{removing?.name}"?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Take the card off this board, or delete the speaker record entirely.
+          </p>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="ghost" onClick={() => setRemoving(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              disabled={removeMut.isPending}
+              onClick={() =>
+                removeMut.mutate({ speaker_id: removing.id, delete_record: false })
+              }
+            >
+              Remove from board
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={removeMut.isPending}
+              onClick={() => removeMut.mutate({ speaker_id: removing.id, delete_record: true })}
+            >
+              {removeMut.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+              Delete speaker
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <AddColumnDialog open={addOpen} onOpenChange={setAddOpen} boardId={boardId} />
       <DeleteColumnDialog
         col={deleteCol}
@@ -548,12 +624,14 @@ function ColumnHeader({
   count,
   onDragStart,
   onDelete,
+  onAddSpeaker,
   boardId,
 }: {
   col: any;
   count: number;
   onDragStart: () => void;
   onDelete: () => void;
+  onAddSpeaker?: () => void;
   boardId: string;
 }) {
   const [editingName, setEditingName] = useState(false);
@@ -612,6 +690,16 @@ function ColumnHeader({
         </button>
       )}
       <span className="ml-auto text-xs text-muted-foreground tabular-nums">{count}</span>
+      {onAddSpeaker && (
+        <button
+          type="button"
+          onClick={onAddSpeaker}
+          title="Add speaker to this column"
+          className="text-slate-400 hover:text-primary"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      )}
       <button
         type="button"
         onClick={onDelete}
