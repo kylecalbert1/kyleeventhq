@@ -1,4 +1,4 @@
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, X } from "lucide-react";
 import { StatusPill } from "@/components/StatusPill";
 import { cn } from "@/lib/utils";
 import { softCard, outreachAlert } from "@/components/speakers/SpeakerListCard";
@@ -27,12 +27,14 @@ export function BoardSpeakerCard({
   onOpenDetail,
   onOpenDuplicate,
   onDragStart,
+  onRemove,
 }: {
   s: any;
   duplicate?: boolean;
   onOpenDetail: () => void;
   onOpenDuplicate?: () => void;
   onDragStart?: (e: React.DragEvent) => void;
+  onRemove?: () => void;
 }) {
   const chip = STATUS_CHIP[s.status as string] ?? STATUS_CHIP.new;
   const alert = outreachAlert(s);
@@ -51,9 +53,22 @@ export function BoardSpeakerCard({
         onDragStart?.(e);
       }}
       onClick={onOpenDetail}
-      className={cn(softCard, "p-3 cursor-pointer active:cursor-grabbing")}
+      className={cn(softCard, "group relative p-3 cursor-pointer active:cursor-grabbing")}
     >
-      <div className="text-sm font-semibold leading-tight truncate">{s.name}</div>
+      {onRemove && (
+        <button
+          type="button"
+          title="Remove from board"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="absolute right-1.5 top-1.5 rounded-md p-1 text-slate-300 opacity-0 transition-opacity hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100 focus:opacity-100"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+      <div className="text-sm font-semibold leading-tight truncate pr-6">{s.name}</div>
       {roleLine && (
         <div className="mt-0.5 text-xs text-muted-foreground truncate">{roleLine}</div>
       )}
