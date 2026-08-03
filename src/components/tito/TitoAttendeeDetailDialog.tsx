@@ -11,6 +11,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { Mail, Linkedin, MapPin, CalendarDays, Building2, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TitoAttendee } from "./TitoAttendeeCard";
+import { linkedinSearchUrl } from "@/lib/linkedin-search";
 
 function initialsOf(name: string | null): string {
   if (!name) return "?";
@@ -39,6 +40,7 @@ export function TitoAttendeeDetailDialog({
   if (!attendee) return null;
   const a = attendee;
   const titleAtCompany = [a.job_title, a.company_name].filter(Boolean).join(" at ");
+  const liSearch = linkedinSearchUrl(a.name, a.company_name);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,7 +93,7 @@ export function TitoAttendeeDetailDialog({
             ) : (
               <div className="text-slate-400 text-sm">No email on file</div>
             )}
-            {a.linkedin_url && (
+            {a.linkedin_url ? (
               <a
                 href={a.linkedin_url}
                 target="_blank"
@@ -101,6 +103,18 @@ export function TitoAttendeeDetailDialog({
                 <Linkedin className="h-4 w-4" />
                 {a.linkedin_url}
               </a>
+            ) : (
+              liSearch && (
+                <a
+                  href={liSearch}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sky-700 hover:underline"
+                >
+                  <Linkedin className="h-4 w-4" />
+                  Find on LinkedIn
+                </a>
+              )
             )}
             {a.company_name && (
               <div className="flex items-center gap-2 text-slate-600">
