@@ -42,10 +42,13 @@ function isBreakLike(t: string) {
 export function AgendaTab({ eventId, eventFormat }: { eventId: string; eventFormat: string }) {
   const itemsQ = useQuery(agendaItemsQuery(eventId));
   const speakersQ = useQuery(speakersQuery(eventId));
+  const eventQ = useQuery(eventQuery(eventId));
   const items = itemsQ.data ?? [];
   const hasItems = items.length > 0;
   const [mode, setMode] = useState<"view" | "edit">(hasItems ? "view" : "edit");
   const [importOpen, setImportOpen] = useState(false);
+  const [timezone, setTimezone] = useState("");
+
 
   // Keep mode in sync when data first arrives on a new event
   useMemo(() => {
