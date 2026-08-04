@@ -18,6 +18,7 @@ import {
   Save,
   Link2,
   Loader2,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
