@@ -14,6 +14,7 @@ import {
   Ticket,
   Settings as SettingsIcon,
   Columns3,
+  Wand2,
 
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,8 +38,10 @@ const NAV_OPS: NavItem[] = [
   { to: "/proofing", label: "Proofing", icon: ClipboardCheck },
   { to: "/asana", label: "Asana", icon: Sparkles },
   { to: "/sponsor-inbox", label: "Sponsor inbox", icon: Inbox },
+  { to: "/tools/logo-converter", label: "Logo converter", icon: Wand2 },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];
+
 
 function NavLink({ item }: { item: NavItem }) {
   return (
