@@ -576,6 +576,20 @@ export function AgendaBuilder({
     URL.revokeObjectURL(url);
   }
 
+  async function exportWord() {
+    try {
+      await exportAgendaWord({
+        event: eventQ.data ?? {},
+        items: retimedDays.flat() as any,
+        speakers: (speakersQ.data ?? []) as any,
+        timezone,
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Word export failed");
+    }
+  }
+
+
   const activeRows = retimedDays[activeDay] ?? [];
   const activeAnalysis = analyses[activeDay] ?? { overrun: 0, fix: { kind: "none" as const } };
   const activeFixedEnd = fixedEnds[activeDay] ?? "17:00";
