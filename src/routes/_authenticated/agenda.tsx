@@ -233,6 +233,49 @@ function SelectedEventAgenda({ event }: { event: any }) {
             Paste a Google Doc, Sheets, or any external link. Editable here - no need to open Edit Event.
           </p>
         </div>
+
+        <div className="border-t pt-3">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
+            <FileText className="h-3 w-3" />
+            AV agenda doc
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[260px]">
+              <Input
+                value={avDocInput}
+                onChange={(e) => setAvDocInput(e.target.value)}
+                placeholder="https://docs.google.com/document/…"
+                className="h-9"
+              />
+            </div>
+            <Button
+              onClick={() => saveAvDoc.mutate()}
+              disabled={!avDirty || saveAvDoc.isPending}
+              size="sm"
+              variant={avDirty ? "default" : "outline"}
+            >
+              {saveAvDoc.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Save
+            </Button>
+            {avOpenHref && (
+              <a href={avOpenHref} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">
+                  <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                  Open
+                </Button>
+              </a>
+            )}
+          </div>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Paste the link to your working copy here (e.g. export as Word from below, open it in Google
+            Drive to convert to a Doc, then paste that link in). Keep editing that one doc instead of
+            re-exporting.
+          </p>
+        </div>
       </div>
 
       <AgendaTab eventId={event.id} eventFormat={event.format ?? "in_person"} />
