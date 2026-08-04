@@ -23,6 +23,7 @@ import {
   ArrowUp,
   ArrowDown,
   Download,
+  FileText,
   Wand2,
   AlertTriangle,
   Save,
@@ -31,7 +32,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { agendaItemsQuery, agendaTemplatesQuery, speakersQuery } from "@/lib/queries";
+import { agendaItemsQuery, agendaTemplatesQuery, speakersQuery, eventQuery } from "@/lib/queries";
+import { exportAgendaWord } from "@/lib/agenda-word-export";
 import {
   bulkReplaceAgenda,
   SESSION_LABELS,
@@ -370,6 +372,8 @@ export function AgendaBuilder({
   const itemsQ = useQuery(agendaItemsQuery(eventId));
   const templatesQ = useQuery(agendaTemplatesQuery);
   const speakersQ = useQuery(speakersQuery(eventId));
+  const eventQ = useQuery(eventQuery(eventId));
+
 
   const [template, setTemplate] = useState<TemplateKey>(
     eventFormat === "virtual" ? "virtual" : "csc_in_person",
@@ -379,6 +383,7 @@ export function AgendaBuilder({
   const [day2Start, setDay2Start] = useState("09:00");
   const [days, setDays] = useState<Item[][] | null>(null); // per-day item arrays
   const [activeDay, setActiveDay] = useState<0 | 1>(0);
+  const [timezone, setTimezone] = useState("");
 
   // Hydrate from existing agenda_items on first load.
   useEffect(() => {
@@ -675,6 +680,15 @@ export function AgendaBuilder({
           </Button>
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={activeRows.length === 0}>
             <Download className="h-3.5 w-3.5 mr-1.5" /> Export CSV
+          </Button>
+          <Input
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+            placeholder="PDT / BST / EDT"
+            className="h-8 w-32 text-xs"
+          />
+          <Button variant="outline" size="sm" onClick={exportWord} disabled={activeRows.length === 0}>
+            <FileText className="h-3.5 w-3.5 mr-1.5" /> Export Word
           </Button>
           {onCancel && (
             <Button variant="ghost" size="sm" onClick={onCancel}>
