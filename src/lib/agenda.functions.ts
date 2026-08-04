@@ -224,7 +224,13 @@ const SPK_CLOSE = "\u0002";
 function markSpeakerAnchors(html: string): string {
   return html.replace(
     /<a\b[^>]*href="[^"]*\/speaker\/[^"]*"[^>]*>([\s\S]*?)<\/a>/gi,
-    (_m, inner) => `${SPK_OPEN}${String(inner).replace(/<[^>]+>/g, "")}${SPK_CLOSE}`,
+    (_m, inner) =>
+      `${SPK_OPEN}${String(inner)
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()}${SPK_CLOSE}`,
   );
 }
 
@@ -301,15 +307,30 @@ function parseAgendaHtml(html: string): ImportedAgendaRow[] {
     const titleLines: string[] = [];
     let inlineTrack: string | null = null;
 
+    // A single rendered line can hold "Session title <a>Name</a>, Title, Company"
+    // and even several linked speakers in a row, so split each line on the
+    // speaker sentinel: text before the first marker is title-ish, every
+    // marked segment (name + trailing ", Title, Company") is one speaker.
+    const segments: Array<{ text: string; isSpeaker: boolean }> = [];
     for (const l of b.buffer) {
+      const parts = l.split(SPK_OPEN);
+      const head = parts[0].trim();
+      if (head) segments.push({ text: head, isSpeaker: false });
+      for (const p of parts.slice(1)) {
+        const t = p.split(SPK_CLOSE).join("").replace(/\s+/g, " ").trim();
+        if (t) segments.push({ text: t, isSpeaker: true });
+      }
+    }
+
+    for (const seg of segments) {
+      const l = seg.text;
       if (NOISE_LINE_RE.test(l)) continue;
 
-      if (l.includes(SPK_OPEN)) {
+      if (seg.isSpeaker) {
         // Hyperlinked speaker name, with ", Title, Company" trailing plain
         // text on the same line. Keep the whole thing - it gets split into
         // name vs. title/company later, at match time.
-        const cleaned = l.split(SPK_OPEN).join("").split(SPK_CLOSE).join("");
-        speakerLines.push(cleaned.trim());
+        speakerLines.push(l);
         continue;
       }
 
