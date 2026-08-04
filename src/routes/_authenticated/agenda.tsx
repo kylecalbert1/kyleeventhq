@@ -133,12 +133,40 @@ function SelectedEventAgenda({ event }: { event: any }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [avDocInput, setAvDocInput] = useState<string>(event.av_agenda_doc_url ?? "");
+  useEffect(() => {
+    setAvDocInput(event.av_agenda_doc_url ?? "");
+  }, [event.id, event.av_agenda_doc_url]);
+
+  const saveAvDoc = useMutation({
+    mutationFn: () =>
+      updateEvent({
+        data: {
+          id: event.id,
+          patch: { av_agenda_doc_url: avDocInput.trim() || null },
+        },
+      }),
+    onSuccess: () => {
+      toast.success("AV agenda doc link saved");
+      qc.invalidateQueries({ queryKey: ["events"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const trimmed = urlInput.trim();
   const dirty = trimmed !== (event.external_agenda_url ?? "").trim();
   const openHref = trimmed
     ? trimmed.startsWith("http")
       ? trimmed
       : `https://${trimmed}`
+    : null;
+
+  const avTrimmed = avDocInput.trim();
+  const avDirty = avTrimmed !== (event.av_agenda_doc_url ?? "").trim();
+  const avOpenHref = avTrimmed
+    ? avTrimmed.startsWith("http")
+      ? avTrimmed
+      : `https://${avTrimmed}`
     : null;
 
   return (
