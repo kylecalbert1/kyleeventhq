@@ -215,6 +215,19 @@ function parseTimeToken(raw: string): string | null {
   return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
+// Sentinel chars used to mark hyperlinked speaker names before we collapse
+// everything else to plain text, so we can tell "this text was a linked
+// person" apart from a plain session title once tags are gone.
+const SPK_OPEN = "\u0001";
+const SPK_CLOSE = "\u0002";
+
+function markSpeakerAnchors(html: string): string {
+  return html.replace(
+    /<a\b[^>]*href="[^"]*\/speaker\/[^"]*"[^>]*>([\s\S]*?)<\/a>/gi,
+    (_m, inner) => `${SPK_OPEN}${String(inner).replace(/<[^>]+>/g, "")}${SPK_CLOSE}`,
+  );
+}
+
 function stripTags(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -233,12 +246,18 @@ function stripTags(html: string): string {
     .trim();
 }
 
+const NOISE_LINE_RE = /^(see the details|register now|secure your seat|get invited|sign in)$/i;
+const STAGE_LABEL_RE = /^(main stage|exhibition\s*(&|and)\s*networking)$/i;
+const DATE_HEADER_RE =
+  /^(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(st|nd|rd|th)?$/i;
+
 function parseAgendaHtml(html: string): ImportedAgendaRow[] {
-  const text = stripTags(html);
+  const marked = markSpeakerAnchors(html);
+  const text = stripTags(marked);
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
 
   const timeRe = /^(\d{1,2}[:.]\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm))(?:\s*[-–to]+\s*(\d{1,2}[:.]\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm)))?\b/i;
-  const speakerRe = /^(speaker[s]?|presenter[s]?|panelist[s]?|moderator|with)[:\s]/i;
+  const speakerPrefixRe = /^(speaker[s]?|presenter[s]?|panelist[s]?|moderator|with)[:\s]/i;
   const trackRe = /^(track|stream|room|stage)[:\s-]+(.+)$/i;
 
   type Block = { start: string | null; end: string | null; buffer: string[]; track: string | null };
@@ -247,11 +266,22 @@ function parseAgendaHtml(html: string): ImportedAgendaRow[] {
   let currentTrack: string | null = null;
 
   for (const line of lines) {
+    const bareForDateCheck = line.split(SPK_OPEN).join("").split(SPK_CLOSE).join("");
+    if (DATE_HEADER_RE.test(bareForDateCheck)) {
+      // New day starting on the page - close the current block so trailing
+      // text doesn't leak into it. Row order is preserved, and downstream
+      // (AgendaBuilder's splitIntoDays / the day-decreasing-time heuristic)
+      // already knows how to regroup rows into Day 1 / Day 2 from that order.
+      cur = null;
+      continue;
+    }
+
     const tm = trackRe.exec(line);
     if (tm) {
       currentTrack = tm[2].trim();
       continue;
     }
+
     const m = timeRe.exec(line);
     if (m) {
       const start = parseTimeToken(m[1]);
@@ -270,14 +300,31 @@ function parseAgendaHtml(html: string): ImportedAgendaRow[] {
     const speakerLines: string[] = [];
     const titleLines: string[] = [];
     let inlineTrack: string | null = null;
+
     for (const l of b.buffer) {
-      const tm = trackRe.exec(l);
-      if (tm) { inlineTrack = tm[2].trim(); continue; }
-      if (speakerRe.test(l)) speakerLines.push(l.replace(speakerRe, "").trim());
-      else titleLines.push(l);
+      if (NOISE_LINE_RE.test(l)) continue;
+
+      if (l.includes(SPK_OPEN)) {
+        // Hyperlinked speaker name, with ", Title, Company" trailing plain
+        // text on the same line. Keep the whole thing - it gets split into
+        // name vs. title/company later, at match time.
+        const cleaned = l.split(SPK_OPEN).join("").split(SPK_CLOSE).join("");
+        speakerLines.push(cleaned.trim());
+        continue;
+      }
+
+      const tm2 = trackRe.exec(l);
+      if (tm2) { inlineTrack = tm2[2].trim(); continue; }
+
+      if (speakerPrefixRe.test(l)) { speakerLines.push(l.replace(speakerPrefixRe, "").trim()); continue; }
+
+      if (STAGE_LABEL_RE.test(l)) continue; // stage/location noise (e.g. "Main stage"), not a real track
+
+      titleLines.push(l);
     }
+
     const title = titleLines.join(" ").replace(/\s+/g, " ").trim() || null;
-    const rawSpeakers = speakerLines.join(", ").replace(/\s+/g, " ").trim() || null;
+    const rawSpeakers = speakerLines.length > 0 ? speakerLines.join("\n") : null;
     let dur = 30;
     if (b.end) {
       const [sh, sm] = b.start.split(":").map(Number);
@@ -285,11 +332,10 @@ function parseAgendaHtml(html: string): ImportedAgendaRow[] {
       const d = eh * 60 + em - (sh * 60 + sm);
       if (d > 0) dur = d;
     }
-    const classifySource = (title ?? "") + " " + (b.buffer.join(" "));
     rows.push({
       start_time: b.start,
       duration_min: dur,
-      session_type: classifyType(classifySource),
+      session_type: classifyType(title ?? ""),
       title,
       track: b.track ?? inlineTrack,
       raw_speakers: rawSpeakers,
