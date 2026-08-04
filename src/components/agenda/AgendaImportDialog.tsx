@@ -150,11 +150,20 @@ function rowsFromMatrix(matrix: any[][]): ParsedRow[] {
   return out;
 }
 
-function splitNames(raw: string): string[] {
-  return raw
-    .split(/,|;|\band\b|&|\/|\n/i)
-    .map((s) => s.trim())
-    .filter(Boolean);
+// One speaker per line (matches how the URL scraper and pasted Word/Excel
+// "Speaker(s)" cells both represent multiple speakers). Each line may itself
+// be "Name, Title, Company" - only the name (text before the first comma) is
+// used to match against existing speaker records; the full line is kept as
+// context if unmatched.
+function splitSpeakerBlocks(raw: string): string[] {
+  const hasNewlines = /\n/.test(raw);
+  const parts = hasNewlines ? raw.split(/\n+/) : raw.split(/\s*;\s*|\s+and\s+|\s*&\s*(?=[A-Z])/i);
+  return parts.map((s) => s.trim()).filter(Boolean);
+}
+
+function speakerNameFromBlock(block: string): string {
+  const idx = block.indexOf(",");
+  return (idx >= 0 ? block.slice(0, idx) : block).trim();
 }
 
 function matchSpeakers(
@@ -165,19 +174,16 @@ function matchSpeakers(
   for (const s of speakers) byName.set(s.name.trim().toLowerCase(), s.id);
   return parsed.map((r) => {
     if (!r.raw_speakers) return r;
-    const names = splitNames(r.raw_speakers);
+    const blocks = splitSpeakerBlocks(r.raw_speakers);
     const ids: string[] = [];
     const unmatched: string[] = [];
-    for (const n of names) {
-      const id = byName.get(n.toLowerCase());
+    for (const block of blocks) {
+      const name = speakerNameFromBlock(block);
+      const id = byName.get(name.toLowerCase());
       if (id) ids.push(id);
-      else unmatched.push(n);
+      else unmatched.push(block);
     }
-    return {
-      ...r,
-      speaker_ids: ids,
-      speaker_extra: unmatched.length > 0 ? unmatched.join(", ") : null,
-    };
+    return { ...r, speaker_ids: ids, speaker_extra: unmatched.length > 0 ? unmatched.join("; ") : null };
   });
 }
 
