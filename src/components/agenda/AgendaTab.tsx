@@ -178,8 +178,21 @@ export function AgendaTab({ eventId, eventFormat }: { eventId: string; eventForm
           </div>
         </Card>
       ) : (
-        <AgendaRunningOrder items={items} speakerNameById={speakerNameById} />
+        (() => {
+          const days = splitByDay(items as any[]);
+          return days.map((dayItems, i) => (
+            <div key={i} className="space-y-2">
+              {days.length > 1 && (
+                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Day {i + 1}
+                </div>
+              )}
+              <AgendaRunningOrder items={dayItems} speakerNameById={speakerNameById} />
+            </div>
+          ));
+        })()
       )}
+
 
       <AgendaImportDialog
         open={importOpen}
