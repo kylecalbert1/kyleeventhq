@@ -25,6 +25,7 @@ const EventInput = z.object({
   asana_project_gid: z.string().nullable().optional(),
   speaker_target: z.number().int().min(0).optional(),
   external_agenda_url: z.string().nullable().optional(),
+  av_agenda_doc_url: z.string().nullable().optional(),
   tito_slug: z.string().nullable().optional(),
   sales_contact_name: z.string().nullable().optional(),
   sales_contact_email: z.string().nullable().optional(),

@@ -405,6 +405,7 @@ export type Database = {
         Row: {
           asana_last_synced_at: string | null
           asana_project_gid: string | null
+          av_agenda_doc_url: string | null
           banner_dropbox_link: string | null
           business_line: Database["public"]["Enums"]["business_line"]
           code: string
@@ -437,6 +438,7 @@ export type Database = {
         Insert: {
           asana_last_synced_at?: string | null
           asana_project_gid?: string | null
+          av_agenda_doc_url?: string | null
           banner_dropbox_link?: string | null
           business_line: Database["public"]["Enums"]["business_line"]
           code: string
@@ -469,6 +471,7 @@ export type Database = {
         Update: {
           asana_last_synced_at?: string | null
           asana_project_gid?: string | null
+          av_agenda_doc_url?: string | null
           banner_dropbox_link?: string | null
           business_line?: Database["public"]["Enums"]["business_line"]
           code?: string
