@@ -2,11 +2,14 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Pencil, Upload } from "lucide-react";
-import { agendaItemsQuery, speakersQuery } from "@/lib/queries";
+import { Input } from "@/components/ui/input";
+import { Download, FileText, Pencil, Upload } from "lucide-react";
+import { agendaItemsQuery, speakersQuery, eventQuery } from "@/lib/queries";
 import { SESSION_LABELS } from "@/lib/agenda.functions";
+import { exportAgendaWord, splitByDay } from "@/lib/agenda-word-export";
 import { AgendaBuilder } from "@/components/agenda/AgendaBuilder";
 import { AgendaImportDialog } from "@/components/agenda/AgendaImportDialog";
+import { toast } from "sonner";
 
 function addMinutes(hhmm: string, mins: number): string {
   const [h, m] = hhmm.split(":").map(Number);
@@ -15,6 +18,7 @@ function addMinutes(hhmm: string, mins: number): string {
   const nm = total % 60;
   return `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
 }
+
 
 const TYPE_ACCENT: Record<string, string> = {
   keynote: "border-l-indigo-500 bg-indigo-50/40",
