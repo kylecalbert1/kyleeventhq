@@ -122,18 +122,28 @@ export function AgendaTab({ eventId, eventFormat }: { eventId: string; eventForm
             {items.length} sessions · saved. Use Edit to change, Import to replace from a file.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center flex-wrap justify-end">
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="h-3.5 w-3.5 mr-1.5" /> Import
           </Button>
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={items.length === 0}>
             <Download className="h-3.5 w-3.5 mr-1.5" /> Export CSV
           </Button>
+          <Input
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+            placeholder="PDT / BST / EDT"
+            className="h-8 w-32 text-xs"
+          />
+          <Button variant="outline" size="sm" onClick={exportWord} disabled={items.length === 0}>
+            <FileText className="h-3.5 w-3.5 mr-1.5" /> Export Word
+          </Button>
           <Button size="sm" onClick={() => setMode("edit")}>
             <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
           </Button>
         </div>
       </div>
+
 
       {isVirtual && (
         <div className="text-xs px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 font-medium">
