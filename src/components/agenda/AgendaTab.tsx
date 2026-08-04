@@ -90,6 +90,20 @@ export function AgendaTab({ eventId, eventFormat }: { eventId: string; eventForm
     URL.revokeObjectURL(url);
   }
 
+  async function exportWord() {
+    try {
+      await exportAgendaWord({
+        event: eventQ.data ?? {},
+        items: items as any,
+        speakers: (speakersQ.data ?? []) as any,
+        timezone,
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Word export failed");
+    }
+  }
+
+
   if (mode === "edit") {
     return (
       <>
