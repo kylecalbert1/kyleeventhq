@@ -26,6 +26,7 @@ import { Route as AuthenticatedAsanaRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as AuthenticatedTitoIndexRouteImport } from './routes/_authenticated/tito.index'
 import { Route as AuthenticatedBoardsIndexRouteImport } from './routes/_authenticated/boards.index'
+import { Route as AuthenticatedToolsLogoConverterRouteImport } from './routes/_authenticated/tools.logo-converter'
 import { Route as AuthenticatedTitoSlugRouteImport } from './routes/_authenticated/tito.$slug'
 import { Route as AuthenticatedSpeakersSpeakerIdRouteImport } from './routes/_authenticated/speakers.$speakerId'
 import { Route as AuthenticatedEventsEventIdRouteImport } from './routes/_authenticated/events.$eventId'
@@ -122,6 +123,12 @@ const AuthenticatedBoardsIndexRoute =
     path: '/boards/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedToolsLogoConverterRoute =
+  AuthenticatedToolsLogoConverterRouteImport.update({
+    id: '/tools/logo-converter',
+    path: '/tools/logo-converter',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTitoSlugRoute = AuthenticatedTitoSlugRouteImport.update({
   id: '/tito/$slug',
   path: '/tito/$slug',
@@ -183,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/tito/$slug': typeof AuthenticatedTitoSlugRoute
+  '/tools/logo-converter': typeof AuthenticatedToolsLogoConverterRoute
   '/boards/': typeof AuthenticatedBoardsIndexRoute
   '/tito/': typeof AuthenticatedTitoIndexRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
@@ -208,6 +216,7 @@ export interface FileRoutesByTo {
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/tito/$slug': typeof AuthenticatedTitoSlugRoute
+  '/tools/logo-converter': typeof AuthenticatedToolsLogoConverterRoute
   '/boards': typeof AuthenticatedBoardsIndexRoute
   '/tito': typeof AuthenticatedTitoIndexRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
@@ -235,6 +244,7 @@ export interface FileRoutesById {
   '/_authenticated/events/$eventId': typeof AuthenticatedEventsEventIdRoute
   '/_authenticated/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/_authenticated/tito/$slug': typeof AuthenticatedTitoSlugRoute
+  '/_authenticated/tools/logo-converter': typeof AuthenticatedToolsLogoConverterRoute
   '/_authenticated/boards/': typeof AuthenticatedBoardsIndexRoute
   '/_authenticated/tito/': typeof AuthenticatedTitoIndexRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
@@ -262,6 +272,7 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/speakers/$speakerId'
     | '/tito/$slug'
+    | '/tools/logo-converter'
     | '/boards/'
     | '/tito/'
     | '/api/public/hooks/asana-nightly'
@@ -287,6 +298,7 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/speakers/$speakerId'
     | '/tito/$slug'
+    | '/tools/logo-converter'
     | '/boards'
     | '/tito'
     | '/api/public/hooks/asana-nightly'
@@ -313,6 +325,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$eventId'
     | '/_authenticated/speakers/$speakerId'
     | '/_authenticated/tito/$slug'
+    | '/_authenticated/tools/logo-converter'
     | '/_authenticated/boards/'
     | '/_authenticated/tito/'
     | '/api/public/hooks/asana-nightly'
@@ -449,6 +462,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBoardsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tools/logo-converter': {
+      id: '/_authenticated/tools/logo-converter'
+      path: '/tools/logo-converter'
+      fullPath: '/tools/logo-converter'
+      preLoaderRoute: typeof AuthenticatedToolsLogoConverterRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tito/$slug': {
       id: '/_authenticated/tito/$slug'
       path: '/tito/$slug'
@@ -531,6 +551,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBoardsBoardIdRoute: typeof AuthenticatedBoardsBoardIdRoute
   AuthenticatedEventsEventIdRoute: typeof AuthenticatedEventsEventIdRoute
   AuthenticatedTitoSlugRoute: typeof AuthenticatedTitoSlugRoute
+  AuthenticatedToolsLogoConverterRoute: typeof AuthenticatedToolsLogoConverterRoute
   AuthenticatedBoardsIndexRoute: typeof AuthenticatedBoardsIndexRoute
   AuthenticatedTitoIndexRoute: typeof AuthenticatedTitoIndexRoute
 }
@@ -552,6 +573,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBoardsBoardIdRoute: AuthenticatedBoardsBoardIdRoute,
   AuthenticatedEventsEventIdRoute: AuthenticatedEventsEventIdRoute,
   AuthenticatedTitoSlugRoute: AuthenticatedTitoSlugRoute,
+  AuthenticatedToolsLogoConverterRoute: AuthenticatedToolsLogoConverterRoute,
   AuthenticatedBoardsIndexRoute: AuthenticatedBoardsIndexRoute,
   AuthenticatedTitoIndexRoute: AuthenticatedTitoIndexRoute,
 }
@@ -569,13 +591,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
