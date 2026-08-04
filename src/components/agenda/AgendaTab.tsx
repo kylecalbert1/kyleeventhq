@@ -2,11 +2,14 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Pencil, Upload } from "lucide-react";
-import { agendaItemsQuery, speakersQuery } from "@/lib/queries";
+import { Input } from "@/components/ui/input";
+import { Download, FileText, Pencil, Upload } from "lucide-react";
+import { agendaItemsQuery, speakersQuery, eventQuery } from "@/lib/queries";
 import { SESSION_LABELS } from "@/lib/agenda.functions";
+import { exportAgendaWord, splitByDay } from "@/lib/agenda-word-export";
 import { AgendaBuilder } from "@/components/agenda/AgendaBuilder";
 import { AgendaImportDialog } from "@/components/agenda/AgendaImportDialog";
+import { toast } from "sonner";
 
 function addMinutes(hhmm: string, mins: number): string {
   const [h, m] = hhmm.split(":").map(Number);
@@ -15,6 +18,7 @@ function addMinutes(hhmm: string, mins: number): string {
   const nm = total % 60;
   return `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
 }
+
 
 const TYPE_ACCENT: Record<string, string> = {
   keynote: "border-l-indigo-500 bg-indigo-50/40",
@@ -38,10 +42,13 @@ function isBreakLike(t: string) {
 export function AgendaTab({ eventId, eventFormat }: { eventId: string; eventFormat: string }) {
   const itemsQ = useQuery(agendaItemsQuery(eventId));
   const speakersQ = useQuery(speakersQuery(eventId));
+  const eventQ = useQuery(eventQuery(eventId));
   const items = itemsQ.data ?? [];
   const hasItems = items.length > 0;
   const [mode, setMode] = useState<"view" | "edit">(hasItems ? "view" : "edit");
   const [importOpen, setImportOpen] = useState(false);
+  const [timezone, setTimezone] = useState("");
+
 
   // Keep mode in sync when data first arrives on a new event
   useMemo(() => {
@@ -83,6 +90,20 @@ export function AgendaTab({ eventId, eventFormat }: { eventId: string; eventForm
     URL.revokeObjectURL(url);
   }
 
+  async function exportWord() {
+    try {
+      await exportAgendaWord({
+        event: eventQ.data ?? {},
+        items: items as any,
+        speakers: (speakersQ.data ?? []) as any,
+        timezone,
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Word export failed");
+    }
+  }
+
+
   if (mode === "edit") {
     return (
       <>
@@ -115,18 +136,28 @@ export function AgendaTab({ eventId, eventFormat }: { eventId: string; eventForm
             {items.length} sessions · saved. Use Edit to change, Import to replace from a file.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center flex-wrap justify-end">
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="h-3.5 w-3.5 mr-1.5" /> Import
           </Button>
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={items.length === 0}>
             <Download className="h-3.5 w-3.5 mr-1.5" /> Export CSV
           </Button>
+          <Input
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+            placeholder="PDT / BST / EDT"
+            className="h-8 w-32 text-xs"
+          />
+          <Button variant="outline" size="sm" onClick={exportWord} disabled={items.length === 0}>
+            <FileText className="h-3.5 w-3.5 mr-1.5" /> Export Word
+          </Button>
           <Button size="sm" onClick={() => setMode("edit")}>
             <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
           </Button>
         </div>
       </div>
+
 
       {isVirtual && (
         <div className="text-xs px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 font-medium">
@@ -147,8 +178,21 @@ export function AgendaTab({ eventId, eventFormat }: { eventId: string; eventForm
           </div>
         </Card>
       ) : (
-        <AgendaRunningOrder items={items} speakerNameById={speakerNameById} />
+        (() => {
+          const days = splitByDay(items as any[]);
+          return days.map((dayItems, i) => (
+            <div key={i} className="space-y-2">
+              {days.length > 1 && (
+                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Day {i + 1}
+                </div>
+              )}
+              <AgendaRunningOrder items={dayItems} speakerNameById={speakerNameById} />
+            </div>
+          ));
+        })()
       )}
+
 
       <AgendaImportDialog
         open={importOpen}
