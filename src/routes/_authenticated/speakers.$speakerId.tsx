@@ -23,6 +23,7 @@ import { speakersQuery, eventsQuery } from "@/lib/queries";
 import { labels, pillClass, type OutreachChannel } from "@/lib/status";
 import { firstNameOf } from "@/lib/gmail";
 import { sendGmailEmail } from "@/lib/email.functions";
+import { logEmailSend } from "@/lib/email-sends.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
@@ -67,6 +68,7 @@ function SpeakerProfile() {
   const [sending, setSending] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
   const sendEmail = useServerFn(sendGmailEmail);
+  const logSend = useServerFn(logEmailSend);
 
   const speaker = useMemo(
     () => (speakers.data ?? []).find((s: any) => s.id === speakerId),
@@ -127,6 +129,9 @@ function SpeakerProfile() {
       recipientName: firstName,
       subject: `${code} - quick check-in`,
       body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us - happy to help move things forward.\n\nThanks!`,
+      // Logged explicitly in performSendConfirmed so failures aren't recorded.
+      eventId: speaker.event_id ?? null,
+      speakerId: speaker.id,
     });
   }
 
@@ -140,6 +145,27 @@ function SpeakerProfile() {
         data: { to: confirmEmail.to, subject: edited.subject, body: edited.body },
       });
       toast.success(`Sent to ${label}`, { id: t });
+      try {
+        await logSend({
+          data: {
+            event_id: confirmEmail.eventId ?? null,
+            template_type: "custom",
+            subject: edited.subject,
+            body: edited.body,
+            recipients: [
+              {
+                speaker_id: confirmEmail.speakerId ?? null,
+                email: confirmEmail.to,
+                name: confirmEmail.recipientName ?? null,
+              },
+            ],
+          },
+        });
+        qc.invalidateQueries({ queryKey: ["emailSends"] });
+        qc.invalidateQueries({ queryKey: ["speakerActivity"] });
+      } catch (err) {
+        console.error("Failed to log email send:", err);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to send", { id: t });
     } finally {

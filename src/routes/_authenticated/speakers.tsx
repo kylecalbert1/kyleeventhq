@@ -47,6 +47,7 @@ import {
 } from "@/lib/status";
 import { firstNameOf, initialsOf } from "@/lib/gmail";
 import { sendGmailEmail } from "@/lib/email.functions";
+import { logEmailSend } from "@/lib/email-sends.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -280,6 +281,7 @@ function SpeakerBoard() {
   );
 
   const sendEmail = useServerFn(sendGmailEmail);
+  const logSend = useServerFn(logEmailSend);
 
   const bulkMutation = useMutation({
     mutationFn: () => bulk({ data: { ids: selectedIds } }),
