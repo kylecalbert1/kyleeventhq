@@ -57,6 +57,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 
 import { sendGmailEmail } from "@/lib/email.functions";
+import { logEmailSend } from "@/lib/email-sends.functions";
 import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
 import { TitoEventPanel } from "@/components/events/TitoEventPanel";
@@ -123,6 +124,7 @@ function EventDetail() {
   const [sendOpen, setSendOpen] = useState<null | { seedEmails?: string[]; seedGroup?: "prospective" | "current_confirmed" | "past_speakers" | "confirmed_not_registered" }>(null);
   const [templateMgrOpen, setTemplateMgrOpen] = useState(false);
   const sendEmail = useServerFn(sendGmailEmail);
+  const logSend = useServerFn(logEmailSend);
 
   function emailOne(s: any, ev: any) {
     if (!s.email) { toast.error("No email on file"); return; }
