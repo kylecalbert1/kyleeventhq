@@ -8,7 +8,7 @@ import { listSpeakers } from "@/lib/speakers.functions";
 import { listSponsors } from "@/lib/sponsors.functions";
 import { listWebsiteTasks } from "@/lib/website-tasks.functions";
 import { listMilestones } from "@/lib/milestones.functions";
-import { listWeeklyPriorities } from "@/lib/weekly-priorities.functions";
+
 import { listMyPriorities, listPrioritiesForEvent } from "@/lib/priorities.functions";
 import { listAsanaTasks, getOverdueWebsiteAsanaCount } from "@/lib/asana-tasks.functions";
 import { listOutreachAccounts, listTeamChecklist } from "@/lib/outreach.functions";
@@ -33,7 +33,7 @@ export const qk = {
   speakers: (eventId?: string) => ["speakers", eventId ?? "all"] as const,
   sponsors: (eventId?: string) => ["sponsors", eventId ?? "all"] as const,
   websiteTasks: (eventId?: string) => ["websiteTasks", eventId ?? "all"] as const,
-  weeklyPriorities: (week: string) => ["weeklyPriorities", week] as const,
+  milestones: (eventId?: string) => ["milestones", eventId ?? "all"] as const,
   outreachAccounts: (week: string) => ["outreachAccounts", week] as const,
   teamChecklist: (week: string) => ["teamChecklist", week] as const,
   emailSends: (eventId?: string) => ["emailSends", eventId ?? "all"] as const,
