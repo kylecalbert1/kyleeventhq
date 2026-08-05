@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -69,6 +69,7 @@ function SpeakerProfile() {
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
   const sendEmail = useServerFn(sendGmailEmail);
   const logSend = useServerFn(logEmailSend);
+  const qc = useQueryClient();
 
   const speaker = useMemo(
     () => (speakers.data ?? []).find((s: any) => s.id === speakerId),
