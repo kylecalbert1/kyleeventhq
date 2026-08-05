@@ -165,7 +165,7 @@ function EventDetail() {
     | "not_registered"
     | "registered"
     | "declined"
-  >("all");
+  >("confirmed");
 
 
 
@@ -356,6 +356,7 @@ function EventDetail() {
               <StatusPill className={pillClass.website[e.website_status as never]}>
                 {labels.website[e.website_status as never]}
               </StatusPill>
+              <EventBoardLink eventId={eventId} />
               <Button variant="outline" size="sm" onClick={() => setEditingEvent(true)}>
                 <Pencil className="h-4 w-4 mr-1.5" />
                 Edit event
@@ -446,10 +447,7 @@ function EventDetail() {
 
       {/* Speakers section: one search bar + one filter row */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="accent-bar mb-2" />
-          <EventBoardLink eventId={eventId} />
-        </div>
+        <div className="accent-bar mb-2" />
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[260px] max-w-xl">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
