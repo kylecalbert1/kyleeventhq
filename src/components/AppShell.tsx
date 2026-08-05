@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   Inbox,
   Reply,
+  Mail,
   ListChecks,
   CalendarDays,
   Megaphone,
@@ -30,6 +31,7 @@ const NAV_PRIMARY: NavItem[] = [
   { to: "/outreach", label: "Outreach", icon: Megaphone },
   { to: "/website", label: "Website", icon: Globe },
   { to: "/reply-needed", label: "Reply needed", icon: Reply },
+  { to: "/sent-messages", label: "Sent messages", icon: Mail },
 ];
 
 
