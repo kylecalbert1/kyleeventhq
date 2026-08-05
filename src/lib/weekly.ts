@@ -15,8 +15,22 @@ export function toISODate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+// Always compute "today" in Europe/London so the week key is identical whether
+// this runs in the browser or on a server in some other timezone.
 export function currentWeekStart(): string {
-  return toISODate(mondayOf(new Date()));
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/London",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date()); // YYYY-MM-DD
+  const [y, m, d] = parts.split("-").map(Number);
+  // Build as UTC-noon to avoid any DST edge shifting the calendar day.
+  const local = new Date(Date.UTC(y, m - 1, d, 12));
+  const day = local.getUTCDay();
+  const diff = (day + 6) % 7;
+  local.setUTCDate(local.getUTCDate() - diff);
+  return `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, "0")}-${String(local.getUTCDate()).padStart(2, "0")}`;
 }
 
 export function formatWeekLabel(iso: string): string {

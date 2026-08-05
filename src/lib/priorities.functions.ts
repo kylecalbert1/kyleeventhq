@@ -17,7 +17,9 @@ export const listMyPriorities = createServerFn({ method: "GET" })
       .from("weekly_priorities")
       .select("*, events(id, code, name)")
       .eq("user_id", context.userId)
-      .or(`is_asap.eq.true,week_start.eq.${week}`)
+      // Carry over: ASAP pins, anything still open (regardless of the week it
+      // was created in), plus everything from the current week.
+      .or(`is_asap.eq.true,done.eq.false,week_start.eq.${week}`)
       .order("is_asap", { ascending: false })
       .order("position", { ascending: true });
     if (error) throw new Error(error.message);
