@@ -47,6 +47,7 @@ import {
 } from "@/lib/status";
 import { firstNameOf, initialsOf } from "@/lib/gmail";
 import { sendGmailEmail } from "@/lib/email.functions";
+import { logEmailSend } from "@/lib/email-sends.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -280,6 +281,7 @@ function SpeakerBoard() {
   );
 
   const sendEmail = useServerFn(sendGmailEmail);
+  const logSend = useServerFn(logEmailSend);
 
   const bulkMutation = useMutation({
     mutationFn: () => bulk({ data: { ids: selectedIds } }),
@@ -333,7 +335,7 @@ function SpeakerBoard() {
       recipientName: firstName,
       subject: `${code} - quick check-in`,
       body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us - happy to help move things forward.\n\nThanks!`,
-      templateType: "custom",
+      // Logged explicitly in performSendConfirmed so failures aren't recorded.
       eventId: s.event_id ?? null,
       speakerId: s.id,
     });
@@ -347,6 +349,27 @@ function SpeakerBoard() {
         data: { to: confirmEmail.to, subject: edited.subject, body: edited.body },
       });
       toast.success(`Sent to ${confirmEmail.recipientName ?? confirmEmail.to}`, { id: t });
+      try {
+        await logSend({
+          data: {
+            event_id: confirmEmail.eventId ?? null,
+            template_type: "custom",
+            subject: edited.subject,
+            body: edited.body,
+            recipients: [
+              {
+                speaker_id: confirmEmail.speakerId ?? null,
+                email: confirmEmail.to,
+                name: confirmEmail.recipientName ?? null,
+              },
+            ],
+          },
+        });
+        qc.invalidateQueries({ queryKey: ["emailSends"] });
+        qc.invalidateQueries({ queryKey: ["speakerActivity"] });
+      } catch (err) {
+        console.error("Failed to log email send:", err);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to send", { id: t });
     }

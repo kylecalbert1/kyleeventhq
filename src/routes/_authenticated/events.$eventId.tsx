@@ -57,6 +57,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 
 import { sendGmailEmail } from "@/lib/email.functions";
+import { logEmailSend } from "@/lib/email-sends.functions";
 import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
 import { TitoEventPanel } from "@/components/events/TitoEventPanel";
@@ -123,6 +124,7 @@ function EventDetail() {
   const [sendOpen, setSendOpen] = useState<null | { seedEmails?: string[]; seedGroup?: "prospective" | "current_confirmed" | "past_speakers" | "confirmed_not_registered" }>(null);
   const [templateMgrOpen, setTemplateMgrOpen] = useState(false);
   const sendEmail = useServerFn(sendGmailEmail);
+  const logSend = useServerFn(logEmailSend);
 
   function emailOne(s: any, ev: any) {
     if (!s.email) { toast.error("No email on file"); return; }
@@ -133,7 +135,8 @@ function EventDetail() {
       recipientName: firstName,
       subject: `${code} - quick check-in`,
       body: `Hi ${firstName},\n\nJust following up on your session for ${code}. Let me know if you need anything from us - happy to help move things forward.\n\nThanks!`,
-      templateType: "custom",
+      // Logging is done explicitly in performSendConfirmed (below) so that a
+      // failed Gmail send never records a phantom row in email_sends.
       eventId: s.event_id ?? null,
       speakerId: s.id,
     });
@@ -147,6 +150,27 @@ function EventDetail() {
         data: { to: confirmEmail.to, subject: edited.subject, body: edited.body },
       });
       toast.success(`Sent to ${confirmEmail.recipientName ?? confirmEmail.to}`, { id: t });
+      try {
+        await logSend({
+          data: {
+            event_id: confirmEmail.eventId ?? eventId ?? null,
+            template_type: "custom",
+            subject: edited.subject,
+            body: edited.body,
+            recipients: [
+              {
+                speaker_id: confirmEmail.speakerId ?? null,
+                email: confirmEmail.to,
+                name: confirmEmail.recipientName ?? null,
+              },
+            ],
+          },
+        });
+        qc.invalidateQueries({ queryKey: ["emailSends"] });
+        qc.invalidateQueries({ queryKey: ["speakerActivity"] });
+      } catch (err) {
+        console.error("Failed to log email send:", err);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to send", { id: t });
     }
