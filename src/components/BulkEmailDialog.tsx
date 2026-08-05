@@ -235,6 +235,7 @@ export function BulkEmailDialog({
   async function performSend(
     r: (typeof rows)[number],
     override?: { subject: string; body: string },
+    logIndividually = false,
   ) {
     if (!r.email) {
       setStatus((s) => ({ ...s, [r.id]: "skipped" }));
@@ -251,15 +252,35 @@ export function BulkEmailDialog({
       const withSig = signatureHtml
         ? `${bodyHtml}<br/><br/>${signatureHtml}`
         : bodyHtml;
+      const finalSubject = override?.subject ?? r.rSubject;
       await send({
         data: {
           to: r.email,
-          subject: override?.subject ?? r.rSubject,
+          subject: finalSubject,
           body: withSig,
           isHtml: true,
         },
       });
       setStatus((s) => ({ ...s, [r.id]: "sent" }));
+      if (logIndividually) {
+        // Single-recipient sends must land in email_sends too, otherwise
+        // Send history only ever reflects "Review & send all" batches.
+        try {
+          await logSend({
+            data: {
+              event_id: eventId ?? null,
+              template_type: activeTemplateSlug,
+              subject: finalSubject,
+              body: withSig,
+              recipients: [{ speaker_id: r.id, email: r.email, name: r.name }],
+            },
+          });
+          qcInvalidate.invalidateQueries({ queryKey: ["emailSends"] });
+          qcInvalidate.invalidateQueries({ queryKey: ["speakerActivity"] });
+        } catch (e) {
+          console.error("Failed to log individual email send:", e);
+        }
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed";
       setErrors((x) => ({ ...x, [r.id]: msg }));
@@ -275,7 +296,8 @@ export function BulkEmailDialog({
       subject: r.rSubject,
       body: r.rBody,
       recipientName: r.name,
-      templateType: activeTemplateSlug,
+      // No templateType here on purpose: ConfirmSendEmailDialog would log a
+      // second row. performSend does the logging for this path.
       eventId: eventId ?? null,
       speakerId: r.id,
     });
