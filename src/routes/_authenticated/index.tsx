@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
 import { SyncDialog } from "@/components/SyncDialog";
 import { MyPrioritiesWidget } from "@/components/MyPrioritiesWidget";
+import { WeekFocusWidget } from "@/components/WeekFocusWidget";
 import { eventSummariesQuery, speakersQuery, overdueWebsiteAsanaQuery } from "@/lib/queries";
 import { daysBetween } from "@/lib/status";
 import { isPastEvent } from "@/lib/event-lifecycle";
@@ -307,6 +308,8 @@ function EventsGrid() {
             <Stat label="Declined" value={stats.declined} tone="red" />
           </div>
         </div>
+
+        <WeekFocusWidget />
 
         <MyPrioritiesWidget />
 
