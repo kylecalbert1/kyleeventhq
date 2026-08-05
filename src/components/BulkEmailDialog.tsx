@@ -609,7 +609,7 @@ export function BulkEmailDialog({
           if (!confirmOne) return;
           const row = rows.find((x) => x.id === confirmOne.id);
           if (!row) return;
-          await performSend(row, { subject: subj, body: bd });
+          await performSend(row, { subject: subj, body: bd }, true);
           setConfirmOne(null);
         }}
       />
