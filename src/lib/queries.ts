@@ -109,11 +109,6 @@ export const milestonesQuery = (eventId?: string) =>
     queryKey: qk.milestones(eventId),
     queryFn: () => listMilestones({ data: eventId ? { event_id: eventId } : {} }),
   });
-export const weeklyPrioritiesQuery = (week: string) =>
-  queryOptions({
-    queryKey: qk.weeklyPriorities(week),
-    queryFn: () => listWeeklyPriorities({ data: { week_start: week } }),
-  });
 export const outreachAccountsQuery = (week: string) =>
   queryOptions({
     queryKey: qk.outreachAccounts(week),
