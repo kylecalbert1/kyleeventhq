@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, X, Pencil, Mail } from "lucide-react";
+import { Send, X, Pencil, Mail, Check } from "lucide-react";
 import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
 import { toEmailHtml } from "@/lib/email-format";
 import {
@@ -76,6 +76,16 @@ export function ConfirmationDraftsSection({ eventId }: { eventId: string }) {
     await qc.invalidateQueries({ queryKey: ["speakerDrafts", eventId] });
   }
 
+  async function handleAlreadySent(d: (typeof rows)[number]) {
+    try {
+      await mark({ data: { id: d.id, email_send_id: null } });
+      toast.success(`Marked as already sent for ${d.speakers.name}`);
+      await qc.invalidateQueries({ queryKey: ["speakerDrafts", eventId] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't mark as sent");
+    }
+  }
+
   async function handleSave(d: (typeof rows)[number]) {
     const local = editing[d.id];
     if (!local) return;
@@ -143,6 +153,15 @@ export function ConfirmationDraftsSection({ eventId }: { eventId: string }) {
                   >
                     <Send className="h-3.5 w-3.5 mr-1" />
                     Send
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleAlreadySent(d)}
+                    title="Mark as handled — I already sent this from my own inbox"
+                  >
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                    Already sent
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => handleDiscard(d)}>
                     <X className="h-3.5 w-3.5" />
