@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, X, Pencil, Mail } from "lucide-react";
+import { Send, X, Pencil, Mail, Check } from "lucide-react";
 import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
 import { toEmailHtml } from "@/lib/email-format";
 import {
