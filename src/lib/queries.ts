@@ -33,7 +33,6 @@ export const qk = {
   speakers: (eventId?: string) => ["speakers", eventId ?? "all"] as const,
   sponsors: (eventId?: string) => ["sponsors", eventId ?? "all"] as const,
   websiteTasks: (eventId?: string) => ["websiteTasks", eventId ?? "all"] as const,
-  milestones: (eventId?: string) => ["milestones", eventId ?? "all"] as const,
   weeklyPriorities: (week: string) => ["weeklyPriorities", week] as const,
   outreachAccounts: (week: string) => ["outreachAccounts", week] as const,
   teamChecklist: (week: string) => ["teamChecklist", week] as const,
