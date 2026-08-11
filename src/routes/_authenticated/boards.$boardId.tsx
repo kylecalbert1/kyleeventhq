@@ -49,6 +49,7 @@ import {
 import { labels } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { fuzzyFilter } from "@/lib/fuzzy-search";
 
 export const Route = createFileRoute("/_authenticated/boards/$boardId")({
   head: () => ({
@@ -164,12 +165,7 @@ function BoardPage() {
   }, [speakers]);
 
   const filtered = useMemo(() => {
-    const terms = term.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    if (!terms.length) return speakers;
-    return speakers.filter((s: any) => {
-      const hay = `${s.name ?? ""} ${s.company ?? ""} ${s.title ?? ""} ${s.email ?? ""}`.toLowerCase();
-      return terms.every((t) => hay.includes(t));
-    });
+    return fuzzyFilter(speakers, term, (s: any) => [s.name, s.company, s.title, s.email]);
   }, [speakers, term]);
 
   const byColumn = useMemo(() => {

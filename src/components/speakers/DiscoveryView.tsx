@@ -69,6 +69,7 @@ import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-histo
 import { JobTitleFilter, parseKeywordList, matchesJobTitleFilters } from "@/components/tito/JobTitleFilter";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { openGmailCompose } from "@/lib/gmail-compose";
+import { fuzzyFilter, fuzzyMatch } from "@/lib/fuzzy-search";
 
 // Rendered as an embedded view inside /speakers when "Find new candidates" mode is on.
 
@@ -315,10 +316,7 @@ export function DiscoveryView() {
         const y = e.start_date ? new Date(e.start_date).getUTCFullYear() : null;
         if (!y || !selectedYears.includes(y)) return false;
       }
-      if (term) {
-        const hay = `${e.title ?? ""} ${e.slug ?? ""}`.toLowerCase();
-        if (!hay.includes(term)) return false;
-      }
+      if (term && !fuzzyMatch(term, e.title, e.slug)) return false;
       return true;
     });
   }, [titoEventsStats.data, eventSearch, brandFilter, selectedYears]);
@@ -1017,13 +1015,11 @@ function EventTypeahead({
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return options
-      .filter(
-        (o) =>
-          !selected.includes(o.value) &&
-          (o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q)),
-      )
-      .slice(0, 12);
+    return fuzzyFilter(
+      options.filter((o) => !selected.includes(o.value)),
+      q,
+      (o) => [o.label, o.value],
+    ).slice(0, 12);
   }, [options, query, selected]);
 
   return (

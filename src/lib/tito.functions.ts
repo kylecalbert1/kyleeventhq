@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { fuzzyScoreFields } from "@/lib/fuzzy-search";
 
 const TITO_BASE = "https://api.tito.io/v3";
 const ACCOUNT = "sequel-media";
@@ -1038,8 +1039,14 @@ export const searchTitoTickets = createServerFn({ method: "POST" })
         // Escape PostgREST reserved chars in the .or() value list.
         const safe = t.replace(/[,()"\\]/g, " ").trim();
         if (!safe) continue;
-        const pattern = `%${safe}%`;
-        q = q.or(fields.map((f) => `${f}.ilike.${pattern}`).join(","));
+        // Relaxed retrieval: match on a short prefix so typos later in the
+        // word ("custmer", "sucess") still pull the row back. The precise
+        // typo-tolerant scoring happens below, in JS.
+        const stem = safe.length >= 5 ? safe.slice(0, 3) : safe;
+        const patterns = stem === safe ? [`%${safe}%`] : [`%${safe}%`, `%${stem}%`];
+        q = q.or(
+          patterns.flatMap((p) => fields.map((f) => `${f}.ilike.${p}`)).join(","),
+        );
       }
     }
     if (data.company) q = q.ilike("company_name", `%${data.company}%`);
@@ -1052,6 +1059,27 @@ export const searchTitoTickets = createServerFn({ method: "POST" })
 
     if (error) throw new Error(error.message);
     let out = rows ?? [];
+
+    // Fuzzy re-score + rank the relaxed candidate set so the closest matches
+    // come back first, using the same scorer as every client-side search bar.
+    if (data.q) {
+      out = out
+        .map((r) => ({
+          r,
+          score: fuzzyScoreFields(data.q!, [
+            r.name,
+            r.email,
+            r.company_name,
+            r.job_title,
+            r.location,
+            r.event_title,
+            r.event_slug,
+          ]),
+        }))
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map((x) => x.r);
+    }
 
     if (data.release_titles_exclude?.length) {
       const ex = new Set(data.release_titles_exclude);

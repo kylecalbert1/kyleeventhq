@@ -15,6 +15,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { importAsanaBoard, listAsanaProjectsForImport } from "@/lib/boards.functions";
 import { cn } from "@/lib/utils";
+import { fuzzyFilter } from "@/lib/fuzzy-search";
 
 export function AsanaImportDialog({
   open,
@@ -54,8 +55,10 @@ export function AsanaImportDialog({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Import failed"),
   });
 
-  const list = (projects.data?.projects ?? []).filter((p: any) =>
-    filter.trim() ? p.name.toLowerCase().includes(filter.trim().toLowerCase()) : true,
+  const list = fuzzyFilter(
+    (projects.data?.projects ?? []) as any[],
+    filter,
+    (p: any) => [p.name],
   );
 
   return (

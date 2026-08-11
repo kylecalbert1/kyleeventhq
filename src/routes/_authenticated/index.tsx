@@ -23,6 +23,7 @@ import { eventSummariesQuery, speakersQuery, overdueWebsiteAsanaQuery } from "@/
 import { daysBetween } from "@/lib/status";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { getSyncHealth } from "@/lib/sync-health.functions";
+import { fuzzyMatch } from "@/lib/fuzzy-search";
 
 function SyncStalenessBanner() {
   const { data } = useQuery({
@@ -222,12 +223,9 @@ function EventsGrid() {
   }, [summaries, allSpeakers]);
 
   const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    if (!term) return summaries;
     return summaries.filter((s) => {
       const ev = s.event as any;
-      const hay = `${ev.name ?? ""} ${ev.code ?? ""} ${ev.venue ?? ""}`.toLowerCase();
-      return hay.includes(term);
+      return fuzzyMatch(q, ev.name, ev.code, ev.venue);
     });
   }, [summaries, q]);
 

@@ -18,6 +18,7 @@ import { createBoard } from "@/lib/boards.functions";
 import { softCard } from "@/components/speakers/SpeakerListCard";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { fuzzyFilter } from "@/lib/fuzzy-search";
 
 export const Route = createFileRoute("/_authenticated/boards/")({
   head: () => ({
@@ -46,13 +47,8 @@ function BoardsIndexPage() {
   const [newOpen, setNewOpen] = useState(false);
 
   const rows = useMemo(() => {
-    const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const all = boards.data ?? [];
-    if (!terms.length) return all;
-    return all.filter((b: any) => {
-      const hay = `${b.name} ${b.event?.code ?? ""} ${b.event?.name ?? ""}`.toLowerCase();
-      return terms.every((t) => hay.includes(t));
-    });
+    return fuzzyFilter(all, q, (b: any) => [b.name, b.event?.code, b.event?.name]);
   }, [boards.data, q]);
 
   const eventBoards = rows.filter((b: any) => b.event_id);

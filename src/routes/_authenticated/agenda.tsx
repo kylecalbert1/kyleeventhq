@@ -21,6 +21,7 @@ import {
   FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fuzzyFilter } from "@/lib/fuzzy-search";
 
 export const Route = createFileRoute("/_authenticated/agenda")({
   loader: ({ context }) => context.queryClient.ensureQueryData(eventsQuery),
@@ -50,12 +51,7 @@ function AgendaPage() {
   const selected = sorted.find((e: any) => e.id === eventId);
 
   const filteredForBrowse = useMemo(() => {
-    const q = browseQ.trim().toLowerCase();
-    if (!q) return sorted;
-    return sorted.filter((e: any) => {
-      const hay = `${e.name ?? ""} ${e.code ?? ""} ${e.venue_name ?? ""} ${e.city ?? ""}`.toLowerCase();
-      return hay.includes(q);
-    });
+    return fuzzyFilter(sorted, browseQ, (e: any) => [e.name, e.code, e.venue_name, e.city]);
   }, [sorted, browseQ]);
 
   return (
