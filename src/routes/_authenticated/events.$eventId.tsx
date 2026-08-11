@@ -148,7 +148,7 @@ function EventDetail() {
     const t = toast.loading(`Sending email to ${confirmEmail.recipientName ?? confirmEmail.to}…`);
     try {
       await sendEmail({
-        data: { to: confirmEmail.to, subject: edited.subject, body: edited.body },
+        data: { to: confirmEmail.to, subject: edited.subject, body: edited.body, isHtml: true },
       });
       toast.success(`Sent to ${confirmEmail.recipientName ?? confirmEmail.to}`, { id: t });
       try {
