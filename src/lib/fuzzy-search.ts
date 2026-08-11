@@ -60,6 +60,8 @@ function scoreToken(q: string, t: string): number {
     return 0.75 + 0.2 * (q.length / t.length);
   }
   if (q.length >= 3 && t.includes(q)) return 0.7;
+  // Numbers (years, codes) must match literally – "2025" is not a typo of "2026".
+  if (/\d/.test(q) || /^\d+$/.test(t)) return 0;
   const max = allowedEdits(Math.max(q.length, t.length));
   if (max > 0) {
     const d = levenshtein(q, t, max);
