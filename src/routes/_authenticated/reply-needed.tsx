@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
@@ -36,14 +36,14 @@ export const replyQueueQuery = queryOptions({
   queryFn: () => listReplyQueue(),
 });
 
+// ARCHIVED: "Reply needed" is disabled. Nav link removed and direct visits
+// redirect home. To restore: re-add the nav item in AppShell and swap the
+// beforeLoad/component below back to the original loader + ReplyNeededPage.
 export const Route = createFileRoute("/_authenticated/reply-needed")({
   validateSearch: searchSchema,
-  loader: ({ context }) =>
-    Promise.all([
-      context.queryClient.ensureQueryData(replyQueueQuery),
-      context.queryClient.ensureQueryData(eventsQuery),
-      context.queryClient.ensureQueryData(speakersQuery()),
-    ]),
+  beforeLoad: () => {
+    throw redirect({ to: "/" });
+  },
   component: ReplyNeededPage,
 });
 

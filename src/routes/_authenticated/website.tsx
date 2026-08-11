@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -16,8 +16,13 @@ import { AsanaSuggestionRow } from "@/components/AsanaTasksCard";
 import { WEBSITE_STAGES, labels, pillClass } from "@/lib/status";
 import { toast } from "sonner";
 
+// ARCHIVED: the Website board is disabled. Nav link removed and direct visits
+// redirect home. To restore: re-add the nav item in AppShell and swap the
+// beforeLoad below back to the original loader.
 export const Route = createFileRoute("/_authenticated/website")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(websiteTasksQuery()),
+  beforeLoad: () => {
+    throw redirect({ to: "/" });
+  },
   component: WebsiteBoard,
 });
 
