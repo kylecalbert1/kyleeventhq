@@ -218,6 +218,7 @@ function SentMessagesPage() {
                   setEventFilter("all");
                   setFrom("");
                   setTo("");
+                  setSearch("");
                 }}
               >
                 Clear
