@@ -1350,18 +1350,21 @@ export type Database = {
         Row: {
           email_signature_html: string
           excluded_ticket_types: string[]
+          sponsor_watch_emails: string[]
           updated_at: string
           user_id: string
         }
         Insert: {
           email_signature_html?: string
           excluded_ticket_types?: string[]
+          sponsor_watch_emails?: string[]
           updated_at?: string
           user_id: string
         }
         Update: {
           email_signature_html?: string
           excluded_ticket_types?: string[]
+          sponsor_watch_emails?: string[]
           updated_at?: string
           user_id?: string
         }
