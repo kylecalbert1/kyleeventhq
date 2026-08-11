@@ -10,6 +10,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { fuzzyScore } from "@/lib/fuzzy-search";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export type SearchableOption = {
@@ -90,7 +91,11 @@ export function SearchableSelect({
         className={cn("p-0 w-[var(--radix-popover-trigger-width)] min-w-[240px]", className)}
         align="start"
       >
-        <Command>
+        <Command
+          // Typo-tolerant, word-order-independent matching shared with every
+          // other search bar in the app; cmdk sorts by this score descending.
+          filter={(value, search) => fuzzyScore(search, value)}
+        >
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
