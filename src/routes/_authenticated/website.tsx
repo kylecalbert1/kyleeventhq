@@ -16,8 +16,13 @@ import { AsanaSuggestionRow } from "@/components/AsanaTasksCard";
 import { WEBSITE_STAGES, labels, pillClass } from "@/lib/status";
 import { toast } from "sonner";
 
+// ARCHIVED: the Website board is disabled. Nav link removed and direct visits
+// redirect home. To restore: re-add the nav item in AppShell and swap the
+// beforeLoad below back to the original loader.
 export const Route = createFileRoute("/_authenticated/website")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(websiteTasksQuery()),
+  beforeLoad: () => {
+    throw redirect({ to: "/" });
+  },
   component: WebsiteBoard,
 });
 
