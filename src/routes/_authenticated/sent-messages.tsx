@@ -137,6 +137,19 @@ function SentMessagesPage() {
 
       <Card className="surface-card rounded-2xl p-4">
         <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1.5 min-w-[260px] flex-1">
+            <Label className="text-xs">Search</Label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <Input
+                className="h-9 pl-8"
+                placeholder="Search subject, template, event or recipient…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className="space-y-1.5 min-w-[220px]">
             <Label className="text-xs">Event</Label>
             <Select value={eventFilter} onValueChange={setEventFilter}>
