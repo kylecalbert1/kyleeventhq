@@ -24,6 +24,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { emailSendsQuery, eventsQuery } from "@/lib/queries";
 import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
 import { cn } from "@/lib/utils";
+import { fuzzyFilter } from "@/lib/fuzzy-search";
 import { SentMessagePanel, RecipientsPanel } from "@/components/email-history/SentMessagePanel";
 
 export const Route = createFileRoute("/_authenticated/sent-messages")({
