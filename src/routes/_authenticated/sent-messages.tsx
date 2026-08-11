@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronRight,
   CalendarDays,
+  Search,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
