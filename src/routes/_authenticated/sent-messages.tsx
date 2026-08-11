@@ -85,6 +85,7 @@ function SentMessagesPage() {
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const eventNameById = useMemo(() => {
@@ -98,7 +99,7 @@ function SentMessagesPage() {
   const sends = sendsQ.data ?? [];
 
   const filtered = useMemo(() => {
-    return sends.filter((s) => {
+    const base = sends.filter((s) => {
       if (eventFilter === "none" && s.event_id) return false;
       if (eventFilter !== "all" && eventFilter !== "none" && s.event_id !== eventFilter)
         return false;
@@ -107,10 +108,16 @@ function SentMessagesPage() {
       if (to && day > to) return false;
       return true;
     });
-  }, [sends, eventFilter, from, to]);
+    return fuzzyFilter(base, search, (s) => [
+      s.subject,
+      TEMPLATE_LABELS[s.template_type],
+      s.event_id ? eventNameById.get(s.event_id) : null,
+      ...s.email_send_recipients.flatMap((r) => [r.recipient_name, r.recipient_email]),
+    ]);
+  }, [sends, eventFilter, from, to, search, eventNameById]);
 
   const totalRecipients = filtered.reduce((n, s) => n + s.recipient_count, 0);
-  const hasFilters = eventFilter !== "all" || !!from || !!to;
+  const hasFilters = eventFilter !== "all" || !!from || !!to || !!search;
 
   return (
     <div className="space-y-5">
