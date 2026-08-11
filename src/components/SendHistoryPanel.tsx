@@ -6,7 +6,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { emailSendsQuery } from "@/lib/queries";
 import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
 import { cn } from "@/lib/utils";
-import { toEmailHtml } from "@/lib/email-format";
+import { SentMessagePanel, RecipientsPanel } from "@/components/email-history/SentMessagePanel";
 
 function fmt(iso: string) {
   const d = new Date(iso);
