@@ -113,27 +113,12 @@ export function SendHistoryPanel({
                       </div>
                     </button>
                     {isOpen && (
-                      <div className="mt-2 ml-6 rounded-lg bg-slate-50 border border-slate-200/70 p-3">
-                        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-                          Recipients
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {s.email_send_recipients.length === 0 ? (
-                            <span className="text-xs text-slate-500">-</span>
-                          ) : (
-                            s.email_send_recipients.map((r) => (
-                              <span
-                                key={r.id}
-                                className="inline-flex items-center rounded-full bg-white ring-1 ring-slate-200 px-2 py-0.5 text-[11px] text-slate-700"
-                                title={r.recipient_email ?? undefined}
-                              >
-                                {r.recipient_name ?? r.recipient_email ?? "Unknown"}
-                              </span>
-                            ))
-                          )}
-                        </div>
+                      <div className="mt-2 ml-6 space-y-2">
+                        <SentMessagePanel subject={s.subject} body={s.body} />
+                        <RecipientsPanel recipients={s.email_send_recipients} />
                       </div>
                     )}
+
                   </li>
                 );
               })}
