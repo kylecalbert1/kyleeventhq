@@ -32,6 +32,7 @@ import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { useContactHistory, useTrackedByEmails } from "@/hooks/use-contact-history";
 import { JobTitleFilter, parseKeywordList, matchesJobTitleFilters } from "@/components/tito/JobTitleFilter";
 import { TicketTypeFilter, matchesTicketTypeFilters } from "@/components/tito/TicketTypeFilter";
+import { fuzzyMatch } from "@/lib/fuzzy-search";
 
 
 
@@ -134,9 +135,7 @@ function TitoEventDetail() {
       if (contactFilter === "never" && hist && hist.count > 0) return false;
       if (contactFilter === "contacted" && (!hist || hist.count === 0)) return false;
       if (!matchesJobTitleFilters(t.job_title, inc, exc)) return false;
-      if (!term) return true;
-      const hay = `${t.name ?? ""} ${t.email ?? ""} ${t.company_name ?? ""} ${t.job_title ?? ""}`.toLowerCase();
-      return hay.includes(term);
+      return fuzzyMatch(term, t.name, t.email, t.company_name, t.job_title);
     });
   }, [tickets, q, ticketInclude, ticketExclude, tagFilter, contactFilter, hideTracked, jobTitleInclude, jobTitleExclude, lookupHistory, lookupTracked]);
 

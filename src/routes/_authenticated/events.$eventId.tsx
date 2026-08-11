@@ -70,6 +70,7 @@ import { agendaItemsQuery } from "@/lib/queries";
 import { listDraftsForEvent, assignSpeakerToAgendaItem } from "@/lib/speaker-drafts.functions";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { toast } from "sonner";
+import { fuzzyFilter } from "@/lib/fuzzy-search";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
   loader: ({ params, context }) =>
@@ -508,12 +509,12 @@ function EventDetail() {
 
         {(() => {
           const term = speakerQ.trim().toLowerCase();
-          const searched = term
-            ? allSpeakers.filter((s) => {
-                const hay = `${s.name ?? ""} ${s.company ?? ""} ${s.email ?? ""} ${s.title ?? ""}`.toLowerCase();
-                return hay.includes(term);
-              })
-            : allSpeakers;
+          const searched = fuzzyFilter(allSpeakers, term, (s) => [
+            s.name,
+            s.company,
+            s.email,
+            s.title,
+          ]);
           const filtered = applyFilter(searched);
           const selectedIds = Object.keys(selected).filter((k) => selected[k]);
           const selectedSpeakers = filtered.filter((s) => selected[s.id]);

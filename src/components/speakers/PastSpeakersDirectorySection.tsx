@@ -23,6 +23,7 @@ import {
 } from "@/lib/directory.functions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { fuzzyFilter } from "@/lib/fuzzy-search";
 
 export function PastSpeakersDirectorySection() {
   const [includeAttendees, setIncludeAttendees] = useState(false);
@@ -35,15 +36,7 @@ export function PastSpeakersDirectorySection() {
   const rows = dirQ.data ?? [];
 
   const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    const base = rows;
-    if (!term) return base;
-    // Multi-term AND across name/company/email
-    const terms = term.split(/\s+/).filter(Boolean);
-    return base.filter((p) => {
-      const hay = `${p.name} ${p.company ?? ""} ${p.email} ${p.job_title ?? ""}`.toLowerCase();
-      return terms.every((t) => hay.includes(t));
-    });
+    return fuzzyFilter(rows, q, (p) => [p.name, p.company, p.email, p.job_title]);
   }, [rows, q]);
 
   const selectedRows = filtered.filter((p) => selected[p.key]);

@@ -65,6 +65,7 @@ import { useContactHistory } from "@/hooks/use-contact-history";
 import { DiscoveryView } from "@/components/speakers/DiscoveryView";
 import { PastSpeakersDirectorySection } from "@/components/speakers/PastSpeakersDirectorySection";
 import { isPastEvent } from "@/lib/event-lifecycle";
+import { fuzzyMatch } from "@/lib/fuzzy-search";
 
 const searchSchema = z.object({
   attention: z.enum(["reply", "follow_up", "any"]).optional(),
@@ -201,10 +202,7 @@ function SpeakerBoard() {
         if (attentionFilter === "follow_up" && a.type !== "follow_up") return false;
         if (attentionFilter === "any" && a.type !== "reply" && a.type !== "follow_up") return false;
       }
-      if (term) {
-        const hay = `${s.name ?? ""} ${s.company ?? ""} ${s.email ?? ""}`.toLowerCase();
-        if (!hay.includes(term)) return false;
-      }
+      if (term && !fuzzyMatch(term, s.name, s.company, s.email)) return false;
       return true;
     });
   }, [speakers.data, eventFilter, lineFilter, channelFilter, missingBH, callScheduledOnly, attentionFilter, q, eventById]);

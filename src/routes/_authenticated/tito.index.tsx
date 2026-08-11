@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { listTitoEventsWithStats } from "@/lib/tito.functions";
 import { cn } from "@/lib/utils";
+import { fuzzyMatch } from "@/lib/fuzzy-search";
 
 export const Route = createFileRoute("/_authenticated/tito/")({
   component: TitoArchive,
@@ -93,13 +94,10 @@ function TitoArchive() {
   }, [decorated]);
 
   const filtered = useMemo(() => {
-    const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const rows = decorated.filter((e: any) => {
       if (year !== "all" && e._year !== year) return false;
       if (location !== "all" && e._city !== location) return false;
-      if (!terms.length) return true;
-      const hay = `${e.title ?? ""} ${e.slug ?? ""} ${e._city ?? ""} ${e._year ?? ""}`.toLowerCase();
-      return terms.every((t) => hay.includes(t));
+      return fuzzyMatch(q, e.title, e.slug, e._city, String(e._year ?? ""));
     });
     return [...rows].sort((a, b) => {
       const ta = a.start_date ? new Date(a.start_date).getTime() : -Infinity;

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { eventsQuery } from "@/lib/queries";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
 import { isPastEvent } from "@/lib/event-lifecycle";
+import { fuzzyFilter } from "@/lib/fuzzy-search";
 
 export const Route = createFileRoute("/_authenticated/outreach")({
   loader: ({ context }) => context.queryClient.ensureQueryData(eventsQuery),
@@ -23,12 +24,7 @@ function OutreachPage() {
       const db = b.event_date ? new Date(b.event_date).getTime() : 0;
       return db - da;
     });
-    const needle = q.trim().toLowerCase();
-    const filtered = needle
-      ? sorted.filter((e: any) =>
-          `${e.code ?? ""} ${e.name ?? ""}`.toLowerCase().includes(needle),
-        )
-      : sorted;
+    const filtered = fuzzyFilter(sorted, q, (e: any) => [e.code, e.name]);
     const upcoming = filtered.filter((e: any) => !isPastEvent(e));
     const past = filtered.filter((e: any) => isPastEvent(e));
     // Upcoming: soonest first
