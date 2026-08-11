@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronRight,
   CalendarDays,
+  Search,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { emailSendsQuery, eventsQuery } from "@/lib/queries";
 import { TEMPLATE_LABELS, type TemplateType } from "@/lib/email-sends.functions";
 import { cn } from "@/lib/utils";
+import { fuzzyFilter } from "@/lib/fuzzy-search";
 import { SentMessagePanel, RecipientsPanel } from "@/components/email-history/SentMessagePanel";
 
 export const Route = createFileRoute("/_authenticated/sent-messages")({
@@ -85,6 +87,7 @@ function SentMessagesPage() {
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const eventNameById = useMemo(() => {
@@ -98,7 +101,7 @@ function SentMessagesPage() {
   const sends = sendsQ.data ?? [];
 
   const filtered = useMemo(() => {
-    return sends.filter((s) => {
+    const base = sends.filter((s) => {
       if (eventFilter === "none" && s.event_id) return false;
       if (eventFilter !== "all" && eventFilter !== "none" && s.event_id !== eventFilter)
         return false;
@@ -107,10 +110,16 @@ function SentMessagesPage() {
       if (to && day > to) return false;
       return true;
     });
-  }, [sends, eventFilter, from, to]);
+    return fuzzyFilter(base, search, (s) => [
+      s.subject,
+      TEMPLATE_LABELS[s.template_type],
+      s.event_id ? eventNameById.get(s.event_id) : null,
+      ...s.email_send_recipients.flatMap((r) => [r.recipient_name, r.recipient_email]),
+    ]);
+  }, [sends, eventFilter, from, to, search, eventNameById]);
 
   const totalRecipients = filtered.reduce((n, s) => n + s.recipient_count, 0);
-  const hasFilters = eventFilter !== "all" || !!from || !!to;
+  const hasFilters = eventFilter !== "all" || !!from || !!to || !!search;
 
   return (
     <div className="space-y-5">
@@ -129,6 +138,19 @@ function SentMessagesPage() {
 
       <Card className="surface-card rounded-2xl p-4">
         <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1.5 min-w-[260px] flex-1">
+            <Label className="text-xs">Search</Label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <Input
+                className="h-9 pl-8"
+                placeholder="Search subject, template, event or recipient…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className="space-y-1.5 min-w-[220px]">
             <Label className="text-xs">Event</Label>
             <Select value={eventFilter} onValueChange={setEventFilter}>
@@ -196,6 +218,7 @@ function SentMessagesPage() {
                   setEventFilter("all");
                   setFrom("");
                   setTo("");
+                  setSearch("");
                 }}
               >
                 Clear
