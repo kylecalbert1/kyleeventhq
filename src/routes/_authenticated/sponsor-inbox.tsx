@@ -3,7 +3,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { queryOptions } from "@tanstack/react-query";
-import { MessageSquare, Check, Undo2, Inbox as InboxIcon, Mail } from "lucide-react";
+import {
+  MessageSquare,
+  Check,
+  Undo2,
+  Inbox as InboxIcon,
+  Mail,
+  RefreshCw,
+  Loader2,
+  Users,
+} from "lucide-react";
+import { toast } from "sonner";
+import { WatchedSendersDialog, userSettingsQuery } from "@/components/dialogs/WatchedSendersDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/StatusPill";
@@ -11,6 +22,7 @@ import { cn } from "@/lib/utils";
 import {
   listSponsorMentions,
   setSponsorMentionActioned,
+  scanSponsorMentions,
 } from "@/lib/sponsor-inbox.functions";
 import { eventsQuery } from "@/lib/queries";
 import { openGmailThread, gmailThreadUrl } from "@/lib/gmail";
@@ -48,6 +60,30 @@ function SponsorInboxPage() {
   const events = useQuery(eventsQuery);
   const setActioned = useServerFn(setSponsorMentionActioned);
   const [filter, setFilter] = useState<"unactioned" | "all">("unactioned");
+  const [sendersOpen, setSendersOpen] = useState(false);
+  const settings = useQuery(userSettingsQuery);
+  const watchedCount = settings.data?.sponsor_watch_emails?.length ?? 0;
+  const scanFn = useServerFn(scanSponsorMentions);
+
+  const scanMutation = useMutation({
+    mutationFn: () => scanFn({ data: { lookback_days: 14 } }),
+    onSuccess: (r) => {
+      if (!r.connected) {
+        toast.error("Gmail is not connected");
+        return;
+      }
+      if (r.watched === 0) {
+        toast.error("Add at least one watched sender first");
+        setSendersOpen(true);
+        return;
+      }
+      toast.success(
+        `Scanned ${r.scanned} thread${r.scanned === 1 ? "" : "s"} from ${r.watched} sender${r.watched === 1 ? "" : "s"} · ${r.created} new · ${r.updated} updated`,
+      );
+      qc.invalidateQueries({ queryKey: ["sponsorMentions"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Scan failed"),
+  });
 
   const eventById = useMemo(
     () => Object.fromEntries((events.data ?? []).map((e: any) => [e.id, e])),
@@ -78,10 +114,37 @@ function SponsorInboxPage() {
             Sponsor Inbox
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Sponsor email threads you've been looped into. Populated by the daily
-            scan.
+            Sponsor email threads you've been looped into. Scan Gmail for new
+            mentions from your watched senders.
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            onClick={() => setSendersOpen(true)}
+          >
+            <Users className="h-4 w-4 mr-1.5" />
+            Watched senders ({watchedCount})
+          </Button>
+          <Button
+            size="sm"
+            className="rounded-full"
+            onClick={() => scanMutation.mutate()}
+            disabled={scanMutation.isPending}
+          >
+            {scanMutation.isPending ? (
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-1.5" />
+            )}
+            Scan Gmail
+          </Button>
+        </div>
+      </header>
+
+      <div className="flex justify-end">
         <div className="flex gap-1 rounded-lg bg-muted p-1">
           <Button
             size="sm"
@@ -98,7 +161,9 @@ function SponsorInboxPage() {
             All
           </Button>
         </div>
-      </header>
+      </div>
+
+      <WatchedSendersDialog open={sendersOpen} onOpenChange={setSendersOpen} />
 
       {rows.length === 0 ? (
         <Card className="p-12 text-center text-muted-foreground">
