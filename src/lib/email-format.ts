@@ -27,6 +27,22 @@ export function markdownBoldToHtml(s: string): string {
  */
 export function toEmailHtml(body: string): string {
   const withBold = markdownBoldToHtml(body ?? "");
-  if (containsHtml(withBold)) return withBold;
-  return withBold.replace(/\n/g, "<br/>");
+  if (!containsHtml(withBold)) return withBold.replace(/\n/g, "<br/>");
+  // Mixed content: an HTML fragment (rich-text output, signature block) that
+  // still carries plain `\n` line breaks — e.g. a plain-text template joined
+  // onto an HTML signature. Those newlines would collapse into one run-on
+  // paragraph, so convert them too. Newlines that merely sit *between* tags
+  // are pretty-printing, not content, and are left alone.
+  return withBold.replace(/\n/g, (_m, offset: number, str: string) => {
+    const before = str.slice(0, offset).replace(/[ \t]+$/, "");
+    const after = str.slice(offset + 1).replace(/^[ \t]+/, "");
+    if (!before || !after) return "";
+    if (before.endsWith(">") && after.startsWith("<")) return "";
+    return "<br/>";
+  });
+}
+
+/** True when the body is HTML that must be sent as `text/html`. */
+export function looksLikeHtmlBody(body: string): boolean {
+  return containsHtml(body ?? "");
 }

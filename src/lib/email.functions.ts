@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { toEmailHtml, looksLikeHtmlBody } from "@/lib/email-format";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
@@ -83,7 +84,13 @@ export const sendGmailEmail = createServerFn({ method: "POST" })
       );
     }
 
-    const raw = buildRawEmail({ ...data, isHtml: data.isHtml });
+    // Defensive: any body that already contains HTML MUST go out as
+    // text/html, otherwise the recipient sees literal <br>/<div> tags. Callers
+    // that forget `isHtml` are auto-detected here rather than silently
+    // shipping raw markup as plain text.
+    const isHtml = data.isHtml ?? looksLikeHtmlBody(data.body);
+    const body = isHtml ? toEmailHtml(data.body) : data.body;
+    const raw = buildRawEmail({ to: data.to, subject: data.subject, body, isHtml });
     const res = await fetch(`${GATEWAY_URL}/users/me/messages/send`, {
       method: "POST",
       headers: {

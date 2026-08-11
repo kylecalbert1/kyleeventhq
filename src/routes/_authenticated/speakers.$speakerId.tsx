@@ -143,7 +143,7 @@ function SpeakerProfile() {
     setSending(true);
     try {
       await sendEmail({
-        data: { to: confirmEmail.to, subject: edited.subject, body: edited.body },
+        data: { to: confirmEmail.to, subject: edited.subject, body: edited.body, isHtml: true },
       });
       toast.success(`Sent to ${label}`, { id: t });
       try {
