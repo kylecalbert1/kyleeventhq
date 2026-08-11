@@ -261,32 +261,9 @@ function SentMessagesPage() {
                   </button>
 
                   {isOpen && (
-                    <div className="mt-2 ml-6 rounded-lg bg-slate-50 border border-slate-200/70 p-3">
-                      <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-                        Recipients
-                      </div>
-                      {s.email_send_recipients.length === 0 ? (
-                        <span className="text-xs text-slate-500">-</span>
-                      ) : (
-                        <ul className="grid gap-1 sm:grid-cols-2">
-                          {s.email_send_recipients.map((r) => (
-                            <li
-                              key={r.id}
-                              className="text-xs text-slate-700 truncate"
-                            >
-                              <span className="font-medium">
-                                {r.recipient_name ?? "Unknown"}
-                              </span>
-                              {r.recipient_email ? (
-                                <span className="text-slate-500">
-                                  {" "}
-                                  · {r.recipient_email}
-                                </span>
-                              ) : null}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                    <div className="mt-2 ml-6 space-y-2">
+                      <SentMessagePanel subject={s.subject} body={s.body} />
+                      <RecipientsPanel recipients={s.email_send_recipients} />
                     </div>
                   )}
                 </li>
