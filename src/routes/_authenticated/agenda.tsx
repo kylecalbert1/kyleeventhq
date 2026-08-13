@@ -183,10 +183,10 @@ function SelectedEventAgenda({ event }: { event: any }) {
       <div className="surface-card p-4 space-y-4">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {event.code ?? "Event"}
-            </div>
             <div className="text-lg font-semibold truncate">{event.name}</div>
+            {event.code && (
+              <div className="font-mono text-[11px] text-muted-foreground">{event.code}</div>
+            )}
             <div className="mt-1 text-xs text-muted-foreground flex items-center gap-3 flex-wrap">
               <span className="inline-flex items-center gap-1">
                 <CalendarDays className="h-3.5 w-3.5" />
@@ -358,10 +358,10 @@ function EventBrowseCard({ event, onPick }: { event: any; onPick: (id: string) =
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {event.code ?? "Event"}
-          </div>
           <div className="text-sm font-semibold truncate">{event.name}</div>
+          {event.code && (
+            <div className="font-mono text-[11px] text-muted-foreground">{event.code}</div>
+          )}
         </div>
         {hasExternal && (
           <span

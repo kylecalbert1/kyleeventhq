@@ -161,7 +161,7 @@ function ProofingBoard() {
               <SelectItem value="all">All events</SelectItem>
               {rows.map((r) => (
                 <SelectItem key={r.event.id} value={r.event.id}>
-                  {r.event.code} - {r.event.name}
+                  {r.event.name} · {r.event.code}
                 </SelectItem>
               ))}
             </SelectContent>
