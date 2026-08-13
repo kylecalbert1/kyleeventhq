@@ -190,12 +190,12 @@ export function SpeakerListCard({
     ? (agendaOptions ?? []).find((a) => a.id === assignedAgendaItemId)?.title ?? null
     : null;
 
+  // Bio/headshot deliberately excluded — it's an asset flag, not headline info.
   const missingFields: string[] = [];
   if (!s.email) missingFields.push("email");
-  if (!s.bio && !s.bio_received) missingFields.push("bio");
-  if (!s.headshot_url && !s.headshot_received) missingFields.push("headshot");
   if (!s.session_title) missingFields.push("session title");
   if (!s.linkedin_url) missingFields.push("LinkedIn");
+
 
   const linkedinSearchUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
     [s.name, s.company].filter(Boolean).join(" "),
