@@ -519,9 +519,22 @@ export function SendMessageDialog({
             <Mail className="h-4 w-4" />
             Send message
           </DialogTitle>
-          <p className="text-[13px] text-muted-foreground mt-1.5">
-            Pick an audience, tweak the copy, preview before it goes out.
-          </p>
+          <div className="mt-2 flex items-center gap-2.5 flex-wrap">
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full px-3 py-1 text-xs font-bold",
+                total > 0
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
+              {total} recipient{total === 1 ? "" : "s"}
+            </span>
+            <p className="text-[13px] text-muted-foreground">
+              Pick an audience, tweak the copy, preview before it goes out.
+            </p>
+          </div>
+
         </DialogHeader>
 
         {previewing ? (
