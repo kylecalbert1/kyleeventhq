@@ -457,14 +457,8 @@ function EventDetail() {
 
       <TitoEventPanel eventId={eventId} hasTitoSlug={Boolean((e as any).tito_slug)} />
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <EventPrioritiesStrip eventId={eventId} />
-        <AsanaTasksCard
-          eventId={eventId}
-          eventCode={(e as any).code}
-          asanaProjectGid={(e as any).asana_project_gid}
-        />
-      </div>
+      <EventPrioritiesStrip eventId={eventId} />
+
 
       <OutreachKitCard eventId={eventId} />
 
