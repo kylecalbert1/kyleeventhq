@@ -64,7 +64,6 @@ import { TitoEventPanel } from "@/components/events/TitoEventPanel";
 import { EventBoardLink } from "@/components/boards/EventBoardLink";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
 import { EventPrioritiesStrip } from "@/components/EventPrioritiesStrip";
-import { AsanaTasksCard } from "@/components/AsanaTasksCard";
 import { ConfirmationDraftsSection } from "@/components/ConfirmationDraftsSection";
 import { agendaItemsQuery } from "@/lib/queries";
 import { listDraftsForEvent, assignSpeakerToAgendaItem } from "@/lib/speaker-drafts.functions";
