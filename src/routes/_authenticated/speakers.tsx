@@ -117,7 +117,6 @@ const COLUMNS = [
   { key: "responded", title: "Responded", accent: "border-t-violet-400", dot: "bg-violet-400" },
   { key: "confirmed", title: "Confirmed", accent: "border-t-emerald-500", dot: "bg-emerald-500" },
   { key: "banner_sent", title: "Banner Sent", accent: "border-t-amber-500", dot: "bg-amber-500" },
-  { key: "bio_headshot_in", title: "Bio/Headshot In", accent: "border-t-teal-500", dot: "bg-teal-500" },
 ] as const;
 
 type StageFilter = "all" | ColKey;
@@ -134,10 +133,9 @@ function patchForColumn(target: ColKey): Record<string, any> {
       return { status: "confirmed" };
     case "banner_sent":
       return { status: "confirmed", banner_status: "sent" };
-    case "bio_headshot_in":
-      return { bio_and_headshot_received: true, bio_received: true, headshot_received: true };
   }
 }
+
 
 type SortKey = "stalest" | "name" | "event" | "status";
 type ViewMode = "list" | "board";
