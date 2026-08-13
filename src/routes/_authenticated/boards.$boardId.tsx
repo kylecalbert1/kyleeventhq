@@ -14,6 +14,7 @@ import {
   ChevronUp,
   GripVertical,
   Loader2,
+  RefreshCw,
   UserPlus,
   Download,
 } from "lucide-react";
@@ -141,6 +142,17 @@ function BoardPage() {
   });
 
   const board = q.data?.board;
+  const asanaLinked = Boolean((board as any)?.asana_project_gid);
+  const refreshAsanaFn = useServerFn(refreshBoardFromAsana);
+  const refreshAsana = useMutation({
+    mutationFn: () => refreshAsanaFn({ data: { board_id: boardId } }),
+    onSuccess: (r: any) => {
+      qc.invalidateQueries({ queryKey: ["speakerBoard", boardId] });
+      qc.invalidateQueries({ queryKey: ["speakers"] });
+      toast.success(`Synced from Asana — ${r.created} new, ${r.matched} updated`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Sync failed"),
+  });
   const columns = q.data?.columns ?? [];
   const speakers = q.data?.speakers ?? [];
 
