@@ -515,5 +515,91 @@ export const importAsanaBoard = createServerFn({ method: "POST" })
     return importAsanaProjectToBoard(context.supabase, {
       board_id: data.board_id,
       project_gid: gid,
+      project_url: /^https?:/i.test(data.project.trim()) ? data.project.trim() : null,
     });
+  });
+
+/** Save (or clear) the Asana board link this board stays synced with. */
+export const setBoardAsanaLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ board_id: z.string().uuid(), project: z.string().nullable() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { parseAsanaProject } = await import("@/lib/asana-board-import.server");
+    const raw = data.project?.trim() ?? "";
+    const patch = raw
+      ? {
+          asana_project_gid: parseAsanaProject(raw),
+          asana_project_url: /^https?:/i.test(raw) ? raw : null,
+        }
+      : { asana_project_gid: null, asana_project_url: null, asana_last_synced_at: null };
+    if (raw && !patch.asana_project_gid)
+      throw new Error("Couldn't read an Asana project id from that link.");
+    const { error } = await context.supabase
+      .from("speaker_boards")
+      .update(patch as never)
+      .eq("id", data.board_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Re-pull columns, cards and status from the board's saved Asana link. */
+export const refreshBoardFromAsana = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ board_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { importAsanaProjectToBoard } = await import("@/lib/asana-board-import.server");
+    const { data: board, error } = await context.supabase
+      .from("speaker_boards")
+      .select("id, asana_project_gid")
+      .eq("id", data.board_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!board?.asana_project_gid)
+      throw new Error("No Asana board is linked yet — use Import from Asana once to link one.");
+    return importAsanaProjectToBoard(context.supabase, {
+      board_id: board.id,
+      project_gid: board.asana_project_gid,
+    });
+  });
+
+/**
+ * Summary of an event's speaker board for the event page: board id, the saved
+ * Asana link, and how many people are confirmed vs still prospective.
+ */
+export const getEventBoardSummary = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ event_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: board, error } = await context.supabase
+      .from("speaker_boards")
+      .select("*")
+      .eq("event_id", data.event_id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!board) return { board: null, confirmed: 0, prospective: 0, declined: 0 };
+
+    const { data: cols } = await context.supabase
+      .from("speaker_board_columns")
+      .select("id")
+      .eq("board_id", board.id);
+    const ids = (cols ?? []).map((c) => c.id);
+    let confirmed = 0;
+    let prospective = 0;
+    let declined = 0;
+    if (ids.length) {
+      const { data: rows } = await context.supabase
+        .from("speakers")
+        .select("id, status")
+        .in("board_column_id", ids);
+      for (const r of rows ?? []) {
+        if (r.status === "confirmed") confirmed++;
+        else if (r.status === "declined") declined++;
+        else prospective++;
+      }
+    }
+    return { board, confirmed, prospective, declined };
   });
