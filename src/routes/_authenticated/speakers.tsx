@@ -393,13 +393,18 @@ function SpeakerBoard() {
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-8 animate-fade-in">
+      <Card className="mb-5 rounded-xl border-amber-200 bg-amber-50/60 px-4 py-3 text-xs text-amber-900">
+        This is a secondary cross-event view for searching and re-recruiting. Day to day, open an
+        event and work its own speaker list or board.
+      </Card>
       <div className="flex items-end justify-between mb-6 gap-4 flex-wrap">
         <div>
           <div className="accent-bar mb-3" />
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
             <LayoutGrid className="h-6 w-6 text-primary" />
-            Speaker pipeline
+            All speakers (cross-event)
           </h1>
+
           <p className="text-sm text-muted-foreground mt-1">
             {view === "board"
               ? "Drag cards to move speakers between stages."
