@@ -155,7 +155,6 @@ export function SpeakerListCard({
   agendaOptions,
   assignedAgendaItemId,
   onAssignAgendaItem,
-  draftReady,
 }: {
   s: any;
   ev: any;
@@ -171,7 +170,6 @@ export function SpeakerListCard({
   agendaOptions?: Array<{ id: string; title: string }>;
   assignedAgendaItemId?: string | null;
   onAssignAgendaItem?: (id: string | null) => void;
-  draftReady?: boolean;
 }) {
   const colKey = columnFor(s);
   const stage = stagePill[colKey];
@@ -278,11 +276,6 @@ export function SpeakerListCard({
                 )}
                 {showEventChip && ev?.code && (
                   <StatusPill className={cn(eventChipCls, "text-[11px]")}>{ev.code}</StatusPill>
-                )}
-                {draftReady && (
-                  <StatusPill className="text-[11px] bg-amber-500 text-white ring-amber-500 font-semibold">
-                    ✉︎ Draft ready
-                  </StatusPill>
                 )}
                 {alert && (alert.type === "reply" || alert.type === "follow_up") && (
                   <StatusPill className={cn(alert.cls, "text-[11px] font-semibold")}>
