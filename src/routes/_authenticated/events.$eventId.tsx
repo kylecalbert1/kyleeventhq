@@ -65,9 +65,8 @@ import { TitoEventPanel } from "@/components/events/TitoEventPanel";
 import { EventBoardLink } from "@/components/boards/EventBoardLink";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
 import { EventPrioritiesStrip } from "@/components/EventPrioritiesStrip";
-import { ConfirmationDraftsSection } from "@/components/ConfirmationDraftsSection";
 import { agendaItemsQuery } from "@/lib/queries";
-import { listDraftsForEvent, assignSpeakerToAgendaItem } from "@/lib/speaker-drafts.functions";
+import { assignSpeakerToAgendaItem } from "@/lib/speaker-drafts.functions";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { toast } from "sonner";
 import { fuzzyFilter } from "@/lib/fuzzy-search";
@@ -287,16 +286,6 @@ function EventDetail() {
   }, [agenda.data]);
   const assignFn = useServerFn(assignSpeakerToAgendaItem);
 
-  // Pending confirmation drafts for badge on speaker cards.
-  const draftsQuery = useQuery({
-    queryKey: ["speakerDrafts", eventId],
-    queryFn: () => listDraftsForEvent({ data: { event_id: eventId } }),
-  });
-  const draftBySpeakerId = useMemo(() => {
-    const s = new Set<string>();
-    for (const d of draftsQuery.data ?? []) s.add(d.speaker_id);
-    return s;
-  }, [draftsQuery.data]);
 
 
   const eventDate = e.event_date ? new Date(e.event_date) : null;
@@ -476,8 +465,6 @@ function EventDetail() {
 
       <OutreachKitCard eventId={eventId} />
 
-      <ConfirmationDraftsSection eventId={eventId} />
-
       {/* Speakers section: one search bar + one filter row */}
       <section className="space-y-3">
         <div className="accent-bar mb-2" />
@@ -615,7 +602,6 @@ function EventDetail() {
                           await updateSpeaker({ data: { id: s.id, patch: { status: next } } });
                           await qc.invalidateQueries({ queryKey: ["speakers", eventId] });
                           await qc.invalidateQueries({ queryKey: ["eventReconciliation", eventId] });
-                          await qc.invalidateQueries({ queryKey: ["speakerDrafts", eventId] });
                           toast.success(`Status set to ${next}`);
                         } catch (err) {
                           toast.error(err instanceof Error ? err.message : "Couldn't update status");
@@ -635,7 +621,6 @@ function EventDetail() {
                           toast.error(err instanceof Error ? err.message : "Assignment failed");
                         }
                       }}
-                      draftReady={draftBySpeakerId.has(s.id)}
                     />
                   ))}
                 </div>
