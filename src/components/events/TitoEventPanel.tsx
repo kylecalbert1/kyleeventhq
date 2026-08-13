@@ -180,103 +180,10 @@ export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasT
         )}
       </Card>
 
-      {recon.data && (
-        <Card className="p-5 rounded-2xl border-slate-200/70">
-          <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Link2 className="h-4 w-4 text-indigo-600" /> Reconciliation
-          </h2>
+      {/* Reconciliation panel removed from the event detail page (too noisy).
+          The underlying reconciliation query/mutations stay intact and are still
+          used for the "Registered / Not yet registered" speaker filters. */}
 
-          <ReconGroup
-            title="Confirmed but not registered on Tito"
-            help="These confirmed speakers have no Speaker Pass / Speaker Guest ticket. Nudge them to register."
-            count={recon.data.needsRegistration.length}
-          >
-            {recon.data.needsRegistration.map((s: any) => (
-              <RowLine key={s.id}
-                left={<>
-                  <div className="font-medium text-sm">{s.name}</div>
-                  <div className="text-xs text-muted-foreground">{s.email ?? "no email"}</div>
-                </>}
-                right={
-                  links?.speaker_pass_link ? (
-                    <Button size="sm" variant="outline" onClick={() => copy(links.speaker_pass_link!, "Speaker Pass link")}>
-                      <Copy className="h-3 w-3 mr-1" /> Copy link
-                    </Button>
-                  ) : null
-                }
-              />
-            ))}
-          </ReconGroup>
-
-          <ReconGroup
-            title="Speaker Pass/Guest holders not in tracker"
-            help="They registered on Tito but aren't in your speaker list. Backfill with one click."
-            count={recon.data.notInTracker.length}
-          >
-            {recon.data.notInTracker.map((t: any) => {
-              const label = t.name ?? [t.first_name, t.last_name].filter(Boolean).join(" ");
-              return (
-                <RowLine key={t.id}
-                  left={<>
-                    <div className="font-medium text-sm">{label}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {t.email ?? "-"} · {t.release_title ?? "-"}
-                    </div>
-                  </>}
-                  right={
-                    <Button size="sm" variant="outline"
-                      onClick={() => backfillMut.mutate(t.id)}
-                      disabled={backfillMut.isPending}
-                    >
-                      <UserPlus className="h-3 w-3 mr-1" /> Add to tracker
-                    </Button>
-                  }
-                />
-              );
-            })}
-          </ReconGroup>
-
-          <ReconGroup
-            title="Likely matches (different email)"
-            help="Same name, different email. Confirm to link the tracker speaker to the Tito ticket."
-            count={recon.data.likelyMatches.length}
-          >
-            {recon.data.likelyMatches.map((m: any) => (
-              <RowLine key={`${m.speaker.id}-${m.ticket.id}`}
-                left={<>
-                  <div className="font-medium text-sm">{m.speaker.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    Tracker: {m.speaker.email ?? "-"} · Tito: {m.ticket.email ?? "-"} · {(m.score * 100).toFixed(0)}% match
-                  </div>
-                </>}
-                right={
-                  <Button size="sm" variant="outline"
-                    onClick={() => linkMut.mutate({ speaker_id: m.speaker.id, ticket_id: m.ticket.id })}
-                    disabled={linkMut.isPending}
-                  >
-                    <LinkIcon className="h-3 w-3 mr-1" /> Confirm link
-                  </Button>
-                }
-              />
-            ))}
-          </ReconGroup>
-
-          {recon.data.unreachable.length > 0 && (
-            <ReconGroup
-              title="Confirmed speakers with no email"
-              help="Can't be reconciled or emailed. Add an email in the speaker record."
-              count={recon.data.unreachable.length}
-            >
-              {recon.data.unreachable.map((s: any) => (
-                <RowLine key={s.id}
-                  left={<div className="font-medium text-sm">{s.name}</div>}
-                  right={null}
-                />
-              ))}
-            </ReconGroup>
-          )}
-        </Card>
-      )}
     </div>
   );
 }
