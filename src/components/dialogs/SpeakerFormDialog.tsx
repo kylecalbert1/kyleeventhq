@@ -166,7 +166,7 @@ export function SpeakerFormDialog({
                   .filter((e) => showPastEvents || !isPastEvent(e) || e.id === form.event_id)
                   .map((e) => (
                     <SelectItem key={e.id} value={e.id}>
-                      {e.code} - {e.name}
+                      {e.name} · {e.code}
                       {isPastEvent(e) ? " (past)" : ""}
                     </SelectItem>
                   ))}

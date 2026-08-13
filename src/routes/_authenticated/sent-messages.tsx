@@ -94,7 +94,7 @@ function SentMessagesPage() {
   const eventNameById = useMemo(() => {
     const m = new Map<string, string>();
     for (const e of eventsQ.data ?? []) {
-      m.set(e.id, e.code ? `${e.code} - ${e.name}` : e.name);
+      m.set(e.id, e.code ? `${e.name} · ${e.code}` : e.name);
     }
     return m;
   }, [eventsQ.data]);
@@ -174,7 +174,7 @@ function SentMessagesPage() {
                 <SelectItem value="none">No event</SelectItem>
                 {(eventsQ.data ?? []).map((e) => (
                   <SelectItem key={e.id} value={e.id}>
-                    {e.code ? `${e.code} - ${e.name}` : e.name}
+                    {e.code ? `${e.name} · ${e.code}` : e.name}
                   </SelectItem>
                 ))}
               </SelectContent>

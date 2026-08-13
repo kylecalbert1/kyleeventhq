@@ -112,7 +112,7 @@ function AsanaPage() {
                 <SelectItem value="__all">All events</SelectItem>
                 {eventOptions.map((ev: any) => (
                   <SelectItem key={ev.id} value={ev.id}>
-                    {ev.code} — {ev.name}
+                    {ev.name} · {ev.code}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -155,7 +155,7 @@ function AsanaPage() {
                       params={{ eventId: t.event_id }}
                       className="text-[11px] text-slate-500 hover:text-slate-700"
                     >
-                      <span className="font-mono">{t.events.code}</span> — {t.events.name}
+                      {t.events.name} <span className="font-mono">· {t.events.code}</span>
                     </Link>
                   )}
                 </div>

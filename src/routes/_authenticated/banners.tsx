@@ -127,7 +127,7 @@ function Banners() {
             <SelectItem value="all">All events</SelectItem>
             {(events.data ?? []).map((e) => (
               <SelectItem key={e.id} value={e.id}>
-                {e.code} - {e.name}
+                {e.name} · {e.code}
               </SelectItem>
             ))}
           </SelectContent>

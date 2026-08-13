@@ -138,7 +138,7 @@ function BoardGroup({
               <div className="text-sm font-semibold truncate">{b.name}</div>
               <div className="text-xs text-muted-foreground truncate mt-0.5">
                 {b.event
-                  ? `${b.event.code} · ${b.event.event_date ? new Date(b.event.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "no date"}`
+                  ? `${b.event.name} · ${b.event.code} · ${b.event.event_date ? new Date(b.event.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "no date"}`
                   : "Standalone board"}
               </div>
               <div className="mt-3 text-xs text-muted-foreground tabular-nums">

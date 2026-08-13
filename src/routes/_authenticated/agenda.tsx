@@ -94,7 +94,7 @@ function AgendaPage() {
             onValueChange={setEventId}
             options={sorted.map((e: any) => ({
               value: e.id,
-              label: `${e.code ? `${e.code} - ` : ""}${e.name}`,
+              label: `${e.name}${e.code ? ` · ${e.code}` : ""}`,
             }))}
           />
           {selected && (

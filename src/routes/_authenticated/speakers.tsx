@@ -1049,7 +1049,7 @@ function CopyPastSpeakerDialog({
             onValueChange={setTarget}
             options={(events.data ?? []).map((e) => ({
               value: e.id,
-              label: `${e.code} - ${e.name}`,
+              label: `${e.name} · ${e.code}`,
               keywords: e.name,
             }))}
           />
