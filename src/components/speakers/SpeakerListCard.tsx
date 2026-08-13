@@ -5,9 +5,7 @@ import {
   Eye,
   Reply,
   Clock,
-  AlertTriangle,
   MessageSquare,
-  Inbox,
   CalendarCheck,
   Search as SearchIcon,
   Mic,
@@ -18,7 +16,6 @@ import { StatusPill } from "@/components/StatusPill";
 import { initialsOf } from "@/lib/gmail";
 import {
   labels,
-  pillClass,
   daysBetween,
   type OutreachChannel,
 } from "@/lib/status";
@@ -50,8 +47,6 @@ export const softCard =
   "bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.05)] hover:shadow-[0_2px_4px_rgba(15,23,42,0.06),0_10px_28px_rgba(15,23,42,0.08)] transition-all duration-200";
 
 export const eventChipCls = "bg-indigo-50 text-indigo-700 ring-indigo-200";
-export const missingChipCls =
-  "border border-orange-300 text-orange-800 bg-orange-50 ring-0";
 
 export type ColKey =
   | "new"
