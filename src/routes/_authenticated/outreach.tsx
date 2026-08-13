@@ -116,14 +116,18 @@ function OutreachPage() {
 
 function EventKit({ event }: { event: any }) {
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline gap-2 px-1">
-        <span className="text-sm font-semibold text-foreground">
-          {event.code ? `${event.code} — ` : ""}
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2.5 px-1">
+        <span className="text-base font-semibold text-foreground">
           {event.name}
         </span>
+        {event.code && (
+          <span className="rounded-full bg-muted px-2.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
+            {event.code}
+          </span>
+        )}
         {event.event_date && (
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {new Date(event.event_date).toLocaleDateString(undefined, {
               month: "short",
               day: "numeric",
@@ -136,3 +140,4 @@ function EventKit({ event }: { event: any }) {
     </div>
   );
 }
+
