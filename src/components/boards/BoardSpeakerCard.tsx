@@ -54,7 +54,7 @@ export function BoardSpeakerCard({
         onDragStart?.(e);
       }}
       onClick={onOpenDetail}
-      className={cn(softCard, "group relative p-3 cursor-pointer active:cursor-grabbing")}
+      className={cn(softCard, "group relative p-4 cursor-pointer active:cursor-grabbing")}
     >
       {onRemove && (
         <button
@@ -69,13 +69,13 @@ export function BoardSpeakerCard({
           <X className="h-3.5 w-3.5" />
         </button>
       )}
-      <div className="text-sm font-semibold leading-tight truncate pr-6">{s.name}</div>
+      <div className="text-sm font-semibold leading-snug truncate pr-6">{s.name}</div>
       {roleLine && (
-        <div className="mt-0.5 text-xs text-muted-foreground truncate">{roleLine}</div>
+        <div className="mt-1 text-xs leading-relaxed text-muted-foreground truncate">{roleLine}</div>
       )}
 
-      <div className="mt-2 flex flex-wrap items-center gap-1">
-        <StatusPill className={cn(chip.cls, "text-[10px]")}>{chip.label}</StatusPill>
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        <StatusPill className={cn(chip.cls, "text-[10px] px-2.5 py-1 font-semibold uppercase tracking-wide")}>{chip.label}</StatusPill>
         {showAlert && (
           <StatusPill className={cn(showAlert.cls, "text-[10px]")}>
             {AlertIcon ? <AlertIcon className="h-3 w-3" /> : null}
