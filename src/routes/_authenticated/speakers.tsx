@@ -85,12 +85,14 @@ export const Route = createFileRoute("/_authenticated/speakers")({
 function SpeakersPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const mode = search.mode ?? "pipeline";
+  // Discovery is the default: the day-to-day "my speakers" workflow lives on
+  // each event's page, where the list is already scoped to that event.
+  const mode = search.mode ?? "discover";
   return (
     <div className="min-h-screen bg-background">
       <div className="px-6 md:px-8 pt-6">
         <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm">
-          {(["pipeline", "discover"] as const).map((m) => (
+          {(["discover", "pipeline"] as const).map((m) => (
             <button
               key={m}
               type="button"
@@ -100,7 +102,7 @@ function SpeakersPage() {
                 mode === m ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900",
               )}
             >
-              {m === "pipeline" ? "My speakers" : "Find new candidates"}
+              {m === "discover" ? "Find new candidates" : "All speakers (cross-event)"}
             </button>
           ))}
         </div>
@@ -109,6 +111,7 @@ function SpeakersPage() {
     </div>
   );
 }
+
 
 const COLUMNS = [
   { key: "new", title: "New", accent: "border-t-slate-400", dot: "bg-slate-400" },
