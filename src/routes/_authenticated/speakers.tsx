@@ -749,10 +749,10 @@ function SpeakerBoardCard({
         e.dataTransfer.setData("text/plain", s.id);
         e.dataTransfer.effectAllowed = "move";
       }}
-      className={cn(softCard, "p-3 cursor-pointer active:cursor-grabbing")}
+      className={cn(softCard, "p-4 cursor-pointer active:cursor-grabbing")}
       onClick={onOpenDetail}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-3">
         <Checkbox
           className="mt-1"
           checked={selected}
@@ -761,38 +761,40 @@ function SpeakerBoardCard({
         />
         <div
           className={cn(
-            "h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-sm bg-gradient-to-br",
+            "h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-[12px] font-bold text-white shadow-sm bg-gradient-to-br",
             avatarGradient[colKey],
           )}
         >
           {initialsOf(s.name)}
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-semibold text-sm truncate leading-tight">{s.name}</div>
-          {s.company && (
-            <div className="text-xs text-slate-500 truncate">{s.company}</div>
-          )}
-          <div className="flex flex-wrap gap-1 mt-2">
-            <StatusPill className={cn(stage.cls, "text-[10px]")}>{stage.label}</StatusPill>
+        <div className="min-w-0 flex-1 space-y-2">
+          <div>
+            <div className="font-semibold text-sm truncate leading-snug">{s.name}</div>
+            {s.company && (
+              <div className="mt-0.5 text-xs leading-relaxed text-slate-500 truncate">
+                {s.company}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <StatusPill
+              className={cn(stage.cls, "text-[10px] px-2.5 py-1 font-semibold uppercase tracking-wide")}
+            >
+              {stage.label}
+            </StatusPill>
             {ev?.code && (
               <StatusPill className={cn(eventChipCls, "text-[10px]")}>{ev.code}</StatusPill>
             )}
             {alert && (alert.type === "reply" || alert.type === "follow_up") && (
-              <StatusPill className={cn(alert.cls, "text-[10px]")}>
+              <StatusPill className={cn(alert.cls, "text-[10px] font-semibold")}>
                 {alert.icon && <alert.icon className="h-3 w-3" />}
                 {alert.label}
               </StatusPill>
             )}
           </div>
-          <div className="mt-2 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-2 text-xs"
-              onClick={onEmail}
-              disabled={!s.email}
-            >
-              <Mail className="h-3.5 w-3.5 mr-1" /> Email
+          <div className="flex items-center gap-1.5 pt-0.5" onClick={(e) => e.stopPropagation()}>
+            <Button size="sm" className="h-8 px-3 text-xs" onClick={onEmail} disabled={!s.email}>
+              <Mail className="h-3.5 w-3.5 mr-1.5" /> Send email
             </Button>
             {s.linkedin_url && (
               <a
@@ -800,15 +802,15 @@ function SpeakerBoardCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Open LinkedIn profile"
-                className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-sky-50 text-sky-700 transition-colors"
+                className="inline-flex items-center justify-center rounded-md h-8 w-8 hover:bg-sky-50 text-sky-700 transition-colors"
               >
-                <Linkedin className="h-3.5 w-3.5" />
+                <Linkedin className="h-4 w-4" />
               </a>
             )}
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 px-2 text-xs ml-auto"
+              className="h-8 px-2 text-xs ml-auto text-slate-600"
               onClick={onOpenDetail}
             >
               <Eye className="h-3.5 w-3.5 mr-1" /> Details
@@ -819,6 +821,7 @@ function SpeakerBoardCard({
     </div>
   );
 }
+
 
 /* --------------------------- Lifecycle sections (list view) --------------------------- */
 // Groups a filtered speaker list into three independently-selectable sections:
