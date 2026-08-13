@@ -97,7 +97,7 @@ function WebsiteBoard() {
             </h1>
             <PageHelp
               title={"Website production"}
-              what={"Tracks each event"s website build from first proof to live, so nothing sits waiting on someone."}
+              what={"Tracks each event’s website build from first proof to live, so nothing sits waiting on someone."}
               steps={[
                 "Add a task for anything that needs doing on an event site.",
                 "Drag or update cards as they move through proofing to live.",

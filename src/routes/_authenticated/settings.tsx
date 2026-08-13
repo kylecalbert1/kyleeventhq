@@ -109,7 +109,7 @@ function SettingsPage() {
           title={"Settings"}
           what={"Your personal setup: email signature, watched senders, excluded ticket types, plus the health of the background syncs."}
           steps={[
-            "Set your email signature — it"s appended to every message you send.",
+            "Set your email signature — it’s appended to every message you send.",
             "Check sync health to confirm the nightly Tito and Asana jobs ran.",
             "Adjust ticket-type exclusions so bulk emails skip the wrong audiences.",
           ]}

@@ -68,8 +68,8 @@ function BoardsIndexPage() {
             title={"Speaker boards"}
             what={"A kanban board per event for moving speakers through the pipeline, plus any custom pools you create."}
             steps={[
-              "Open the board for the event you"re recruiting for.",
-              "Drag cards between columns — the speaker"s status updates automatically.",
+              "Open the board for the event you’re recruiting for.",
+              "Drag cards between columns — the speaker’s status updates automatically.",
               "Add speakers directly to a board or import a list.",
             ]}
           />

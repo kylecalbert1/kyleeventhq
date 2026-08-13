@@ -36,7 +36,7 @@ function MilestonesList() {
             </h1>
             <PageHelp
               title={"Kickoff & washup"}
-              what={"Planning and retrospective sessions across every event, so you can see what"s scheduled and what"s overdue."}
+              what={"Planning and retrospective sessions across every event, so you can see what’s scheduled and what’s overdue."}
               steps={[
                 "Add a milestone with its event and date.",
                 "Scan the list for sessions coming up.",

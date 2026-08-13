@@ -267,11 +267,11 @@ function EventsGrid() {
             </h1>
             <PageHelp
               title={"Events"}
-              what={"Your home page: every event you"re running, with speaker counts and how close each one is to its target. Start here and click into an event to work on it."}
+              what={"Your home page: every event you’re running, with speaker counts and how close each one is to its target. Start here and click into an event to work on it."}
               steps={[
                 "Search or filter to find the event you need.",
                 "Click an event card to open its speaker list and messaging tools.",
-                "Use the widgets up top for this week"s priorities and urgent events.",
+                "Use the widgets up top for this week’s priorities and urgent events.",
               ]}
             />
             <p className="text-sm text-slate-500 mt-0.5">Admin Dashboard</p>

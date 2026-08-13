@@ -126,8 +126,8 @@ function ProofingBoard() {
             title={"Proofing tracker"}
             what={"The website proofing cycle for every event in one board, with due dates pulled from Asana."}
             steps={[
-              "Find the event whose proof you"re chasing.",
-              "Drag its card to the stage it"s actually at.",
+              "Find the event whose proof you’re chasing.",
+              "Drag its card to the stage it’s actually at.",
               "Use the due dates to spot proofs that are slipping.",
             ]}
           />

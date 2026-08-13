@@ -116,7 +116,7 @@ function SponsorInboxPage() {
           </h1>
           <PageHelp
             title={"Sponsor inbox"}
-            what={"Sponsor email threads you"ve been copied into, pulled from Gmail so they don"t get lost in your inbox."}
+            what={"Sponsor email threads you’ve been copied into, pulled from Gmail so they don’t get lost in your inbox."}
             steps={[
               "Add the senders worth watching under "Watched senders".",
               "Hit "Scan Gmail" to pull in recent threads from those senders.",

@@ -88,7 +88,7 @@ function AsanaPage() {
             title={"Asana tasks"}
             what={"A read-only mirror of the milestone tasks in Asana (kick-off, proofs, launch), synced nightly. Nothing you do here writes back to Asana."}
             steps={[
-              "Browse by event to see what"s due next.",
+              "Browse by event to see what’s due next.",
               "Use it as a reference while planning — edit the real task in Asana.",
               "Dates feed the kickoff/launch info shown elsewhere in the app.",
             ]}
