@@ -54,7 +54,6 @@ import {
   SpeakerListCard,
   softCard,
   columnFor,
-  bioHeadshotDone,
   stagePill,
   avatarGradient,
   eventChipCls,
@@ -86,12 +85,14 @@ export const Route = createFileRoute("/_authenticated/speakers")({
 function SpeakersPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const mode = search.mode ?? "pipeline";
+  // Discovery is the default: the day-to-day "my speakers" workflow lives on
+  // each event's page, where the list is already scoped to that event.
+  const mode = search.mode ?? "discover";
   return (
     <div className="min-h-screen bg-background">
       <div className="px-6 md:px-8 pt-6">
         <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm">
-          {(["pipeline", "discover"] as const).map((m) => (
+          {(["discover", "pipeline"] as const).map((m) => (
             <button
               key={m}
               type="button"
@@ -101,7 +102,7 @@ function SpeakersPage() {
                 mode === m ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900",
               )}
             >
-              {m === "pipeline" ? "My speakers" : "Find new candidates"}
+              {m === "discover" ? "Find new candidates" : "All speakers (cross-event)"}
             </button>
           ))}
         </div>
@@ -111,13 +112,13 @@ function SpeakersPage() {
   );
 }
 
+
 const COLUMNS = [
   { key: "new", title: "New", accent: "border-t-slate-400", dot: "bg-slate-400" },
   { key: "contacted", title: "Contacted", accent: "border-t-sky-400", dot: "bg-sky-400" },
   { key: "responded", title: "Responded", accent: "border-t-violet-400", dot: "bg-violet-400" },
   { key: "confirmed", title: "Confirmed", accent: "border-t-emerald-500", dot: "bg-emerald-500" },
   { key: "banner_sent", title: "Banner Sent", accent: "border-t-amber-500", dot: "bg-amber-500" },
-  { key: "bio_headshot_in", title: "Bio/Headshot In", accent: "border-t-teal-500", dot: "bg-teal-500" },
 ] as const;
 
 type StageFilter = "all" | ColKey;
@@ -134,10 +135,9 @@ function patchForColumn(target: ColKey): Record<string, any> {
       return { status: "confirmed" };
     case "banner_sent":
       return { status: "confirmed", banner_status: "sent" };
-    case "bio_headshot_in":
-      return { bio_and_headshot_received: true, bio_received: true, headshot_received: true };
   }
 }
+
 
 type SortKey = "stalest" | "name" | "event" | "status";
 type ViewMode = "list" | "board";
@@ -157,7 +157,6 @@ function SpeakerBoard() {
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [lineFilter, setLineFilter] = useState<string>("all");
   const [channelFilter, setChannelFilter] = useState<string>("all");
-  const [missingBH, setMissingBH] = useState(false);
   const [attentionFilter, setAttentionFilter] = useState<"all" | "reply" | "follow_up" | "any">(
     search.attention ?? "all",
   );
@@ -193,7 +192,6 @@ function SpeakerBoard() {
           if (s.outreach_channel) return false;
         } else if (s.outreach_channel !== channelFilter) return false;
       }
-      if (missingBH && bioHeadshotDone(s)) return false;
       if (callScheduledOnly && !s.call_scheduled) return false;
       if (attentionFilter !== "all") {
         const a = outreachAlert(s);
@@ -205,12 +203,12 @@ function SpeakerBoard() {
       if (term && !fuzzyMatch(term, s.name, s.company, s.email)) return false;
       return true;
     });
-  }, [speakers.data, eventFilter, lineFilter, channelFilter, missingBH, callScheduledOnly, attentionFilter, q, eventById]);
+  }, [speakers.data, eventFilter, lineFilter, channelFilter, callScheduledOnly, attentionFilter, q, eventById]);
 
   // Stage counts (pre-stage-filter, so the dropdown shows real totals).
   const stageCounts = useMemo(() => {
     const c: Record<ColKey, number> = {
-      new: 0, contacted: 0, responded: 0, confirmed: 0, banner_sent: 0, bio_headshot_in: 0,
+      new: 0, contacted: 0, responded: 0, confirmed: 0, banner_sent: 0,
     };
     preStageFiltered.forEach((s: any) => { c[columnFor(s)]++; });
     return c;
@@ -268,7 +266,7 @@ function SpeakerBoard() {
   }, [candidatesSorted, eventById]);
 
   const grouped: Record<ColKey, any[]> = {
-    new: [], contacted: [], responded: [], confirmed: [], banner_sent: [], bio_headshot_in: [],
+    new: [], contacted: [], responded: [], confirmed: [], banner_sent: [],
   };
   pipelineSorted.forEach((s: any) => grouped[columnFor(s)].push(s));
 
@@ -378,7 +376,6 @@ function SpeakerBoard() {
     eventFilter !== "all" ||
     lineFilter !== "all" ||
     channelFilter !== "all" ||
-    missingBH ||
     attentionFilter !== "all" ||
     q.trim() !== "";
 
@@ -387,7 +384,6 @@ function SpeakerBoard() {
     setEventFilter("all");
     setLineFilter("all");
     setChannelFilter("all");
-    setMissingBH(false);
     setAttentionFilter("all");
     setQ("");
     navigate({ to: "/speakers", search: {} });
@@ -397,13 +393,18 @@ function SpeakerBoard() {
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-8 animate-fade-in">
+      <Card className="mb-5 rounded-xl border-amber-200 bg-amber-50/60 px-4 py-3 text-xs text-amber-900">
+        This is a secondary cross-event view for searching and re-recruiting. Day to day, open an
+        event and work its own speaker list or board.
+      </Card>
       <div className="flex items-end justify-between mb-6 gap-4 flex-wrap">
         <div>
           <div className="accent-bar mb-3" />
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
             <LayoutGrid className="h-6 w-6 text-primary" />
-            Speaker pipeline
+            All speakers (cross-event)
           </h1>
+
           <p className="text-sm text-muted-foreground mt-1">
             {view === "board"
               ? "Drag cards to move speakers between stages."
@@ -533,9 +534,6 @@ function SpeakerBoard() {
             </SelectContent>
           </Select>
 
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
-            <Checkbox checked={missingBH} onCheckedChange={(v) => setMissingBH(!!v)} /> Bio/headshot missing
-          </label>
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
             <Checkbox checked={callScheduledOnly} onCheckedChange={(v) => setCallScheduledOnly(!!v)} /> Call scheduled
           </label>
@@ -759,10 +757,10 @@ function SpeakerBoardCard({
         e.dataTransfer.setData("text/plain", s.id);
         e.dataTransfer.effectAllowed = "move";
       }}
-      className={cn(softCard, "p-3 cursor-pointer active:cursor-grabbing")}
+      className={cn(softCard, "p-4 cursor-pointer active:cursor-grabbing")}
       onClick={onOpenDetail}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-3">
         <Checkbox
           className="mt-1"
           checked={selected}
@@ -771,38 +769,40 @@ function SpeakerBoardCard({
         />
         <div
           className={cn(
-            "h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-sm bg-gradient-to-br",
+            "h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-[12px] font-bold text-white shadow-sm bg-gradient-to-br",
             avatarGradient[colKey],
           )}
         >
           {initialsOf(s.name)}
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-semibold text-sm truncate leading-tight">{s.name}</div>
-          {s.company && (
-            <div className="text-xs text-slate-500 truncate">{s.company}</div>
-          )}
-          <div className="flex flex-wrap gap-1 mt-2">
-            <StatusPill className={cn(stage.cls, "text-[10px]")}>{stage.label}</StatusPill>
+        <div className="min-w-0 flex-1 space-y-2">
+          <div>
+            <div className="font-semibold text-sm truncate leading-snug">{s.name}</div>
+            {s.company && (
+              <div className="mt-0.5 text-xs leading-relaxed text-slate-500 truncate">
+                {s.company}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <StatusPill
+              className={cn(stage.cls, "text-[10px] px-2.5 py-1 font-semibold uppercase tracking-wide")}
+            >
+              {stage.label}
+            </StatusPill>
             {ev?.code && (
               <StatusPill className={cn(eventChipCls, "text-[10px]")}>{ev.code}</StatusPill>
             )}
             {alert && (alert.type === "reply" || alert.type === "follow_up") && (
-              <StatusPill className={cn(alert.cls, "text-[10px]")}>
+              <StatusPill className={cn(alert.cls, "text-[10px] font-semibold")}>
                 {alert.icon && <alert.icon className="h-3 w-3" />}
                 {alert.label}
               </StatusPill>
             )}
           </div>
-          <div className="mt-2 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-2 text-xs"
-              onClick={onEmail}
-              disabled={!s.email}
-            >
-              <Mail className="h-3.5 w-3.5 mr-1" /> Email
+          <div className="flex items-center gap-1.5 pt-0.5" onClick={(e) => e.stopPropagation()}>
+            <Button size="sm" className="h-8 px-3 text-xs" onClick={onEmail} disabled={!s.email}>
+              <Mail className="h-3.5 w-3.5 mr-1.5" /> Send email
             </Button>
             {s.linkedin_url && (
               <a
@@ -810,15 +810,15 @@ function SpeakerBoardCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Open LinkedIn profile"
-                className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-sky-50 text-sky-700 transition-colors"
+                className="inline-flex items-center justify-center rounded-md h-8 w-8 hover:bg-sky-50 text-sky-700 transition-colors"
               >
-                <Linkedin className="h-3.5 w-3.5" />
+                <Linkedin className="h-4 w-4" />
               </a>
             )}
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 px-2 text-xs ml-auto"
+              className="h-8 px-2 text-xs ml-auto text-slate-600"
               onClick={onOpenDetail}
             >
               <Eye className="h-3.5 w-3.5 mr-1" /> Details
@@ -829,6 +829,7 @@ function SpeakerBoardCard({
     </div>
   );
 }
+
 
 /* --------------------------- Lifecycle sections (list view) --------------------------- */
 // Groups a filtered speaker list into three independently-selectable sections:

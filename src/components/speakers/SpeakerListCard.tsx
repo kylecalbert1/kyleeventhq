@@ -5,9 +5,7 @@ import {
   Eye,
   Reply,
   Clock,
-  AlertTriangle,
   MessageSquare,
-  Inbox,
   CalendarCheck,
   Search as SearchIcon,
   Mic,
@@ -18,7 +16,6 @@ import { StatusPill } from "@/components/StatusPill";
 import { initialsOf } from "@/lib/gmail";
 import {
   labels,
-  pillClass,
   daysBetween,
   type OutreachChannel,
 } from "@/lib/status";
@@ -50,24 +47,24 @@ export const softCard =
   "bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.05)] hover:shadow-[0_2px_4px_rgba(15,23,42,0.06),0_10px_28px_rgba(15,23,42,0.08)] transition-all duration-200";
 
 export const eventChipCls = "bg-indigo-50 text-indigo-700 ring-indigo-200";
-export const missingChipCls =
-  "border border-orange-300 text-orange-800 bg-orange-50 ring-0";
 
 export type ColKey =
   | "new"
   | "contacted"
   | "responded"
   | "confirmed"
-  | "banner_sent"
-  | "bio_headshot_in";
+  | "banner_sent";
 
+/**
+ * Asset-completion flag. Deliberately NOT a pipeline stage — it's shown as a
+ * small secondary indicator in the detail view only.
+ */
 export function bioHeadshotDone(s: any): boolean {
   if (typeof s?.bio_and_headshot_received === "boolean") return s.bio_and_headshot_received;
   return !!(s?.bio_received && s?.headshot_received);
 }
 
 export function columnFor(s: any): ColKey {
-  if (bioHeadshotDone(s)) return "bio_headshot_in";
   if (s.banner_status === "sent" || s.banner_status === "confirmed_live")
     return "banner_sent";
   if (s.status === "confirmed") return "confirmed";
@@ -76,16 +73,13 @@ export function columnFor(s: any): ColKey {
   return "contacted";
 }
 
+/** Bold, solid status pills — the single primary visual anchor on a card. */
 export const stagePill: Record<ColKey, { label: string; cls: string }> = {
-  new: { label: "New", cls: "bg-slate-100 text-slate-700 ring-slate-200" },
-  contacted: { label: "Contacted", cls: "bg-sky-100 text-sky-800 ring-sky-200" },
-  responded: { label: "Responded", cls: "bg-violet-100 text-violet-800 ring-violet-200" },
-  confirmed: { label: "Confirmed", cls: "bg-emerald-100 text-emerald-800 ring-emerald-200" },
-  banner_sent: { label: "Banner Sent", cls: "bg-amber-100 text-amber-900 ring-amber-200" },
-  bio_headshot_in: {
-    label: "Bio/Headshot In",
-    cls: "bg-teal-100 text-teal-800 ring-teal-200",
-  },
+  new: { label: "New", cls: "bg-slate-600 text-white ring-slate-600" },
+  contacted: { label: "Contacted", cls: "bg-sky-600 text-white ring-sky-600" },
+  responded: { label: "Responded", cls: "bg-violet-600 text-white ring-violet-600" },
+  confirmed: { label: "Confirmed", cls: "bg-emerald-600 text-white ring-emerald-600" },
+  banner_sent: { label: "Banner Sent", cls: "bg-amber-500 text-white ring-amber-500" },
 };
 
 export const avatarGradient: Record<ColKey, string> = {
@@ -94,8 +88,8 @@ export const avatarGradient: Record<ColKey, string> = {
   responded: "from-violet-500 to-violet-600",
   confirmed: "from-emerald-500 to-emerald-600",
   banner_sent: "from-amber-500 to-amber-600",
-  bio_headshot_in: "from-teal-500 to-teal-600",
 };
+
 
 type OutreachAlertT =
   | { type: "reply"; label: "Reply needed"; cls: string; icon: typeof Reply }
@@ -191,22 +185,34 @@ export function SpeakerListCard({
     ? (agendaOptions ?? []).find((a) => a.id === assignedAgendaItemId)?.title ?? null
     : null;
 
+  // Bio/headshot deliberately excluded — it's an asset flag, not headline info.
   const missingFields: string[] = [];
   if (!s.email) missingFields.push("email");
-  if (!s.bio && !s.bio_received) missingFields.push("bio");
-  if (!s.headshot_url && !s.headshot_received) missingFields.push("headshot");
   if (!s.session_title) missingFields.push("session title");
   if (!s.linkedin_url) missingFields.push("LinkedIn");
+
 
   const linkedinSearchUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
     [s.name, s.company].filter(Boolean).join(" "),
   )}`;
 
 
+  const secondary: string[] = [];
+  if ((s as { source?: string | null }).source === "tito_candidate") secondary.push("Sourced via Tito");
+  if (s.outreach_channel)
+    secondary.push(`via ${labels.outreachChannel[s.outreach_channel as OutreachChannel]}`);
+  if (s.call_scheduled)
+    secondary.push(
+      s.call_scheduled_at ? `Call ${fmtShort(s.call_scheduled_at)}` : "Call scheduled",
+    );
+  if (assignedSessionTitle) secondary.push(assignedSessionTitle);
+  if (history && history.count > 0)
+    secondary.push(`Messaged ${history.count}x${historyShort ? ` · ${historyShort}` : ""}`);
+
   return (
-    <div className={cn(softCard, "p-5")}>
-      <div className="flex gap-4">
-        <div className="flex flex-col items-center gap-2 pt-0.5">
+    <div className={cn(softCard, "p-6")}>
+      <div className="flex gap-5">
+        <div className="flex flex-col items-center gap-3 pt-1">
           {onToggleSelect && (
             <Checkbox
               checked={!!selected}
@@ -215,7 +221,7 @@ export function SpeakerListCard({
           )}
           <div
             className={cn(
-              "h-11 w-11 rounded-full flex items-center justify-center text-[13px] font-bold text-white shadow-sm bg-gradient-to-br",
+              "h-12 w-12 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm bg-gradient-to-br",
               avatarGradient[colKey],
             )}
           >
@@ -223,98 +229,94 @@ export function SpeakerListCard({
           </div>
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
-              <button
-                type="button"
-                onClick={onOpenDetail}
-                className="text-left text-lg font-semibold tracking-tight text-slate-900 hover:text-indigo-700 transition-colors truncate"
-              >
-                {s.name}
-              </button>
-              {onStatusChange ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button type="button" title="Change status">
-                      <StatusPill
-                        className={cn(
-                          stage.cls,
-                          "text-[11px] px-2.5 py-1 font-semibold cursor-pointer hover:opacity-90",
-                        )}
-                      >
-                        {stage.label}
-                      </StatusPill>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    {STATUS_OPTIONS.map((opt) => (
-                      <DropdownMenuItem
-                        key={opt.value}
-                        onSelect={() => onStatusChange(opt.value)}
-                      >
-                        {opt.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <StatusPill className={cn(stage.cls, "text-[11px] px-2.5 py-1 font-semibold")}>
-                  {stage.label}
-                </StatusPill>
-              )}
-
-              {showEventChip && ev?.code && (
-                <StatusPill className={cn(eventChipCls, "text-[11px]")}>
-                  {ev.code}
-                </StatusPill>
-              )}
-              {(s as { source?: string | null }).source === "tito_candidate" && (
-                <StatusPill className="text-[11px] bg-violet-100 text-violet-700 border-violet-200">
-                  Sourced (Tito)
-                </StatusPill>
-              )}
-              {s.call_scheduled && (
-                <StatusPill className="text-[11px] bg-emerald-100 text-emerald-800 ring-emerald-200 font-semibold">
-                  <CalendarCheck className="h-3 w-3" />
-                  {s.call_scheduled_at ? `Call ${fmtShort(s.call_scheduled_at)}` : "Call scheduled"}
-                </StatusPill>
-              )}
-              {assignedSessionTitle && (
-                <StatusPill className="text-[11px] bg-indigo-50 text-indigo-800 ring-indigo-200 font-semibold">
-                  <Mic className="h-3 w-3" />
-                  {assignedSessionTitle}
-                </StatusPill>
-              )}
-              {draftReady && (
-                <StatusPill className="text-[11px] bg-amber-100 text-amber-900 ring-amber-300 font-semibold">
-                  ✉︎ Confirmation draft ready
-                </StatusPill>
+        <div className="flex-1 min-w-0 space-y-3">
+          {/* Name + one bold status pill: the primary anchor */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 min-w-0">
+                <button
+                  type="button"
+                  onClick={onOpenDetail}
+                  className="text-left text-lg font-semibold leading-snug tracking-tight text-slate-900 hover:text-indigo-700 transition-colors truncate"
+                >
+                  {s.name}
+                </button>
+                {onStatusChange ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" title="Change status">
+                        <StatusPill
+                          className={cn(
+                            stage.cls,
+                            "text-[11px] px-3 py-1 font-semibold uppercase tracking-wide cursor-pointer hover:opacity-90",
+                          )}
+                        >
+                          {stage.label}
+                        </StatusPill>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      {STATUS_OPTIONS.map((opt) => (
+                        <DropdownMenuItem
+                          key={opt.value}
+                          onSelect={() => onStatusChange(opt.value)}
+                        >
+                          {opt.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <StatusPill
+                    className={cn(
+                      stage.cls,
+                      "text-[11px] px-3 py-1 font-semibold uppercase tracking-wide",
+                    )}
+                  >
+                    {stage.label}
+                  </StatusPill>
+                )}
+                {showEventChip && ev?.code && (
+                  <StatusPill className={cn(eventChipCls, "text-[11px]")}>{ev.code}</StatusPill>
+                )}
+                {draftReady && (
+                  <StatusPill className="text-[11px] bg-amber-500 text-white ring-amber-500 font-semibold">
+                    ✉︎ Draft ready
+                  </StatusPill>
+                )}
+                {alert && (alert.type === "reply" || alert.type === "follow_up") && (
+                  <StatusPill className={cn(alert.cls, "text-[11px] font-semibold")}>
+                    {alert.icon && <alert.icon className="h-3 w-3" />}
+                    {alert.label}
+                  </StatusPill>
+                )}
+              </div>
+              {titleAtCompany && (
+                <div className="mt-1.5 text-sm leading-relaxed text-slate-500 truncate">
+                  {titleAtCompany}
+                </div>
               )}
             </div>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={onCopyLink}
-              className="shrink-0 rounded-full border-sky-200 bg-sky-50/60 hover:bg-sky-100 text-sky-700 h-8 px-3 text-xs font-medium"
+              className="shrink-0 rounded-full text-slate-500 hover:text-sky-700 h-8 px-3 text-xs font-medium"
             >
               <Link2 className="h-3.5 w-3.5 mr-1.5" />
-              Copy Link
+              Copy link
             </Button>
           </div>
 
-          {titleAtCompany && (
-            <div className="mt-1 text-sm text-slate-500 truncate">{titleAtCompany}</div>
-          )}
-
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          {/* Contact links */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             {s.email && (
               <a
                 href={gmailComposeUrl(s.email)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="text-sm text-slate-600 hover:text-indigo-700 hover:underline truncate"
+                className="text-sm leading-relaxed text-slate-600 hover:text-indigo-700 hover:underline truncate"
               >
                 {s.email}
               </a>
@@ -325,9 +327,9 @@ export function SpeakerListCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-sky-50 hover:bg-sky-100 text-sky-700 ring-1 ring-sky-200 text-[11px] font-medium transition-colors"
+                className="inline-flex items-center gap-1 text-[12px] font-medium text-sky-700 hover:underline"
               >
-                <Linkedin className="h-3 w-3" />
+                <Linkedin className="h-3.5 w-3.5" />
                 LinkedIn
               </a>
             ) : (
@@ -336,25 +338,12 @@ export function SpeakerListCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-slate-600 ring-1 ring-slate-200 text-[11px] font-medium transition-colors"
+                className="inline-flex items-center gap-1 text-[12px] font-medium text-slate-500 hover:underline"
                 title="Search LinkedIn"
               >
-                <SearchIcon className="h-3 w-3" />
+                <SearchIcon className="h-3.5 w-3.5" />
                 Search LinkedIn
               </a>
-            )}
-
-            {s.outreach_channel && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border border-dashed",
-                  pillClass.outreachChannel[s.outreach_channel as OutreachChannel],
-                )}
-                title="Outreach channel"
-              >
-                <Inbox className="h-3 w-3" />
-                via {labels.outreachChannel[s.outreach_channel as OutreachChannel]}
-              </span>
             )}
             {s.gmail_thread_id && (
               <a
@@ -366,31 +355,28 @@ export function SpeakerListCard({
                   e.stopPropagation();
                   openGmailThread(s.gmail_thread_id);
                 }}
-                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-700 ring-1 ring-rose-200 text-[11px] font-medium transition-colors"
+                className="inline-flex items-center gap-1 text-[12px] font-medium text-rose-700 hover:underline"
               >
-                <MessageSquare className="h-3 w-3" />
+                <MessageSquare className="h-3.5 w-3.5" />
                 Open thread
               </a>
             )}
           </div>
 
-          {!bioHeadshotDone(s) && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              <StatusPill className={cn(missingChipCls, "text-[11px]")}>
-                <AlertTriangle className="h-3 w-3" /> Bio &amp; headshot missing
-              </StatusPill>
+          {/* One consolidated secondary line instead of a stack of chips */}
+          {secondary.length > 0 && (
+            <div className="flex items-center gap-1.5 text-[12px] leading-relaxed text-slate-500">
+              {s.call_scheduled && <CalendarCheck className="h-3.5 w-3.5 text-emerald-600" />}
+              <span className="truncate">{secondary.join(" · ")}</span>
             </div>
           )}
 
           {missingFields.length > 0 && (
-            <div className="mt-1.5 text-[11px] text-slate-400">
-              Missing: {missingFields.join(", ")}
-            </div>
+            <div className="text-[12px] text-slate-400">Missing: {missingFields.join(", ")}</div>
           )}
 
-
           {(addedShort || lastShort) && (
-            <div className="mt-2.5 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center justify-between text-xs text-slate-400">
               <span>{addedShort ? <>Added {addedShort}</> : null}</span>
               {lastShort && (
                 <span>
@@ -401,75 +387,33 @@ export function SpeakerListCard({
             </div>
           )}
 
-          {history && history.count > 0 && (
-            <div className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-              <MessageSquare className="h-3 w-3 text-slate-400" />
-              Messaged {history.count}x
-              {historyShort ? ` · last sent ${historyShort}` : ""}
-            </div>
-          )}
-
-          {alert && (alert.type === "reply" || alert.type === "follow_up") && (
-            <div className="mt-2">
-              <StatusPill className={cn(alert.cls, "text-[11px] font-semibold")}>
-                {alert.icon && <alert.icon className="h-3 w-3" />}
-                {alert.label}
-              </StatusPill>
-            </div>
-          )}
-
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-            <button
-              type="button"
-              onClick={onEmail}
-              disabled={!s.email}
-              className="inline-flex items-center gap-1 text-indigo-700 hover:text-indigo-900 font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Mail className="h-3.5 w-3.5" />
+          {/* Actions — one solid primary, the rest quiet */}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Button size="sm" onClick={onEmail} disabled={!s.email} className="h-9 px-4">
+              <Mail className="h-4 w-4 mr-1.5" />
               Send email
-            </button>
-            <button
-              type="button"
-              onClick={onOpenDetail}
-              className="inline-flex items-center gap-1 text-slate-600 hover:text-indigo-700 font-medium transition-colors"
-            >
-              <Eye className="h-3.5 w-3.5" />
-              View details
-            </button>
-            <button
-              type="button"
-              onClick={onEdit}
-              className="text-slate-500 hover:text-indigo-700 font-medium transition-colors"
-            >
-              + Add note
-            </button>
-            <button
-              type="button"
-              onClick={onEdit}
-              className="text-slate-500 hover:text-indigo-700 font-medium transition-colors"
-            >
-              ✏️ Edit details
-            </button>
+            </Button>
+            <Button size="sm" variant="outline" onClick={onOpenDetail} className="h-9 px-3">
+              <Eye className="h-4 w-4 mr-1.5" />
+              Details
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onEdit} className="h-9 px-3 text-slate-600">
+              Edit
+            </Button>
             {onAssignAgendaItem && agendaOptions && agendaOptions.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 text-slate-600 hover:text-indigo-700 font-medium transition-colors"
-                  >
-                    <Mic className="h-3.5 w-3.5" />
+                  <Button size="sm" variant="ghost" className="h-9 px-3 text-slate-600">
+                    <Mic className="h-4 w-4 mr-1.5" />
                     {assignedSessionTitle ? "Change session" : "Assign session"}
-                  </button>
+                  </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
                   <DropdownMenuItem onSelect={() => onAssignAgendaItem(null)}>
                     — Unassigned —
                   </DropdownMenuItem>
                   {agendaOptions.map((opt) => (
-                    <DropdownMenuItem
-                      key={opt.id}
-                      onSelect={() => onAssignAgendaItem(opt.id)}
-                    >
+                    <DropdownMenuItem key={opt.id} onSelect={() => onAssignAgendaItem(opt.id)}>
                       {opt.title}
                       {opt.id === assignedAgendaItemId ? " ✓" : ""}
                     </DropdownMenuItem>
@@ -483,3 +427,4 @@ export function SpeakerListCard({
     </div>
   );
 }
+
