@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.generate_speaker_confirmation_draft(uuid) FROM PUBLIC, anon, authenticated;
