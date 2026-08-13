@@ -154,13 +154,13 @@ const PLACEHOLDERS: Array<{ key: string; label: string }> = [
 function FieldLabel({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-1">
-      <Label className="text-xs font-semibold text-foreground">{children}</Label>
+      <Label className="text-[13px] font-bold tracking-tight text-foreground">{children}</Label>
       {right}
     </div>
   );
 }
 function HelpText({ children }: { children: React.ReactNode }) {
-  return <p className="mt-1 text-[11px] text-muted-foreground leading-snug">{children}</p>;
+  return <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{children}</p>;
 }
 function LabeledSelect({
   value,
@@ -176,7 +176,7 @@ function LabeledSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-xl border-2 border-border bg-card px-3 py-1.5 pr-8 text-xs font-medium text-foreground hover:border-ring/40 focus:outline-none focus:ring-1 focus:ring-ring"
+        className="w-full appearance-none rounded-xl border-2 border-border bg-card px-3.5 py-2.5 pr-9 text-[13px] font-semibold text-foreground hover:border-ring/40 focus:outline-none focus:ring-2 focus:ring-ring"
       >
         {children}
       </select>
@@ -514,12 +514,12 @@ export function SendMessageDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0 gap-0 bg-background">
-        <DialogHeader className="px-6 pt-5 pb-3 border-b border-border">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
           <DialogTitle className="flex items-center gap-2 text-[20px] font-bold leading-tight text-foreground">
             <Mail className="h-4 w-4" />
             Send message
           </DialogTitle>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-[13px] text-muted-foreground mt-1.5">
             Pick an audience, tweak the copy, preview before it goes out.
           </p>
         </DialogHeader>
@@ -533,7 +533,7 @@ export function SendMessageDialog({
             recipients={filteredRecipients}
           />
         ) : (
-          <div className="px-6 py-4 space-y-4">
+          <div className="px-6 py-5 space-y-5">
             {/* 2. Collapsible send history strip */}
             <SendHistoryPanel eventId={eventId} defaultOpen={false} title="Send history" />
 
@@ -545,7 +545,7 @@ export function SendMessageDialog({
             )}
 
             {/* 4. Audience toggle */}
-            <section className="surface-card p-4 space-y-3">
+            <section className="surface-card p-5 space-y-3">
               <FieldLabel>Audience</FieldLabel>
               <div className="grid grid-cols-2 gap-2">
                 <ToggleBtn
@@ -570,13 +570,13 @@ export function SendMessageDialog({
                   value={pasteText}
                   onChange={(e) => setPasteText(e.target.value)}
                   placeholder="alice@company.com, bob@company.com"
-                  className="min-h-[80px] text-xs font-normal"
+                  className="min-h-[96px] text-[13px] font-normal rounded-xl border-2"
                 />
               )}
             </section>
 
             {/* 5. Email type (template) */}
-            <section className="surface-card p-4 space-y-1">
+            <section className="surface-card p-5 space-y-2">
               <FieldLabel>Email type</FieldLabel>
               <LabeledSelect value={templateId} onChange={applyTemplate}>
                 {templates.map((t) => (
@@ -590,7 +590,7 @@ export function SendMessageDialog({
 
             {/* 6. Send to (audience segments) — only in group mode */}
             {audienceMode === "group" && (
-              <section className="surface-card p-4 space-y-1">
+              <section className="surface-card p-5 space-y-2">
                 <FieldLabel>Send to</FieldLabel>
                 <LabeledSelect value={group} onChange={(v) => setGroup(v as GroupKey)}>
                   {(Object.keys(GROUP_LABELS) as GroupKey[]).map((k) => (
@@ -605,7 +605,7 @@ export function SendMessageDialog({
 
             {/* 7. Pass type (optional) */}
             {passOptions.length > 0 && (
-              <section className="surface-card p-4 space-y-1">
+              <section className="surface-card p-5 space-y-2">
                 <FieldLabel>Pass type (optional)</FieldLabel>
                 <LabeledSelect value={passFilter} onChange={setPassFilter}>
                   <option value="__all">All pass types ({audienceRecipients.length})</option>
@@ -622,7 +622,7 @@ export function SendMessageDialog({
             )}
 
             {/* 8. Subject */}
-            <section className="surface-card p-4 space-y-1">
+            <section className="surface-card p-5 space-y-2">
               <FieldLabel
                 right={
                   <button
@@ -639,15 +639,15 @@ export function SendMessageDialog({
               <Input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="text-xs h-8 rounded-xl border-2"
+                className="text-[13px] h-11 rounded-xl border-2 font-medium"
               />
               <HelpText>Placeholders like {"{{first_name}}"} resolve per recipient.</HelpText>
             </section>
 
             {/* 9. Email body — branded editable preview */}
-            <section className="surface-card p-4 space-y-2">
+            <section className="surface-card p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold text-foreground">Email body</Label>
+                <Label className="text-[13px] font-bold tracking-tight text-foreground">Email body</Label>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-0.5 rounded-lg border-2 border-border bg-card px-1 py-0.5">
                     <ToolbarBtn onClick={() => exec("bold")} title="Bold">
@@ -724,13 +724,13 @@ export function SendMessageDialog({
         )}
 
         {/* 11. Footer */}
-        <DialogFooter className="px-6 py-3 border-t border-border gap-2 bg-background">
+        <DialogFooter className="px-6 py-4 border-t border-border gap-2 bg-background">
           {previewing ? (
             <>
               <Button variant="outline" onClick={() => setPreviewing(false)} disabled={sending}>
                 <ArrowLeft className="h-3 w-3" /> Back to edit
               </Button>
-              <Button onClick={handleSend} disabled={sending || total === 0}>
+              <Button size="lg" className="rounded-xl font-semibold" onClick={handleSend} disabled={sending || total === 0}>
                 {sending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                 {sending && sendProgress
                   ? `Sending ${sendProgress.done}/${sendProgress.total}`
@@ -742,7 +742,7 @@ export function SendMessageDialog({
               <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
                 Cancel
               </Button>
-              <Button onClick={() => setPreviewing(true)} disabled={total === 0}>
+              <Button size="lg" className="rounded-xl font-semibold" onClick={() => setPreviewing(true)} disabled={total === 0}>
                 <Eye className="h-3 w-3" /> Preview email
               </Button>
             </>
@@ -767,9 +767,9 @@ function ToggleBtn({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-xl border-2 px-3 py-2 text-xs font-medium transition-colors text-left",
+        "rounded-xl border-2 px-4 py-3 text-[13px] font-semibold transition-colors text-left",
         active
-          ? "bg-primary/10 border-primary/50 text-primary"
+          ? "bg-primary border-primary text-primary-foreground shadow-sm"
           : "bg-card border-border text-muted-foreground hover:bg-accent",
       )}
     >
@@ -792,7 +792,7 @@ function PreviewPane({
   recipients: Recipient[];
 }) {
   return (
-    <div className="px-6 py-4 space-y-4">
+    <div className="px-6 py-5 space-y-5">
       <div className="surface-card p-4">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
           Preview (first recipient)
@@ -817,8 +817,8 @@ function PreviewPane({
         </details>
       </div>
 
-      <div className="surface-card p-4">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+      <div className="surface-card p-5">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
           Recipients ({recipients.length})
         </div>
         <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
