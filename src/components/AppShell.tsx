@@ -25,7 +25,10 @@ type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boo
 const NAV_PRIMARY: NavItem[] = [
   { to: "/", label: "Events", icon: LayoutGrid, exact: true },
   { to: "/tito", label: "All Tito events", icon: Ticket },
-  { to: "/speakers", label: "Speakers", icon: Users },
+  // Speakers live on their event page. This entry is the secondary,
+  // cross-event sourcing/re-recruitment view only.
+  { to: "/speakers", label: "Find speakers", icon: Users },
+
   { to: "/boards", label: "Speaker boards", icon: Columns3 },
   { to: "/agenda", label: "Agenda", icon: ListChecks },
   { to: "/outreach", label: "Outreach", icon: Megaphone },
