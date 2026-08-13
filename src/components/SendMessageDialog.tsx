@@ -793,7 +793,7 @@ function PreviewPane({
 }) {
   return (
     <div className="px-6 py-5 space-y-5">
-      <div className="surface-card p-4">
+      <div className="surface-card p-5">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
           Preview (first recipient)
         </div>
