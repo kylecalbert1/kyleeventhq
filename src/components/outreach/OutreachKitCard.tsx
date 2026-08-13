@@ -30,33 +30,39 @@ export function OutreachKitCard({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left"
+        className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-accent/40 rounded-2xl"
       >
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
           {open ? (
             <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
           ) : (
             <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
           )}
           <Megaphone className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-sm font-semibold text-foreground">Outreach kit</span>
-          <span className="text-xs text-muted-foreground truncate">
+          <span className="text-[15px] font-semibold text-foreground">Outreach kit</span>
+          <span className="text-[13px] text-muted-foreground truncate">
             LinkedIn templates & saved Sales Nav searches for this event
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span
             className={cn(
-              "chip chip-slate",
-              templateCount === 0 && "opacity-50",
+              "inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold",
+              templateCount === 0
+                ? "bg-muted text-muted-foreground"
+                : templateCount === 5
+                  ? "bg-emerald-600 text-white"
+                  : "bg-amber-500 text-white",
             )}
           >
             {templateCount}/5 templates
           </span>
           <span
             className={cn(
-              "chip chip-slate",
-              linkCount === 0 && "opacity-50",
+              "inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold",
+              linkCount === 0
+                ? "bg-muted text-muted-foreground"
+                : "bg-indigo-600 text-white",
             )}
           >
             {linkCount} saved {linkCount === 1 ? "search" : "searches"}
@@ -64,7 +70,7 @@ export function OutreachKitCard({
         </div>
       </button>
       {open && (
-        <div className="px-5 pb-5 pt-1 border-t border-border">
+        <div className="px-6 pb-6 pt-4 border-t border-border">
           <OutreachHub eventId={eventId} />
         </div>
       )}
