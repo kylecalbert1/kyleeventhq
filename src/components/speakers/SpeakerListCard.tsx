@@ -58,16 +58,18 @@ export type ColKey =
   | "contacted"
   | "responded"
   | "confirmed"
-  | "banner_sent"
-  | "bio_headshot_in";
+  | "banner_sent";
 
+/**
+ * Asset-completion flag. Deliberately NOT a pipeline stage — it's shown as a
+ * small secondary indicator in the detail view only.
+ */
 export function bioHeadshotDone(s: any): boolean {
   if (typeof s?.bio_and_headshot_received === "boolean") return s.bio_and_headshot_received;
   return !!(s?.bio_received && s?.headshot_received);
 }
 
 export function columnFor(s: any): ColKey {
-  if (bioHeadshotDone(s)) return "bio_headshot_in";
   if (s.banner_status === "sent" || s.banner_status === "confirmed_live")
     return "banner_sent";
   if (s.status === "confirmed") return "confirmed";
@@ -76,16 +78,13 @@ export function columnFor(s: any): ColKey {
   return "contacted";
 }
 
+/** Bold, solid status pills — the single primary visual anchor on a card. */
 export const stagePill: Record<ColKey, { label: string; cls: string }> = {
-  new: { label: "New", cls: "bg-slate-100 text-slate-700 ring-slate-200" },
-  contacted: { label: "Contacted", cls: "bg-sky-100 text-sky-800 ring-sky-200" },
-  responded: { label: "Responded", cls: "bg-violet-100 text-violet-800 ring-violet-200" },
-  confirmed: { label: "Confirmed", cls: "bg-emerald-100 text-emerald-800 ring-emerald-200" },
-  banner_sent: { label: "Banner Sent", cls: "bg-amber-100 text-amber-900 ring-amber-200" },
-  bio_headshot_in: {
-    label: "Bio/Headshot In",
-    cls: "bg-teal-100 text-teal-800 ring-teal-200",
-  },
+  new: { label: "New", cls: "bg-slate-600 text-white ring-slate-600" },
+  contacted: { label: "Contacted", cls: "bg-sky-600 text-white ring-sky-600" },
+  responded: { label: "Responded", cls: "bg-violet-600 text-white ring-violet-600" },
+  confirmed: { label: "Confirmed", cls: "bg-emerald-600 text-white ring-emerald-600" },
+  banner_sent: { label: "Banner Sent", cls: "bg-amber-500 text-white ring-amber-500" },
 };
 
 export const avatarGradient: Record<ColKey, string> = {
@@ -94,8 +93,8 @@ export const avatarGradient: Record<ColKey, string> = {
   responded: "from-violet-500 to-violet-600",
   confirmed: "from-emerald-500 to-emerald-600",
   banner_sent: "from-amber-500 to-amber-600",
-  bio_headshot_in: "from-teal-500 to-teal-600",
 };
+
 
 type OutreachAlertT =
   | { type: "reply"; label: "Reply needed"; cls: string; icon: typeof Reply }
