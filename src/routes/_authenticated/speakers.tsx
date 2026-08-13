@@ -409,7 +409,7 @@ function SpeakerBoard() {
             title={"All speakers (cross-event)"}
             what={"A cross-event view for finding new candidates and re-recruiting past speakers. Day-to-day speaker management happens inside each event page, not here."}
             steps={[
-              "Use "Find new candidates" to search past attendees and pull promising people into an event.",
+              "Use ‘Find new candidates’ to search past attendees and pull promising people into an event.",
               "Switch views to browse the combined pipeline when you need a cross-event picture.",
               "Click any speaker to open their record, history and email actions.",
             ]}
