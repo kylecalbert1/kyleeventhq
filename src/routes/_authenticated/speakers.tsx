@@ -54,7 +54,6 @@ import {
   SpeakerListCard,
   softCard,
   columnFor,
-  bioHeadshotDone,
   stagePill,
   avatarGradient,
   eventChipCls,
@@ -155,7 +154,6 @@ function SpeakerBoard() {
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [lineFilter, setLineFilter] = useState<string>("all");
   const [channelFilter, setChannelFilter] = useState<string>("all");
-  const [missingBH, setMissingBH] = useState(false);
   const [attentionFilter, setAttentionFilter] = useState<"all" | "reply" | "follow_up" | "any">(
     search.attention ?? "all",
   );
@@ -191,7 +189,6 @@ function SpeakerBoard() {
           if (s.outreach_channel) return false;
         } else if (s.outreach_channel !== channelFilter) return false;
       }
-      if (missingBH && bioHeadshotDone(s)) return false;
       if (callScheduledOnly && !s.call_scheduled) return false;
       if (attentionFilter !== "all") {
         const a = outreachAlert(s);
@@ -203,7 +200,7 @@ function SpeakerBoard() {
       if (term && !fuzzyMatch(term, s.name, s.company, s.email)) return false;
       return true;
     });
-  }, [speakers.data, eventFilter, lineFilter, channelFilter, missingBH, callScheduledOnly, attentionFilter, q, eventById]);
+  }, [speakers.data, eventFilter, lineFilter, channelFilter, callScheduledOnly, attentionFilter, q, eventById]);
 
   // Stage counts (pre-stage-filter, so the dropdown shows real totals).
   const stageCounts = useMemo(() => {
@@ -376,7 +373,6 @@ function SpeakerBoard() {
     eventFilter !== "all" ||
     lineFilter !== "all" ||
     channelFilter !== "all" ||
-    missingBH ||
     attentionFilter !== "all" ||
     q.trim() !== "";
 
@@ -385,7 +381,6 @@ function SpeakerBoard() {
     setEventFilter("all");
     setLineFilter("all");
     setChannelFilter("all");
-    setMissingBH(false);
     setAttentionFilter("all");
     setQ("");
     navigate({ to: "/speakers", search: {} });
@@ -531,9 +526,6 @@ function SpeakerBoard() {
             </SelectContent>
           </Select>
 
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
-            <Checkbox checked={missingBH} onCheckedChange={(v) => setMissingBH(!!v)} /> Bio/headshot missing
-          </label>
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer px-1">
             <Checkbox checked={callScheduledOnly} onCheckedChange={(v) => setCallScheduledOnly(!!v)} /> Call scheduled
           </label>
