@@ -217,35 +217,6 @@ function RegLinkRow({ label, url }: { label: string; url: string }) {
   );
 }
 
-function ReconGroup({ title, help, count, children }: { title: string; help: string; count: number; children: React.ReactNode }) {
-  const [open, setOpen] = useState(count > 0 && count <= 5);
-  return (
-    <div className="border-t border-slate-100 pt-3 mt-3 first:border-0 first:mt-0 first:pt-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between text-left"
-      >
-        <div>
-          <div className="text-sm font-medium">{title} <span className="text-muted-foreground">({count})</span></div>
-          <div className="text-xs text-muted-foreground">{help}</div>
-        </div>
-        <span className="text-xs text-muted-foreground">{open ? "Hide" : "Show"}</span>
-      </button>
-      {open && count > 0 && <div className="mt-2 space-y-1">{children}</div>}
-    </div>
-  );
-}
-
-function RowLine({ left, right }: { left: React.ReactNode; right: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-1.5 px-2 rounded-lg hover:bg-slate-50">
-      <div className="min-w-0 flex-1">{left}</div>
-      {right}
-    </div>
-  );
-}
-
 async function copy(v: string, label: string) {
   try {
     await navigator.clipboard.writeText(v);
