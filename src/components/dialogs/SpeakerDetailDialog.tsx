@@ -24,6 +24,8 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/StatusPill";
 import { labels, pillClass, type OutreachChannel } from "@/lib/status";
 import { listSpeakerActivity } from "@/lib/speakers.functions";
+import { listSpeakerSends } from "@/lib/email-sends.functions";
+import { buildSpeakerTimeline, type TimelineKind } from "@/lib/speaker-timeline";
 import { initialsOf } from "@/lib/gmail";
 import { linkedinSearchUrl } from "@/lib/linkedin-search";
 
@@ -61,16 +63,20 @@ function fmtDateTime(iso: string | null | undefined): string {
   return `${d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} · ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-function eventTypeMeta(t: string) {
-  switch (t) {
-    case "status_changed":
-      return { label: "Status changed", icon: Activity, cls: "text-violet-600 bg-violet-50" };
-    case "banner_status_changed":
-      return { label: "Banner status changed", icon: Activity, cls: "text-amber-600 bg-amber-50" };
-    case "message_direction_changed":
-      return { label: "New message", icon: MessageSquare, cls: "text-sky-600 bg-sky-50" };
+function timelineMeta(kind: TimelineKind) {
+  switch (kind) {
+    case "added":
+      return { icon: UserPlus, cls: "text-emerald-600 bg-emerald-50" };
+    case "status":
+      return { icon: Activity, cls: "text-violet-600 bg-violet-50" };
+    case "banner":
+      return { icon: Pencil, cls: "text-amber-600 bg-amber-50" };
+    case "sent":
+      return { icon: Send, cls: "text-primary bg-primary/10" };
+    case "received":
+      return { icon: MessageSquare, cls: "text-sky-600 bg-sky-50" };
     default:
-      return { label: t, icon: Activity, cls: "text-slate-600 bg-slate-100" };
+      return { icon: MessageSquare, cls: "text-slate-600 bg-slate-100" };
   }
 }
 
@@ -94,6 +100,16 @@ export function SpeakerDetailDialog({
     queryFn: () => listSpeakerActivity({ data: { speaker_id: speaker!.id } }),
     enabled: !!speaker && open,
   });
+
+  const sends = useQuery({
+    queryKey: ["speakerSends", speaker?.id ?? "none"],
+    queryFn: () => listSpeakerSends({ data: { speaker_id: speaker!.id } }),
+    enabled: !!speaker && open,
+  });
+  const timeline = useMemo(
+    () => (speaker ? buildSpeakerTimeline(speaker, activity.data ?? [], sends.data ?? []) : []),
+    [speaker, activity.data, sends.data],
+  );
 
   const stage = useMemo(() => (speaker ? stageOf(speaker) : null), [speaker]);
   const liSearch = useMemo(
