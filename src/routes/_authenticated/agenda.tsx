@@ -60,19 +60,21 @@ function AgendaPage() {
       <div className="mx-auto max-w-6xl p-6 md:p-8 space-y-6">
         <div>
           <div className="accent-bar mb-3" />
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <ListChecks className="h-6 w-6 text-primary" />
-            Agenda
-          </h1>
-          <PageHelp
-            title={"Agenda"}
-            what={"Build the running order for an event, or link out to an agenda hosted elsewhere. Sessions re-time automatically when you change a duration."}
-            steps={[
-              "Pick an event to load its agenda, or browse the list below.",
-              "Add or reorder sessions — start times recalculate for you.",
-              "Export an AV version to Word when the running order is settled.",
-            ]}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <ListChecks className="h-6 w-6 text-primary" />
+              Agenda
+            </h1>
+            <PageHelp
+              title={"Agenda"}
+              what={"Build the running order for an event, or link out to an agenda hosted elsewhere. Sessions re-time automatically when you change a duration."}
+              steps={[
+                "Pick an event to load its agenda, or browse the list below.",
+                "Add or reorder sessions — start times recalculate for you.",
+                "Export an AV version to Word when the running order is settled.",
+              ]}
+            />
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Build running orders or link to an externally hosted agenda. Pick an event to load its
             agenda, or browse below.

@@ -262,18 +262,20 @@ function EventsGrid() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Event Command Center
-            </h1>
-            <PageHelp
-              title={"Events"}
-              what={"Your home page: every event you’re running, with speaker counts and how close each one is to its target. Start here and click into an event to work on it."}
-              steps={[
-                "Search or filter to find the event you need.",
-                "Click an event card to open its speaker list and messaging tools.",
-                "Use the widgets up top for this week’s priorities and urgent events.",
-              ]}
-            />
+            <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                Event Command Center
+              </h1>
+              <PageHelp
+                title={"Events"}
+                what={"Your home page: every event you’re running, with speaker counts and how close each one is to its target. Start here and click into an event to work on it."}
+                steps={[
+                  "Search or filter to find the event you need.",
+                  "Click an event card to open its speaker list and messaging tools.",
+                  "Use the widgets up top for this week’s priorities and urgent events.",
+                ]}
+              />
+            </div>
             <p className="text-sm text-slate-500 mt-0.5">Admin Dashboard</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">

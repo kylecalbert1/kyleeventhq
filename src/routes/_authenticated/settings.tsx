@@ -101,19 +101,21 @@ function SettingsPage() {
     <div className="p-6 md:p-8 space-y-6 max-w-5xl">
       <div>
         <div className="accent-bar mb-3" />
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <SettingsIcon className="h-6 w-6 text-primary" />
-          Settings
-        </h1>
-        <PageHelp
-          title={"Settings"}
-          what={"Your personal setup: email signature, watched senders, excluded ticket types, plus the health of the background syncs."}
-          steps={[
-            "Set your email signature — it’s appended to every message you send.",
-            "Check sync health to confirm the nightly Tito and Asana jobs ran.",
-            "Adjust ticket-type exclusions so bulk emails skip the wrong audiences.",
-          ]}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <SettingsIcon className="h-6 w-6 text-primary" />
+            Settings
+          </h1>
+          <PageHelp
+            title={"Settings"}
+            what={"Your personal setup: email signature, watched senders, excluded ticket types, plus the health of the background syncs."}
+            steps={[
+              "Set your email signature — it’s appended to every message you send.",
+              "Check sync health to confirm the nightly Tito and Asana jobs ran.",
+              "Adjust ticket-type exclusions so bulk emails skip the wrong audiences.",
+            ]}
+          />
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           Sync health and integration configuration. Background jobs run without
           anyone's laptop being open.

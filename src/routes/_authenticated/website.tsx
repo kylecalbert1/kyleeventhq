@@ -91,19 +91,21 @@ function WebsiteBoard() {
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div>
             <div className="accent-bar mb-3" />
-            <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-              <Globe className="h-6 w-6 text-primary" />
-              Website production
-            </h1>
-            <PageHelp
-              title={"Website production"}
-              what={"Tracks each event’s website build from first proof to live, so nothing sits waiting on someone."}
-              steps={[
-                "Add a task for anything that needs doing on an event site.",
-                "Drag or update cards as they move through proofing to live.",
-                "Protected cards ask for confirmation before big status changes.",
-              ]}
-            />
+            <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+                <Globe className="h-6 w-6 text-primary" />
+                Website production
+              </h1>
+              <PageHelp
+                title={"Website production"}
+                what={"Tracks each event’s website build from first proof to live, so nothing sits waiting on someone."}
+                steps={[
+                  "Add a task for anything that needs doing on an event site.",
+                  "Drag or update cards as they move through proofing to live.",
+                  "Protected cards ask for confirmation before big status changes.",
+                ]}
+              />
+            </div>
             <p className="text-sm text-muted-foreground mt-1">Move each event through proofing to live. Protected cards need confirmation.</p>
           </div>
           <Button onClick={() => setEditing({ open: true })}><Plus className="h-4 w-4 mr-1.5" />Add task</Button>

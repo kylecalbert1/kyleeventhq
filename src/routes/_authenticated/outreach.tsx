@@ -42,19 +42,21 @@ function OutreachPage() {
       <div>
         <div className="accent-bar mb-3" />
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <Megaphone className="h-6 w-6 text-primary" />
-            Outreach
-          </h1>
-          <PageHelp
-            title="Outreach"
-            what="A per-event library of the LinkedIn copy and Sales Navigator searches you use to find and approach speakers. Nothing here sends anything — it's text you copy and paste."
-            steps={[
-              "Find the event you're sourcing for (past events are collapsed at the bottom).",
-              "Open its Outreach kit to edit the InMail subject/message, connection note and colleague-outreach templates.",
-              "Save Sales Navigator search URLs so you can jump straight back to the same lists.",
-            ]}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <Megaphone className="h-6 w-6 text-primary" />
+              Outreach
+            </h1>
+            <PageHelp
+              title="Outreach"
+              what="A per-event library of the LinkedIn copy and Sales Navigator searches you use to find and approach speakers. Nothing here sends anything — it's text you copy and paste."
+              steps={[
+                "Find the event you're sourcing for (past events are collapsed at the bottom).",
+                "Open its Outreach kit to edit the InMail subject/message, connection note and colleague-outreach templates.",
+                "Save Sales Navigator search URLs so you can jump straight back to the same lists.",
+              ]}
+            />
+          </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
           LinkedIn templates and saved Sales Navigator searches for every event.

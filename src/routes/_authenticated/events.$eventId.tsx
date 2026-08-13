@@ -342,16 +342,18 @@ function EventDetail() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-2xl font-semibold tracking-tight">{e.name}</h1>
-              <PageHelp
-                title="Event page"
-                what="Everything for one event: who's confirmed to speak, who still needs chasing, and the messages you've sent them. This is the main place you work day to day."
-                steps={[
-                  "Use the coloured chips to filter the speaker list (Confirmed, Prospective, Not yet registered…).",
-                  "Select speakers and use Send message to email them with a saved template.",
-                  "Add attendee to log someone new, or Scan Gmail & Calendar to pull in replies automatically.",
-                ]}
-              />
+              <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-2xl font-semibold tracking-tight">{e.name}</h1>
+                <PageHelp
+                  title="Event page"
+                  what="Everything for one event: who's confirmed to speak, who still needs chasing, and the messages you've sent them. This is the main place you work day to day."
+                  steps={[
+                    "Use the coloured chips to filter the speaker list (Confirmed, Prospective, Not yet registered…).",
+                    "Select speakers and use Send message to email them with a saved template.",
+                    "Add attendee to log someone new, or Scan Gmail & Calendar to pull in replies automatically.",
+                  ]}
+                />
+              </div>
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className="rounded-full bg-muted px-2.5 py-0.5 font-mono text-[11px] font-medium">

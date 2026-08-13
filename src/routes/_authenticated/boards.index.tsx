@@ -60,19 +60,21 @@ function BoardsIndexPage() {
       <div className="flex items-end justify-between gap-4 flex-wrap mb-6">
         <div>
           <div className="accent-bar mb-3" />
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <Columns3 className="h-6 w-6 text-primary" />
-            Speaker boards
-          </h1>
-          <PageHelp
-            title={"Speaker boards"}
-            what={"A kanban board per event for moving speakers through the pipeline, plus any custom pools you create."}
-            steps={[
-              "Open the board for the event you’re recruiting for.",
-              "Drag cards between columns — the speaker’s status updates automatically.",
-              "Add speakers directly to a board or import a list.",
-            ]}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <Columns3 className="h-6 w-6 text-primary" />
+              Speaker boards
+            </h1>
+            <PageHelp
+              title={"Speaker boards"}
+              what={"A kanban board per event for moving speakers through the pipeline, plus any custom pools you create."}
+              steps={[
+                "Open the board for the event you’re recruiting for.",
+                "Drag cards between columns — the speaker’s status updates automatically.",
+                "Add speakers directly to a board or import a list.",
+              ]}
+            />
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             One board per event, plus any pools you create yourself.
           </p>
