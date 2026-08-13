@@ -4,13 +4,14 @@ import { cn } from "@/lib/utils";
 import { softCard, outreachAlert } from "@/components/speakers/SpeakerListCard";
 
 const STATUS_CHIP: Record<string, { label: string; cls: string }> = {
-  new: { label: "Interest", cls: "bg-slate-100 text-slate-700 ring-slate-200" },
-  contacted: { label: "Contacted", cls: "bg-sky-100 text-sky-800 ring-sky-200" },
-  in_conversation: { label: "In conversation", cls: "bg-indigo-100 text-indigo-800 ring-indigo-200" },
-  responded: { label: "Responded", cls: "bg-violet-100 text-violet-800 ring-violet-200" },
-  confirmed: { label: "Confirmed", cls: "bg-emerald-100 text-emerald-800 ring-emerald-200" },
-  declined: { label: "Declined", cls: "bg-rose-100 text-rose-700 ring-rose-200" },
+  new: { label: "Interest", cls: "bg-slate-600 text-white ring-slate-600" },
+  contacted: { label: "Contacted", cls: "bg-sky-600 text-white ring-sky-600" },
+  in_conversation: { label: "In conversation", cls: "bg-indigo-600 text-white ring-indigo-600" },
+  responded: { label: "Responded", cls: "bg-violet-600 text-white ring-violet-600" },
+  confirmed: { label: "Confirmed", cls: "bg-emerald-600 text-white ring-emerald-600" },
+  declined: { label: "Declined", cls: "bg-rose-600 text-white ring-rose-600" },
 };
+
 
 export function onSiteOf(s: any): boolean {
   return !!s?.bio_and_headshot_received;
