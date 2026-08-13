@@ -733,6 +733,9 @@ export type Database = {
       }
       speaker_boards: {
         Row: {
+          asana_last_synced_at: string | null
+          asana_project_gid: string | null
+          asana_project_url: string | null
           created_at: string
           event_id: string | null
           id: string
@@ -740,6 +743,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asana_last_synced_at?: string | null
+          asana_project_gid?: string | null
+          asana_project_url?: string | null
           created_at?: string
           event_id?: string | null
           id?: string
@@ -747,6 +753,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asana_last_synced_at?: string | null
+          asana_project_gid?: string | null
+          asana_project_url?: string | null
           created_at?: string
           event_id?: string | null
           id?: string
@@ -759,59 +768,6 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      speaker_email_drafts: {
-        Row: {
-          body: string
-          created_at: string
-          guest_pass_link: string | null
-          id: string
-          kind: string
-          sent_at: string | null
-          sent_email_send_id: string | null
-          speaker_id: string
-          speaker_pass_link: string | null
-          status: string
-          subject: string
-          updated_at: string
-        }
-        Insert: {
-          body?: string
-          created_at?: string
-          guest_pass_link?: string | null
-          id?: string
-          kind?: string
-          sent_at?: string | null
-          sent_email_send_id?: string | null
-          speaker_id: string
-          speaker_pass_link?: string | null
-          status?: string
-          subject?: string
-          updated_at?: string
-        }
-        Update: {
-          body?: string
-          created_at?: string
-          guest_pass_link?: string | null
-          id?: string
-          kind?: string
-          sent_at?: string | null
-          sent_email_send_id?: string | null
-          speaker_id?: string
-          speaker_pass_link?: string | null
-          status?: string
-          subject?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "speaker_email_drafts_speaker_id_fkey"
-            columns: ["speaker_id"]
-            isOneToOne: false
-            referencedRelation: "speakers"
             referencedColumns: ["id"]
           },
         ]
@@ -1499,10 +1455,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_speaker_confirmation_draft: {
-        Args: { _speaker_id: string }
-        Returns: undefined
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
