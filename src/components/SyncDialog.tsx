@@ -1038,7 +1038,7 @@ function ResolveEmailDialog({
   );
 
   const eventOptions = useMemo(
-    () => events.map((e) => ({ value: e.id, label: `${e.code} - ${e.name}` })),
+    () => events.map((e) => ({ value: e.id, label: `${e.name} · ${e.code}` })),
     [events],
   );
 

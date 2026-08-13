@@ -1,3 +1,4 @@
+import { PageHelp } from "@/components/PageHelp";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -64,7 +65,6 @@ import { TitoEventPanel } from "@/components/events/TitoEventPanel";
 import { EventBoardLink } from "@/components/boards/EventBoardLink";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
 import { EventPrioritiesStrip } from "@/components/EventPrioritiesStrip";
-import { AsanaTasksCard } from "@/components/AsanaTasksCard";
 import { ConfirmationDraftsSection } from "@/components/ConfirmationDraftsSection";
 import { agendaItemsQuery } from "@/lib/queries";
 import { listDraftsForEvent, assignSpeakerToAgendaItem } from "@/lib/speaker-drafts.functions";
@@ -341,16 +341,30 @@ function EventDetail() {
       <Card className="p-5 rounded-2xl border-slate-200/70">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-              {e.code}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-2xl font-semibold tracking-tight">{e.name}</h1>
+                <PageHelp
+                  title="Event page"
+                  what="Everything for one event: who's confirmed to speak, who still needs chasing, and the messages you've sent them. This is the main place you work day to day."
+                  steps={[
+                    "Use the coloured chips to filter the speaker list (Confirmed, Prospective, Not yet registered…).",
+                    "Select speakers and use Send message to email them with a saved template.",
+                    "Add attendee to log someone new, or Scan Gmail & Calendar to pull in replies automatically.",
+                  ]}
+                />
+              </div>
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span className="rounded-full bg-muted px-2.5 py-0.5 font-mono text-[11px] font-medium">
+                {e.code}
+              </span>
               <StatusPill className={pillClass.businessLine[e.business_line as "AIAI" | "CSC"]}>
                 {e.business_line}
               </StatusPill>
-              <span className="text-muted-foreground">
-                · {labels.format[e.format as "in_person" | "virtual"]}
-              </span>
+              <span>· {labels.format[e.format as "in_person" | "virtual"]}</span>
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight mt-1">{e.name}</h1>
+
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-slate-600">
               <span className="inline-flex items-center gap-1.5">
                 <CalendarDays className="h-4 w-4 text-slate-400" />
@@ -457,14 +471,8 @@ function EventDetail() {
 
       <TitoEventPanel eventId={eventId} hasTitoSlug={Boolean((e as any).tito_slug)} />
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <EventPrioritiesStrip eventId={eventId} />
-        <AsanaTasksCard
-          eventId={eventId}
-          eventCode={(e as any).code}
-          asanaProjectGid={(e as any).asana_project_gid}
-        />
-      </div>
+      <EventPrioritiesStrip eventId={eventId} />
+
 
       <OutreachKitCard eventId={eventId} />
 

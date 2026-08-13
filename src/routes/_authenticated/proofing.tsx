@@ -1,3 +1,4 @@
+import { PageHelp } from "@/components/PageHelp";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -117,10 +118,21 @@ function ProofingBoard() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="accent-bar mb-3" />
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <ClipboardCheck className="h-6 w-6 text-primary" />
-            Proofing tracker
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <ClipboardCheck className="h-6 w-6 text-primary" />
+              Proofing tracker
+            </h1>
+            <PageHelp
+              title={"Proofing tracker"}
+              what={"The website proofing cycle for every event in one board, with due dates pulled from Asana."}
+              steps={[
+                "Find the event whose proof you’re chasing.",
+                "Drag its card to the stage it’s actually at.",
+                "Use the due dates to spot proofs that are slipping.",
+              ]}
+            />
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Every event's website proofing cycle in one place. Drag cards between stages to mark
             progress. Due dates pulled live from Asana.
@@ -149,7 +161,7 @@ function ProofingBoard() {
               <SelectItem value="all">All events</SelectItem>
               {rows.map((r) => (
                 <SelectItem key={r.event.id} value={r.event.id}>
-                  {r.event.code} - {r.event.name}
+                  {r.event.name} · {r.event.code}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -1,3 +1,4 @@
+import { PageHelp } from "@/components/PageHelp";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -101,7 +102,18 @@ function Banners() {
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Banner tracker</h1>
+          <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight">Banner tracker</h1>
+  <PageHelp
+    title={"Banner tracker"}
+    what={"Every speaker banner in production, grouped by event. The status you set here is the single source of truth used elsewhere in the app."}
+    steps={[
+      "Filter to an event to see just its banners.",
+      "Move each banner through its status as design and approval progress.",
+      "Speaker pages and the Gmail scan both read these statuses.",
+    ]}
+  />
+          </div>
           <p className="text-sm text-muted-foreground">
             Every banner in production, grouped by event. Status here is the single source of
             truth - it also drives the Speaker Kanban and the Sync banner check.
@@ -115,7 +127,7 @@ function Banners() {
             <SelectItem value="all">All events</SelectItem>
             {(events.data ?? []).map((e) => (
               <SelectItem key={e.id} value={e.id}>
-                {e.code} - {e.name}
+                {e.name} · {e.code}
               </SelectItem>
             ))}
           </SelectContent>

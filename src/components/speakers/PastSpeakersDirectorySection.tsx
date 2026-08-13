@@ -194,7 +194,7 @@ function TagForEventDialog({
       if (!e.event_date) return true;
       return new Date(e.event_date).getTime() >= Date.now();
     })
-    .map((e) => ({ value: e.id, label: `${e.code} - ${e.name}` }));
+    .map((e) => ({ value: e.id, label: `${e.name} · ${e.code}` }));
 
   async function submit() {
     if (!target || people.length === 0) return;

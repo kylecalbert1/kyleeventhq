@@ -1,3 +1,4 @@
+import { PageHelp } from "@/components/PageHelp";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -93,7 +94,7 @@ function SentMessagesPage() {
   const eventNameById = useMemo(() => {
     const m = new Map<string, string>();
     for (const e of eventsQ.data ?? []) {
-      m.set(e.id, e.code ? `${e.code} - ${e.name}` : e.name);
+      m.set(e.id, e.code ? `${e.name} · ${e.code}` : e.name);
     }
     return m;
   }, [eventsQ.data]);
@@ -125,9 +126,20 @@ function SentMessagesPage() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Sent messages
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              Sent messages
+            </h1>
+            <PageHelp
+              title={"Sent messages"}
+              what={"A searchable log of every email sent from this app, across all events, with the exact subject and body that went out."}
+              steps={[
+                "Narrow by event or date range, then search subjects, people or templates.",
+                "Expand a row to read the message exactly as recipients saw it.",
+                "Show recipients to confirm who received it.",
+              ]}
+            />
+          </div>
           <p className="text-sm text-muted-foreground">
             Every email logged across all events - {filtered.length} send
             {filtered.length === 1 ? "" : "s"}, {totalRecipients} recipient
@@ -162,7 +174,7 @@ function SentMessagesPage() {
                 <SelectItem value="none">No event</SelectItem>
                 {(eventsQ.data ?? []).map((e) => (
                   <SelectItem key={e.id} value={e.id}>
-                    {e.code ? `${e.code} - ${e.name}` : e.name}
+                    {e.code ? `${e.name} · ${e.code}` : e.name}
                   </SelectItem>
                 ))}
               </SelectContent>

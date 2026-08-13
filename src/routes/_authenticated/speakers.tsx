@@ -1,3 +1,4 @@
+import { PageHelp } from "@/components/PageHelp";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -400,10 +401,21 @@ function SpeakerBoard() {
       <div className="flex items-end justify-between mb-6 gap-4 flex-wrap">
         <div>
           <div className="accent-bar mb-3" />
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <LayoutGrid className="h-6 w-6 text-primary" />
-            All speakers (cross-event)
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <LayoutGrid className="h-6 w-6 text-primary" />
+              All speakers (cross-event)
+            </h1>
+            <PageHelp
+              title={"All speakers (cross-event)"}
+              what={"A cross-event view for finding new candidates and re-recruiting past speakers. Day-to-day speaker management happens inside each event page, not here."}
+              steps={[
+                "Use ‘Find new candidates’ to search past attendees and pull promising people into an event.",
+                "Switch views to browse the combined pipeline when you need a cross-event picture.",
+                "Click any speaker to open their record, history and email actions.",
+              ]}
+            />
+          </div>
 
           <p className="text-sm text-muted-foreground mt-1">
             {view === "board"
@@ -1037,7 +1049,7 @@ function CopyPastSpeakerDialog({
             onValueChange={setTarget}
             options={(events.data ?? []).map((e) => ({
               value: e.id,
-              label: `${e.code} - ${e.name}`,
+              label: `${e.name} · ${e.code}`,
               keywords: e.name,
             }))}
           />

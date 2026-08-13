@@ -7,6 +7,7 @@ import { eventsQuery } from "@/lib/queries";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { fuzzyFilter } from "@/lib/fuzzy-search";
+import { PageHelp } from "@/components/PageHelp";
 
 export const Route = createFileRoute("/_authenticated/outreach")({
   loader: ({ context }) => context.queryClient.ensureQueryData(eventsQuery),
@@ -37,30 +38,44 @@ function OutreachPage() {
   }, [events.data, q]);
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-5xl">
+    <div className="p-6 md:p-8 space-y-7 max-w-5xl">
       <div>
         <div className="accent-bar mb-3" />
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <Megaphone className="h-6 w-6 text-primary" />
-          Outreach
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <Megaphone className="h-6 w-6 text-primary" />
+              Outreach
+            </h1>
+            <PageHelp
+              title="Outreach"
+              what="A per-event library of the LinkedIn copy and Sales Navigator searches you use to find and approach speakers. Nothing here sends anything — it's text you copy and paste."
+              steps={[
+                "Find the event you're sourcing for (past events are collapsed at the bottom).",
+                "Open its Outreach kit to edit the InMail subject/message, connection note and colleague-outreach templates.",
+                "Save Sales Navigator search URLs so you can jump straight back to the same lists.",
+              ]}
+            />
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
           LinkedIn templates and saved Sales Navigator searches for every event.
           Upcoming events only by default — past events are collapsed at the bottom.
         </p>
       </div>
 
-      <div className="surface-card p-3">
+      <div className="surface-card p-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            className="pl-9 h-10"
+            className="pl-9 h-11 text-[13px]"
             placeholder="Search events by name or code"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
         </div>
       </div>
+
 
       {upcoming.length === 0 && past.length === 0 ? (
         <div className="surface-card p-12 text-center text-sm text-muted-foreground">
@@ -69,7 +84,7 @@ function OutreachPage() {
       ) : (
         <>
           {upcoming.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-5">
               {upcoming.map((e: any) => (
                 <EventKit key={e.id} event={e} />
               ))}
@@ -116,14 +131,18 @@ function OutreachPage() {
 
 function EventKit({ event }: { event: any }) {
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline gap-2 px-1">
-        <span className="text-sm font-semibold text-foreground">
-          {event.code ? `${event.code} — ` : ""}
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2.5 px-1">
+        <span className="text-base font-semibold text-foreground">
           {event.name}
         </span>
+        {event.code && (
+          <span className="rounded-full bg-muted px-2.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
+            {event.code}
+          </span>
+        )}
         {event.event_date && (
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {new Date(event.event_date).toLocaleDateString(undefined, {
               month: "short",
               day: "numeric",
@@ -136,3 +155,4 @@ function EventKit({ event }: { event: any }) {
     </div>
   );
 }
+

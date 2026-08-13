@@ -1,3 +1,4 @@
+import { PageHelp } from "@/components/PageHelp";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
@@ -59,10 +60,21 @@ function AgendaPage() {
       <div className="mx-auto max-w-6xl p-6 md:p-8 space-y-6">
         <div>
           <div className="accent-bar mb-3" />
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <ListChecks className="h-6 w-6 text-primary" />
-            Agenda
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+              <ListChecks className="h-6 w-6 text-primary" />
+              Agenda
+            </h1>
+            <PageHelp
+              title={"Agenda"}
+              what={"Build the running order for an event, or link out to an agenda hosted elsewhere. Sessions re-time automatically when you change a duration."}
+              steps={[
+                "Pick an event to load its agenda, or browse the list below.",
+                "Add or reorder sessions — start times recalculate for you.",
+                "Export an AV version to Word when the running order is settled.",
+              ]}
+            />
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Build running orders or link to an externally hosted agenda. Pick an event to load its
             agenda, or browse below.
@@ -82,7 +94,7 @@ function AgendaPage() {
             onValueChange={setEventId}
             options={sorted.map((e: any) => ({
               value: e.id,
-              label: `${e.code ? `${e.code} - ` : ""}${e.name}`,
+              label: `${e.name}${e.code ? ` · ${e.code}` : ""}`,
             }))}
           />
           {selected && (
@@ -171,10 +183,10 @@ function SelectedEventAgenda({ event }: { event: any }) {
       <div className="surface-card p-4 space-y-4">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {event.code ?? "Event"}
-            </div>
             <div className="text-lg font-semibold truncate">{event.name}</div>
+            {event.code && (
+              <div className="font-mono text-[11px] text-muted-foreground">{event.code}</div>
+            )}
             <div className="mt-1 text-xs text-muted-foreground flex items-center gap-3 flex-wrap">
               <span className="inline-flex items-center gap-1">
                 <CalendarDays className="h-3.5 w-3.5" />
@@ -346,10 +358,10 @@ function EventBrowseCard({ event, onPick }: { event: any; onPick: (id: string) =
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {event.code ?? "Event"}
-          </div>
           <div className="text-sm font-semibold truncate">{event.name}</div>
+          {event.code && (
+            <div className="font-mono text-[11px] text-muted-foreground">{event.code}</div>
+          )}
         </div>
         {hasExternal && (
           <span

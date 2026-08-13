@@ -1,3 +1,4 @@
+import { PageHelp } from "@/components/PageHelp";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -111,9 +112,20 @@ function TitoArchive() {
       <div className="mx-auto max-w-6xl px-6 py-8 md:py-10 space-y-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              All Tito events
-            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                All Tito events
+              </h1>
+              <PageHelp
+                title={"All Tito events"}
+                what={"Every event ever run on Tito, including ones not tracked here. Use it to search past attendees and message them."}
+                steps={[
+                  "Search or filter by year and location to find an event.",
+                  "Open it to browse and filter its ticket holders.",
+                  "Select people and message them, or tag them as speaker candidates.",
+                ]}
+              />
+            </div>
             <p className="text-sm text-slate-500 mt-0.5">
               Every event ever run on Tito — browse, search and message anyone who
               registered, whether or not it's tracked here.

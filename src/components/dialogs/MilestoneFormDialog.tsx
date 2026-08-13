@@ -111,7 +111,7 @@ export function MilestoneFormDialog({
             <Select value={form.event_id} onValueChange={(v) => setForm({ ...form, event_id: v })}>
               <SelectTrigger><SelectValue placeholder="Select event" /></SelectTrigger>
               <SelectContent>
-                {(events.data ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{e.code} - {e.name}</SelectItem>)}
+                {(events.data ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{e.name} · {e.code}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
