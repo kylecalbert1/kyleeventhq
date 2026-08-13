@@ -7,6 +7,7 @@ import { eventsQuery } from "@/lib/queries";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { fuzzyFilter } from "@/lib/fuzzy-search";
+import { PageHelp } from "@/components/PageHelp";
 
 export const Route = createFileRoute("/_authenticated/outreach")({
   loader: ({ context }) => context.queryClient.ensureQueryData(eventsQuery),
@@ -81,7 +82,7 @@ function OutreachPage() {
       ) : (
         <>
           {upcoming.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-5">
               {upcoming.map((e: any) => (
                 <EventKit key={e.id} event={e} />
               ))}
