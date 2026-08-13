@@ -79,7 +79,7 @@ const KIND_SYNONYMS: Record<string, string[]> = {
 export function matchColumn(
   sectionName: string | null | undefined,
   columns: Array<{ id: string; name: string; kind: string | null }>,
-): { id: string; kind: string | null } {
+): { id: string; name?: string; kind: string | null } {
   const first = columns[0];
   const n = norm(sectionName);
   if (!n) return first;
@@ -115,7 +115,7 @@ export function parseTaskName(name: string): { name: string; title: string | nul
 
 export async function importAsanaProjectToBoard(
   supabase: AnyClient,
-  opts: { board_id: string; project_gid: string },
+  opts: { board_id: string; project_gid: string; project_url?: string | null },
 ) {
   const { findOrMergeSpeaker } = await import("@/lib/speaker-dedupe.server");
   const { statusForKind } = await import("@/lib/board-status");
@@ -137,6 +137,33 @@ export async function importAsanaProjectToBoard(
     .order("position", { ascending: true });
   if (cErr) throw new Error(cErr.message);
   if (!columns?.length) throw new Error("This board has no columns yet.");
+
+  // Asana is the source of truth for structure: any section without a
+  // reasonable counterpart on the board becomes a new column.
+  let boardColumns = columns as Array<{ id: string; name: string; kind: string | null; position: number }>;
+  const sections = await asanaGet(`/projects/${opts.project_gid}/sections`, {
+    limit: "100",
+    opt_fields: "gid,name",
+  });
+  let nextPos = Math.max(-1, ...boardColumns.map((c) => c.position)) + 1;
+  let createdColumns = 0;
+  for (const sec of sections.data ?? []) {
+    const n = norm(sec.name);
+    if (!n) continue;
+    const hit = matchColumn(sec.name, boardColumns);
+    const exact = norm(hit.name ?? "") === n;
+    const synonym = Boolean(hit.kind && KIND_SYNONYMS[hit.kind]?.some((w) => n === w || n.includes(w)));
+    if (exact || synonym) continue;
+    const { data: newCol } = await supabase
+      .from("speaker_board_columns")
+      .insert({ board_id: board.id, name: String(sec.name).trim(), position: nextPos++, kind: null })
+      .select("id, name, kind, position")
+      .single();
+    if (newCol) {
+      boardColumns = [...boardColumns, newCol];
+      createdColumns++;
+    }
+  }
 
   const body = await asanaGet("/tasks", {
     project: opts.project_gid,
@@ -160,8 +187,8 @@ export async function importAsanaProjectToBoard(
     const rawName = (t.name ?? "").trim();
     if (!rawName) continue;
     const section = t.memberships?.[0]?.section?.name ?? null;
-    const col = matchColumn(section, columns as any);
-    if (col.id === columns[0].id && norm(section) && norm(columns[0].name) !== norm(section)) {
+    const col = matchColumn(section, boardColumns as any);
+    if (col.id === boardColumns[0].id && norm(section) && norm(boardColumns[0].name) !== norm(section)) {
       unmatchedSections++;
     }
     const parsed = parseTaskName(rawName);
@@ -196,5 +223,20 @@ export async function importAsanaProjectToBoard(
     created++;
   }
 
-  return { created, matched, total: tasks.length, unmatched_sections: unmatchedSections };
+  await supabase
+    .from("speaker_boards")
+    .update({
+      asana_project_gid: opts.project_gid,
+      ...(opts.project_url ? { asana_project_url: opts.project_url } : {}),
+      asana_last_synced_at: new Date().toISOString(),
+    })
+    .eq("id", board.id);
+
+  return {
+    created,
+    matched,
+    total: tasks.length,
+    unmatched_sections: unmatchedSections,
+    created_columns: createdColumns,
+  };
 }

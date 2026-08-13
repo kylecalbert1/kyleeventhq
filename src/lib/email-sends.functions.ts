@@ -232,3 +232,23 @@ export const getTrackedByEmails = createServerFn({ method: "POST" })
       };
     });
   });
+
+/** Sends addressed to one speaker, newest first — used by the speaker timeline. */
+export const listSpeakerSends = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ speaker_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("email_send_recipients")
+      .select("id, created_at, email_sends(id, subject, template_type, sent_at)")
+      .eq("speaker_id", data.speaker_id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r: any) => ({
+      id: r.id,
+      subject: (r.email_sends?.subject ?? null) as string | null,
+      template_type: (r.email_sends?.template_type ?? null) as string | null,
+      sent_at: (r.email_sends?.sent_at ?? r.created_at) as string,
+    }));
+  });

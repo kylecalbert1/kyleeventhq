@@ -44,6 +44,7 @@ export function AsanaImportDialog({
     onSuccess: (r: any) => {
       qc.invalidateQueries({ queryKey: ["speakerBoard", boardId] });
       qc.invalidateQueries({ queryKey: ["speakers"] });
+      qc.invalidateQueries({ queryKey: ["eventBoardSummary"] });
       toast.success(
         `Imported ${r.created} new card${r.created === 1 ? "" : "s"}${
           r.matched ? `, updated ${r.matched} existing` : ""

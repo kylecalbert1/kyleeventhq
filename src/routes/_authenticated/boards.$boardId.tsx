@@ -14,6 +14,7 @@ import {
   ChevronUp,
   GripVertical,
   Loader2,
+  RefreshCw,
   UserPlus,
   Download,
 } from "lucide-react";
@@ -36,6 +37,7 @@ import { BoardSpeakerCard, onSiteOf } from "@/components/boards/BoardSpeakerCard
 import { DuplicateCompareDialog } from "@/components/boards/DuplicateCompareDialog";
 import { AddBoardSpeakerDialog } from "@/components/boards/AddBoardSpeakerDialog";
 import { AsanaImportDialog } from "@/components/boards/AsanaImportDialog";
+import { refreshBoardFromAsana } from "@/lib/boards.functions";
 import { boardQuery } from "@/lib/queries";
 import {
   moveSpeakerToColumn,
@@ -140,6 +142,17 @@ function BoardPage() {
   });
 
   const board = q.data?.board;
+  const asanaLinked = Boolean((board as any)?.asana_project_gid);
+  const refreshAsanaFn = useServerFn(refreshBoardFromAsana);
+  const refreshAsana = useMutation({
+    mutationFn: () => refreshAsanaFn({ data: { board_id: boardId } }),
+    onSuccess: (r: any) => {
+      qc.invalidateQueries({ queryKey: ["speakerBoard", boardId] });
+      qc.invalidateQueries({ queryKey: ["speakers"] });
+      toast.success(`Synced from Asana — ${r.created} new, ${r.matched} updated`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Sync failed"),
+  });
   const columns = q.data?.columns ?? [];
   const speakers = q.data?.speakers ?? [];
 
@@ -249,6 +262,27 @@ function BoardPage() {
           <p className="text-sm text-muted-foreground mt-1">
             {speakers.length} speaker{speakers.length === 1 ? "" : "s"} · click a card for detail.
           </p>
+          {asanaLinked && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Synced from Asana{" "}
+              {(board as any)?.asana_last_synced_at
+                ? `· last refreshed ${new Date((board as any).asana_last_synced_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`
+                : "· not refreshed yet"}
+              {(board as any)?.asana_project_url && (
+                <>
+                  {" · "}
+                  <a
+                    className="underline hover:text-foreground"
+                    href={(board as any).asana_project_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    open in Asana
+                  </a>
+                </>
+              )}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm">
@@ -273,8 +307,23 @@ function BoardPage() {
               <LayoutGrid className="h-3.5 w-3.5" /> Board
             </button>
           </div>
+          {asanaLinked ? (
+            <Button
+              variant="outline"
+              onClick={() => refreshAsana.mutate()}
+              disabled={refreshAsana.isPending}
+            >
+              {refreshAsana.isPending ? (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-1.5" />
+              )}
+              Refresh from Asana
+            </Button>
+          ) : null}
           <Button variant="outline" onClick={() => setAsanaOpen(true)}>
-            <Download className="h-4 w-4 mr-1.5" /> Import from Asana
+            <Download className="h-4 w-4 mr-1.5" />
+            {asanaLinked ? "Change Asana board" : "Import from Asana"}
           </Button>
           <Button variant="outline" onClick={() => setAddOpen(true)}>
             <Plus className="h-4 w-4 mr-1.5" /> Add column

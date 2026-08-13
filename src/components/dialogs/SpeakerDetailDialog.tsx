@@ -24,6 +24,8 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/StatusPill";
 import { labels, pillClass, type OutreachChannel } from "@/lib/status";
 import { listSpeakerActivity } from "@/lib/speakers.functions";
+import { listSpeakerSends } from "@/lib/email-sends.functions";
+import { buildSpeakerTimeline, type TimelineKind } from "@/lib/speaker-timeline";
 import { initialsOf } from "@/lib/gmail";
 import { linkedinSearchUrl } from "@/lib/linkedin-search";
 
@@ -61,16 +63,20 @@ function fmtDateTime(iso: string | null | undefined): string {
   return `${d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} · ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-function eventTypeMeta(t: string) {
-  switch (t) {
-    case "status_changed":
-      return { label: "Status changed", icon: Activity, cls: "text-violet-600 bg-violet-50" };
-    case "banner_status_changed":
-      return { label: "Banner status changed", icon: Activity, cls: "text-amber-600 bg-amber-50" };
-    case "message_direction_changed":
-      return { label: "New message", icon: MessageSquare, cls: "text-sky-600 bg-sky-50" };
+function timelineMeta(kind: TimelineKind) {
+  switch (kind) {
+    case "added":
+      return { icon: UserPlus, cls: "text-emerald-600 bg-emerald-50" };
+    case "status":
+      return { icon: Activity, cls: "text-violet-600 bg-violet-50" };
+    case "banner":
+      return { icon: Pencil, cls: "text-amber-600 bg-amber-50" };
+    case "sent":
+      return { icon: Send, cls: "text-primary bg-primary/10" };
+    case "received":
+      return { icon: MessageSquare, cls: "text-sky-600 bg-sky-50" };
     default:
-      return { label: t, icon: Activity, cls: "text-slate-600 bg-slate-100" };
+      return { icon: MessageSquare, cls: "text-slate-600 bg-slate-100" };
   }
 }
 
@@ -94,6 +100,16 @@ export function SpeakerDetailDialog({
     queryFn: () => listSpeakerActivity({ data: { speaker_id: speaker!.id } }),
     enabled: !!speaker && open,
   });
+
+  const sends = useQuery({
+    queryKey: ["speakerSends", speaker?.id ?? "none"],
+    queryFn: () => listSpeakerSends({ data: { speaker_id: speaker!.id } }),
+    enabled: !!speaker && open,
+  });
+  const timeline = useMemo(
+    () => (speaker ? buildSpeakerTimeline(speaker, activity.data ?? [], sends.data ?? []) : []),
+    [speaker, activity.data, sends.data],
+  );
 
   const stage = useMemo(() => (speaker ? stageOf(speaker) : null), [speaker]);
   const liSearch = useMemo(
@@ -240,59 +256,37 @@ export function SpeakerDetailDialog({
           <section className="space-y-3">
             <SectionTitle>Recent activity</SectionTitle>
             <p className="text-[11px] text-muted-foreground -mt-1">
-              Best-effort from existing timestamps and logged changes. Not a complete audit history.
+              A plain-language history: status moves, emails sent and replies received. Similar
+              events in a row are grouped.
             </p>
-            <ol className="relative border-l border-border pl-4 space-y-3">
-              <TimelineItem
-                icon={UserPlus}
-                iconCls="text-emerald-600 bg-emerald-50"
-                title="Added to pipeline"
-                time={fmtDateTime(speaker.created_at)}
-              />
-              {speaker.last_message_at && (
-                <TimelineItem
-                  icon={speaker.last_message_direction === "inbound" ? MessageSquare : Send}
-                  iconCls={
-                    speaker.last_message_direction === "inbound"
-                      ? "text-sky-600 bg-sky-50"
-                      : "text-violet-600 bg-violet-50"
-                  }
-                  title={
-                    speaker.last_message_direction === "inbound"
-                      ? "Received a message"
-                      : speaker.last_message_direction === "outbound"
-                        ? "Sent a message"
-                        : "Message logged"
-                  }
-                  time={fmtDateTime(speaker.last_message_at)}
-                />
-              )}
-              {speaker.updated_at && speaker.updated_at !== speaker.created_at && (
-                <TimelineItem
-                  icon={Pencil}
-                  iconCls="text-slate-600 bg-slate-100"
-                  title="Record last updated"
-                  time={fmtDateTime(speaker.updated_at)}
-                />
-              )}
-              {(activity.data ?? []).map((a) => {
-                const meta = eventTypeMeta(a.event_type);
-                return (
-                  <TimelineItem
-                    key={a.id}
-                    icon={meta.icon}
-                    iconCls={meta.cls}
-                    title={meta.label}
-                    note={a.note ?? undefined}
-                    time={fmtDateTime(a.created_at)}
-                  />
-                );
-              })}
-            </ol>
+            {timeline.length === 0 && !activity.isLoading ? (
+              <div className="text-xs text-muted-foreground">Nothing logged yet.</div>
+            ) : (
+              <ol className="relative border-l border-border pl-4 space-y-3">
+                {timeline.map((t) => {
+                  const meta = timelineMeta(t.kind);
+                  return (
+                    <TimelineItem
+                      key={t.id}
+                      icon={meta.icon}
+                      iconCls={meta.cls}
+                      title={t.title}
+                      note={t.note}
+                      time={
+                        t.count > 1 && t.fromAt
+                          ? `${fmtDateTime(t.fromAt)} → ${fmtDateTime(t.at)}`
+                          : fmtDateTime(t.at)
+                      }
+                    />
+                  );
+                })}
+              </ol>
+            )}
             {activity.isLoading && (
               <div className="text-xs text-muted-foreground pl-4">Loading activity…</div>
             )}
           </section>
+
         </div>
 
         <div className="mt-6 pt-4 border-t flex justify-between text-[11px] text-muted-foreground">
