@@ -34,6 +34,15 @@ function MilestonesList() {
               <CalendarDays className="h-6 w-6 text-primary" />
               Kickoff & Washup
             </h1>
+            <PageHelp
+              title={"Kickoff & washup"}
+              what={"Planning and retrospective sessions across every event, so you can see what"s scheduled and what"s overdue."}
+              steps={[
+                "Add a milestone with its event and date.",
+                "Scan the list for sessions coming up.",
+                "Use it alongside the event pages when planning the week.",
+              ]}
+            />
             <p className="text-sm text-muted-foreground mt-1">Every planning and retrospective session across events.</p>
           </div>
           <Button onClick={() => setEditing({ open: true })}><Plus className="h-4 w-4 mr-1.5" />Add milestone</Button>

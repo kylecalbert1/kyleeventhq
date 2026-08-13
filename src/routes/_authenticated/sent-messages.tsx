@@ -129,6 +129,15 @@ function SentMessagesPage() {
           <h1 className="text-xl font-semibold tracking-tight text-foreground">
             Sent messages
           </h1>
+          <PageHelp
+            title={"Sent messages"}
+            what={"A searchable log of every email sent from this app, across all events, with the exact subject and body that went out."}
+            steps={[
+              "Narrow by event or date range, then search subjects, people or templates.",
+              "Expand a row to read the message exactly as recipients saw it.",
+              "Show recipients to confirm who received it.",
+            ]}
+          />
           <p className="text-sm text-muted-foreground">
             Every email logged across all events - {filtered.length} send
             {filtered.length === 1 ? "" : "s"}, {totalRecipients} recipient

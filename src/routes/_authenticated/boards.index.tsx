@@ -64,6 +64,15 @@ function BoardsIndexPage() {
             <Columns3 className="h-6 w-6 text-primary" />
             Speaker boards
           </h1>
+          <PageHelp
+            title={"Speaker boards"}
+            what={"A kanban board per event for moving speakers through the pipeline, plus any custom pools you create."}
+            steps={[
+              "Open the board for the event you"re recruiting for.",
+              "Drag cards between columns — the speaker"s status updates automatically.",
+              "Add speakers directly to a board or import a list.",
+            ]}
+          />
           <p className="text-sm text-muted-foreground mt-1">
             One board per event, plus any pools you create yourself.
           </p>

@@ -115,6 +115,15 @@ function TitoArchive() {
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               All Tito events
             </h1>
+            <PageHelp
+              title={"All Tito events"}
+              what={"Every event ever run on Tito, including ones not tracked here. Use it to search past attendees and message them."}
+              steps={[
+                "Search or filter by year and location to find an event.",
+                "Open it to browse and filter its ticket holders.",
+                "Select people and message them, or tag them as speaker candidates.",
+              ]}
+            />
             <p className="text-sm text-slate-500 mt-0.5">
               Every event ever run on Tito — browse, search and message anyone who
               registered, whether or not it's tracked here.

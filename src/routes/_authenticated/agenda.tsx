@@ -64,6 +64,15 @@ function AgendaPage() {
             <ListChecks className="h-6 w-6 text-primary" />
             Agenda
           </h1>
+          <PageHelp
+            title={"Agenda"}
+            what={"Build the running order for an event, or link out to an agenda hosted elsewhere. Sessions re-time automatically when you change a duration."}
+            steps={[
+              "Pick an event to load its agenda, or browse the list below.",
+              "Add or reorder sessions — start times recalculate for you.",
+              "Export an AV version to Word when the running order is settled.",
+            ]}
+          />
           <p className="text-sm text-muted-foreground mt-1">
             Build running orders or link to an externally hosted agenda. Pick an event to load its
             agenda, or browse below.

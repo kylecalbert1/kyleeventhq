@@ -103,6 +103,15 @@ function Banners() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Banner tracker</h1>
+<PageHelp
+  title={"Banner tracker"}
+  what={"Every speaker banner in production, grouped by event. The status you set here is the single source of truth used elsewhere in the app."}
+  steps={[
+    "Filter to an event to see just its banners.",
+    "Move each banner through its status as design and approval progress.",
+    "Speaker pages and the Gmail scan both read these statuses.",
+  ]}
+/>
           <p className="text-sm text-muted-foreground">
             Every banner in production, grouped by event. Status here is the single source of
             truth - it also drives the Speaker Kanban and the Sync banner check.

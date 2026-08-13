@@ -114,6 +114,15 @@ function SponsorInboxPage() {
             <InboxIcon className="h-6 w-6 text-indigo-600" />
             Sponsor Inbox
           </h1>
+          <PageHelp
+            title={"Sponsor inbox"}
+            what={"Sponsor email threads you"ve been copied into, pulled from Gmail so they don"t get lost in your inbox."}
+            steps={[
+              "Add the senders worth watching under "Watched senders".",
+              "Hit "Scan Gmail" to pull in recent threads from those senders.",
+              "Assign a thread to an event and mark it handled when done.",
+            ]}
+          />
           <p className="text-sm text-muted-foreground mt-1">
             Sponsor email threads you've been looped into. Scan Gmail for new
             mentions from your watched senders.

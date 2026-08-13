@@ -84,6 +84,15 @@ function AsanaPage() {
             <Sparkles className="h-6 w-6 text-amber-500" />
             Asana tasks
           </h1>
+          <PageHelp
+            title={"Asana tasks"}
+            what={"A read-only mirror of the milestone tasks in Asana (kick-off, proofs, launch), synced nightly. Nothing you do here writes back to Asana."}
+            steps={[
+              "Browse by event to see what"s due next.",
+              "Use it as a reference while planning — edit the real task in Asana.",
+              "Dates feed the kickoff/launch info shown elsewhere in the app.",
+            ]}
+          />
           <p className="text-sm text-slate-500 mt-1">
             Read-only mirror of milestone tasks. Nightly sync at 07:00 UTC.
           </p>
