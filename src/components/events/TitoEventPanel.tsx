@@ -5,10 +5,7 @@ import { Copy, ExternalLink, Sparkles, Users, AlertTriangle } from "lucide-react
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  eventReleasesQuery,
-  eventReconciliationQuery,
-} from "@/lib/queries";
+import { eventReconciliationQuery } from "@/lib/queries";
 import {
   syncEventFromTito,
   linkSpeakerToTicket,
@@ -17,7 +14,6 @@ import {
 
 export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasTitoSlug: boolean }) {
   const qc = useQueryClient();
-  const releases = useQuery({ ...eventReleasesQuery(eventId), enabled: hasTitoSlug });
   const recon = useQuery({ ...eventReconciliationQuery(eventId), enabled: hasTitoSlug });
   const sync = useServerFn(syncEventFromTito);
   const link = useServerFn(linkSpeakerToTicket);
