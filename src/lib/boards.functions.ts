@@ -10,7 +10,7 @@ const DEFAULT_COLUMNS: Array<{ name: string; position: number; kind: string }> =
   { name: "Declined", position: 4, kind: "declined" },
 ];
 
-import { statusForKind } from "@/lib/board-status";
+import { statusForKind, inferColumnKind, effectiveColumnKind } from "@/lib/board-status";
 
 export { statusForKind };
 
@@ -238,7 +238,7 @@ export const addBoardColumn = createServerFn({ method: "POST" })
         board_id: data.board_id,
         name: data.name,
         position: (last?.position ?? -1) + 1,
-        kind: null,
+        kind: inferColumnKind(data.name),
       })
       .select()
       .single();
@@ -250,13 +250,23 @@ export const renameBoardColumn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid(), name: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
+    const kind = inferColumnKind(data.name);
     const { error } = await context.supabase
       .from("speaker_board_columns")
-      .update({ name: data.name })
+      .update({ name: data.name, kind } as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    // Renaming a column into a semantic stage re-stamps the cards sitting in it.
+    const status = statusForKind(kind);
+    if (status) {
+      await context.supabase
+        .from("speakers")
+        .update({ status } as never)
+        .eq("board_column_id", data.id);
+    }
     return { ok: true };
   });
+
 
 export const reorderBoardColumns = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -323,14 +333,14 @@ export const moveSpeakerToColumn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: col, error } = await context.supabase
       .from("speaker_board_columns")
-      .select("id, kind")
+      .select("id, kind, name")
       .eq("id", data.column_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!col) throw new Error("Column not found");
 
     const patch: Record<string, unknown> = { board_column_id: col.id };
-    const status = statusForKind(col.kind);
+    const status = statusForKind(effectiveColumnKind(col.kind, (col as any).name));
     if (status) patch.status = status;
 
     const { error: upErr } = await context.supabase
@@ -427,13 +437,13 @@ export const createBoardSpeaker = createServerFn({ method: "POST" })
 
     const { data: col, error: cErr } = await context.supabase
       .from("speaker_board_columns")
-      .select("id, kind")
+      .select("id, kind, name")
       .eq("id", data.column_id)
       .maybeSingle();
     if (cErr) throw new Error(cErr.message);
     if (!col) throw new Error("Column not found");
 
-    const status = statusForKind(col.kind) ?? "new";
+    const status = statusForKind(effectiveColumnKind(col.kind, (col as any).name)) ?? "new";
     const { row } = await findOrMergeSpeaker(context.supabase, {
       event_id: board.event_id,
       name: data.name.trim(),

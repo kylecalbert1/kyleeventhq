@@ -67,13 +67,7 @@ function norm(s: string | null | undefined) {
   return (s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-const KIND_SYNONYMS: Record<string, string[]> = {
-  interest: ["interest", "interested", "prospect", "prospects", "leads", "new", "backlog", "to do", "todo"],
-  in_conversation: ["in conversation", "conversation", "in progress", "talking", "outreach", "contacted", "in discussion"],
-  confirmed: ["confirmed", "signed", "agreed", "booked", "done", "complete", "completed"],
-  registered: ["registered", "registration", "ticketed", "on site"],
-  declined: ["declined", "no", "rejected", "passed", "not interested", "lost"],
-};
+import { inferColumnKind, effectiveColumnKind } from "@/lib/board-status";
 
 /** Picks the board column that best matches an Asana section name. */
 export function matchColumn(
@@ -93,9 +87,9 @@ export function matchColumn(
   });
   if (partial) return partial;
 
-  for (const [kind, words] of Object.entries(KIND_SYNONYMS)) {
-    if (!words.some((w) => n === w || n.includes(w))) continue;
-    const col = columns.find((c) => c.kind === kind);
+  const inferred = inferColumnKind(sectionName);
+  if (inferred) {
+    const col = columns.find((c) => effectiveColumnKind(c.kind, c.name) === inferred);
     if (col) return col;
   }
   return first;
@@ -152,11 +146,17 @@ export async function importAsanaProjectToBoard(
     if (!n) continue;
     const hit = matchColumn(sec.name, boardColumns);
     const exact = norm(hit.name ?? "") === n;
-    const synonym = Boolean(hit.kind && KIND_SYNONYMS[hit.kind]?.some((w) => n === w || n.includes(w)));
+    const inferred = inferColumnKind(sec.name);
+    const synonym = Boolean(inferred && effectiveColumnKind(hit.kind, hit.name) === inferred);
     if (exact || synonym) continue;
     const { data: newCol } = await supabase
       .from("speaker_board_columns")
-      .insert({ board_id: board.id, name: String(sec.name).trim(), position: nextPos++, kind: null })
+      .insert({
+        board_id: board.id,
+        name: String(sec.name).trim(),
+        position: nextPos++,
+        kind: inferColumnKind(sec.name),
+      })
       .select("id, name, kind, position")
       .single();
     if (newCol) {
@@ -196,14 +196,14 @@ export async function importAsanaProjectToBoard(
 
     if (existing) {
       const patch: Record<string, unknown> = { board_column_id: col.id };
-      const status = statusForKind(col.kind);
+      const status = statusForKind(effectiveColumnKind(col.kind, col.name));
       if (status) patch.status = status;
       await supabase.from("speakers").update(patch).eq("id", existing.id);
       matched++;
       continue;
     }
 
-    const status = statusForKind(col.kind) ?? "new";
+    const status = statusForKind(effectiveColumnKind(col.kind, col.name)) ?? "new";
     const { row } = await findOrMergeSpeaker(supabase, {
       event_id: board.event_id,
       name: parsed.name,

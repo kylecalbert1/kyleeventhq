@@ -320,7 +320,7 @@ export function SpeakerListCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 text-[12px] font-medium text-sky-700 hover:underline"
+                className="inline-flex items-center gap-1 rounded-full bg-sky-600 px-2.5 py-1 text-[11px] font-semibold text-white ring-1 ring-inset ring-sky-700/20 hover:bg-sky-700"
               >
                 <Linkedin className="h-3.5 w-3.5" />
                 LinkedIn
@@ -331,13 +331,14 @@ export function SpeakerListCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 text-[12px] font-medium text-slate-500 hover:underline"
+                className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700 ring-1 ring-inset ring-sky-300 hover:bg-sky-100"
                 title="Search LinkedIn"
               >
                 <SearchIcon className="h-3.5 w-3.5" />
                 Search LinkedIn
               </a>
             )}
+
             {s.gmail_thread_id && (
               <a
                 href={gmailThreadUrl(s.gmail_thread_id)}

@@ -5,10 +5,7 @@ import { Copy, ExternalLink, Sparkles, Users, AlertTriangle } from "lucide-react
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  eventReleasesQuery,
-  eventReconciliationQuery,
-} from "@/lib/queries";
+import { eventReconciliationQuery } from "@/lib/queries";
 import {
   syncEventFromTito,
   linkSpeakerToTicket,
@@ -17,7 +14,6 @@ import {
 
 export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasTitoSlug: boolean }) {
   const qc = useQueryClient();
-  const releases = useQuery({ ...eventReleasesQuery(eventId), enabled: hasTitoSlug });
   const recon = useQuery({ ...eventReconciliationQuery(eventId), enabled: hasTitoSlug });
   const sync = useServerFn(syncEventFromTito);
   const link = useServerFn(linkSpeakerToTicket);
@@ -161,23 +157,8 @@ export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasT
           </div>
         )}
 
-        {(releases.data?.length ?? 0) > 0 && (
-          <details className="mt-4">
-            <summary className="text-xs text-muted-foreground cursor-pointer">
-              All releases ({releases.data?.length})
-            </summary>
-            <div className="mt-2 space-y-1">
-              {releases.data?.map((r: any) => (
-                <div key={r.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-100 last:border-0">
-                  <span>{r.title} {r.state ? <span className="text-muted-foreground">· {r.state}</span> : null}</span>
-                  <span className="tabular-nums text-muted-foreground">
-                    {typeof r.tickets_count === "number" ? `${r.tickets_count} sold` : "-"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
+
+
       </Card>
 
       {/* Reconciliation panel removed from the event detail page (too noisy).
