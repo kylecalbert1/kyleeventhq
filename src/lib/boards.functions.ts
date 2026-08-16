@@ -250,13 +250,23 @@ export const renameBoardColumn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid(), name: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
+    const kind = inferColumnKind(data.name);
     const { error } = await context.supabase
       .from("speaker_board_columns")
-      .update({ name: data.name })
+      .update({ name: data.name, kind } as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    // Renaming a column into a semantic stage re-stamps the cards sitting in it.
+    const status = statusForKind(kind);
+    if (status) {
+      await context.supabase
+        .from("speakers")
+        .update({ status } as never)
+        .eq("board_column_id", data.id);
+    }
     return { ok: true };
   });
+
 
 export const reorderBoardColumns = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
