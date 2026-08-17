@@ -1,15 +1,13 @@
 import { PageHelp } from "@/components/PageHelp";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { Sparkles, ExternalLink, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { asanaTasksQuery, eventsQuery } from "@/lib/queries";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/asana")({
   head: () => ({
@@ -40,7 +38,6 @@ function fmtDate(iso: string | null) {
 function AsanaPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
-  const qc = useQueryClient();
   const events = useQuery(eventsQuery);
   const q = useQuery(
     asanaTasksQuery({
