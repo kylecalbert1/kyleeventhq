@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -49,6 +50,13 @@ type EventRow = {
   speaker_target?: number | null;
   external_agenda_url?: string | null;
   tito_slug?: string | null;
+  event_site_url?: string | null;
+  venue_url?: string | null;
+  venue_address?: string | null;
+  registration_time?: string | null;
+  sessions_start_time?: string | null;
+  venue_notes?: string | null;
+  join_instructions?: string | null;
   sales_contact_name?: string | null;
   sales_contact_email?: string | null;
   sales_contact_booking_link?: string | null;
@@ -77,6 +85,13 @@ const initial = {
   sales_contact_name: "",
   sales_contact_email: "",
   sales_contact_booking_link: "",
+  event_site_url: "",
+  venue_url: "",
+  venue_address: "",
+  registration_time: "",
+  sessions_start_time: "",
+  venue_notes: "",
+  join_instructions: "",
 };
 
 export function EventFormDialog({
@@ -121,6 +136,13 @@ export function EventFormDialog({
         sales_contact_name: event.sales_contact_name ?? "",
         sales_contact_email: event.sales_contact_email ?? "",
         sales_contact_booking_link: event.sales_contact_booking_link ?? "",
+        event_site_url: event.event_site_url ?? "",
+        venue_url: event.venue_url ?? "",
+        venue_address: event.venue_address ?? "",
+        registration_time: event.registration_time ?? "",
+        sessions_start_time: event.sessions_start_time ?? "",
+        venue_notes: event.venue_notes ?? "",
+        join_instructions: event.join_instructions ?? "",
       });
     } else {
       setForm(initial);
@@ -148,6 +170,13 @@ export function EventFormDialog({
         sales_contact_name: form.sales_contact_name.trim() || null,
         sales_contact_email: form.sales_contact_email.trim() || null,
         sales_contact_booking_link: form.sales_contact_booking_link.trim() || null,
+        event_site_url: form.event_site_url.trim() || null,
+        venue_url: form.venue_url.trim() || null,
+        venue_address: form.venue_address.trim() || null,
+        registration_time: form.registration_time.trim() || null,
+        sessions_start_time: form.sessions_start_time.trim() || null,
+        venue_notes: form.venue_notes.trim() || null,
+        join_instructions: form.join_instructions.trim() || null,
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
@@ -360,6 +389,71 @@ export function EventFormDialog({
               If your agenda is hosted elsewhere, paste the link. Shown as an "Open" button on the Agenda page.
             </p>
           </Field>
+
+          <div className="col-span-2 mt-2 rounded-xl border border-border bg-muted/30 p-4 space-y-4">
+            <div>
+              <div className="text-sm font-semibold text-foreground">Message details</div>
+              <p className="text-xs text-muted-foreground">
+                These fill the {"[[placeholders]]"} in the Tito message templates. Leave blank
+                and the generator will tell you what is missing.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Event site URL">
+                <Input
+                  type="url"
+                  placeholder="https://…"
+                  value={form.event_site_url}
+                  onChange={(e) => setForm({ ...form, event_site_url: e.target.value })}
+                />
+              </Field>
+              <Field label="Venue URL">
+                <Input
+                  type="url"
+                  placeholder="https://…"
+                  value={form.venue_url}
+                  onChange={(e) => setForm({ ...form, venue_url: e.target.value })}
+                />
+              </Field>
+              <Field label="Venue address" full>
+                <Input
+                  placeholder="123 Example Street, London, EC1A 1AA"
+                  value={form.venue_address}
+                  onChange={(e) => setForm({ ...form, venue_address: e.target.value })}
+                />
+              </Field>
+              <Field label="Registration time">
+                <Input
+                  placeholder="8AM"
+                  value={form.registration_time}
+                  onChange={(e) => setForm({ ...form, registration_time: e.target.value })}
+                />
+              </Field>
+              <Field label="Sessions start time">
+                <Input
+                  placeholder="9"
+                  value={form.sessions_start_time}
+                  onChange={(e) => setForm({ ...form, sessions_start_time: e.target.value })}
+                />
+              </Field>
+              <Field label="Venue notes (in person)" full>
+                <Textarea
+                  rows={2}
+                  placeholder="Please remember to bring your government issued ID to access the venue."
+                  value={form.venue_notes}
+                  onChange={(e) => setForm({ ...form, venue_notes: e.target.value })}
+                />
+              </Field>
+              <Field label="Join instructions (virtual)" full>
+                <Textarea
+                  rows={2}
+                  placeholder="Your Goldcast join link is in your confirmation email. Click it on the day to enter the event."
+                  value={form.join_instructions}
+                  onChange={(e) => setForm({ ...form, join_instructions: e.target.value })}
+                />
+              </Field>
+            </div>
+          </div>
 
           <DialogFooter className="col-span-2 flex justify-between sm:justify-between">
             <div>
