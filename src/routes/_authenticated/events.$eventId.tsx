@@ -65,7 +65,6 @@ import { TitoEventPanel } from "@/components/events/TitoEventPanel";
 import { EventBoardLink } from "@/components/boards/EventBoardLink";
 import { EventSpeakerBoardCard } from "@/components/boards/EventSpeakerBoardCard";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
-import { EventPrioritiesStrip } from "@/components/EventPrioritiesStrip";
 import { agendaItemsQuery } from "@/lib/queries";
 import { assignSpeakerToAgendaItem } from "@/lib/speaker-drafts.functions";
 import { isPastEvent } from "@/lib/event-lifecycle";
@@ -472,7 +471,6 @@ function EventDetail() {
 
       <TitoEventPanel eventId={eventId} hasTitoSlug={Boolean((e as any).tito_slug)} />
 
-      <EventPrioritiesStrip eventId={eventId} />
 
 
       <OutreachKitCard eventId={eventId} />

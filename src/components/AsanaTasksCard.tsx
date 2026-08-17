@@ -1,11 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Check, Flame, Sparkles } from "lucide-react";
+import { ExternalLink, Check, Sparkles } from "lucide-react";
 import { asanaTasksQuery } from "@/lib/queries";
-import { createPriority } from "@/lib/priorities.functions";
-import { toast } from "sonner";
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "no date";
@@ -28,25 +25,7 @@ export function AsanaTasksCard({
   eventCode?: string | null;
   asanaProjectGid: string | null | undefined;
 }) {
-  const qc = useQueryClient();
   const q = useQuery(asanaTasksQuery({ event_id: eventId }));
-  const pin = useServerFn(createPriority);
-  const pinM = useMutation({
-    mutationFn: (t: any) =>
-      pin({
-        data: {
-          text: `${eventCode ? `${eventCode} — ` : ""}${t.name}`,
-          event_id: eventId,
-          due_date: t.due_on,
-          source_asana_gid: t.asana_gid,
-        },
-      }),
-    onSuccess: () => {
-      toast.success("Pinned to My priorities");
-      qc.invalidateQueries({ queryKey: ["myPriorities"] });
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to pin"),
-  });
 
   const rows = (q.data ?? []) as any[];
   if (!asanaProjectGid) return null;
@@ -95,15 +74,6 @@ export function AsanaTasksCard({
                 >
                   {fmtDate(t.due_on)}
                 </span>
-                {!t.completed && (
-                  <button
-                    onClick={() => pinM.mutate(t)}
-                    className="text-slate-400 hover:text-rose-600 shrink-0"
-                    title="Pin as priority"
-                  >
-                    <Flame className="h-3.5 w-3.5" />
-                  </button>
-                )}
                 <a
                   href={url}
                   target="_blank"
