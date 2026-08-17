@@ -48,7 +48,7 @@ export function TitoAttendeeDetailDialog({
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-full flex items-center justify-center text-[13px] font-bold text-white shadow-sm bg-gradient-to-br from-violet-500 to-violet-600">
+            <div className="h-11 w-11 rounded-full flex items-center justify-center text-[13px] font-bold text-white shadow-sm bg-gradient-to-br from-slate-400 to-slate-500">
               {initialsOf(a.name)}
             </div>
             <div className="min-w-0">
@@ -65,7 +65,7 @@ export function TitoAttendeeDetailDialog({
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
             {a.release_title && (
-              <StatusPill className="text-[11px] bg-indigo-50 text-indigo-700 ring-indigo-200">
+              <StatusPill className="text-[11px] bg-slate-100 text-slate-700 ring-slate-200">
                 {a.release_title}
               </StatusPill>
             )}
@@ -74,7 +74,7 @@ export function TitoAttendeeDetailDialog({
                 {a.event_title}
               </StatusPill>
             )}
-            <StatusPill className="text-[11px] bg-violet-100 text-violet-700 border-violet-200">
+            <StatusPill className="text-[11px] bg-slate-100 text-slate-700 ring-slate-200">
               Sourced (Tito)
             </StatusPill>
           </div>
