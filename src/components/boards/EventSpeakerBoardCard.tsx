@@ -23,7 +23,13 @@ function fmt(iso: string | null | undefined) {
  * speaker list — is the source of truth for who's confirmed vs prospective,
  * and it can be re-pulled from its saved Asana link on demand.
  */
-export function EventSpeakerBoardCard({ eventId }: { eventId: string }) {
+export function EventSpeakerBoardCard({
+  eventId,
+  speakerTarget,
+}: {
+  eventId: string;
+  speakerTarget?: number;
+}) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const ensure = useServerFn(ensureEventBoard);
