@@ -106,6 +106,23 @@ export function EventMessagesPanel({
         </div>
       </div>
 
+      <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+        <div className="text-base font-semibold text-slate-900">
+          {nowWeeks === null
+            ? "No event date set"
+            : nowWeeks > 0
+              ? `You are ${nowWeeks} week${nowWeeks === 1 ? "" : "s"} out`
+              : nowWeeks === 0
+                ? "Event week"
+                : `${Math.abs(nowWeeks)} week${Math.abs(nowWeeks) === 1 ? "" : "s"} after the event`}
+        </div>
+        {suggestions.length === 0 && nowWeeks !== null && (
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            No message type is typically sent around now.
+          </p>
+        )}
+      </div>
+
       {suggestions.length > 0 && (
         <p className="mt-3 text-[13px] text-muted-foreground">
           Around now you'd usually send:{" "}
