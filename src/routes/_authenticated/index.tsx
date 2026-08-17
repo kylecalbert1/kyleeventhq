@@ -102,53 +102,6 @@ function formatDateLong(iso: string | null | undefined): string | null {
   });
 }
 
-function Stat({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: number | string;
-  tone?: "neutral" | "amber" | "green" | "violet" | "red";
-}) {
-  const styles: Record<string, { card: string; value: string; label: string }> = {
-    neutral: {
-      card: "bg-white ring-1 ring-slate-200/70",
-      value: "text-slate-900",
-      label: "text-slate-500",
-    },
-    amber: {
-      card: "bg-amber-50 ring-1 ring-amber-100",
-      value: "text-amber-700",
-      label: "text-amber-600",
-    },
-    green: {
-      card: "bg-emerald-50 ring-1 ring-emerald-100",
-      value: "text-emerald-700",
-      label: "text-emerald-600",
-    },
-    violet: {
-      card: "bg-violet-50 ring-1 ring-violet-100",
-      value: "text-violet-700",
-      label: "text-violet-600",
-    },
-    red: {
-      card: "bg-red-50 ring-1 ring-red-100",
-      value: "text-red-700",
-      label: "text-red-600",
-    },
-  };
-  const s = styles[tone];
-  return (
-    <div className={`flex-1 min-w-[120px] rounded-xl px-4 py-4 text-center ${s.card}`}>
-      <div className={`text-3xl font-bold tabular-nums leading-none ${s.value}`}>{value}</div>
-      <div className={`mt-1.5 text-[11px] font-medium uppercase tracking-wider ${s.label}`}>
-        {label}
-      </div>
-    </div>
-  );
-}
-
 function Pill({
   tone,
   children,
@@ -203,26 +156,6 @@ function EventsGrid() {
     }
     return map;
   }, [allSpeakers]);
-
-  // Global stats
-  const stats = useMemo(() => {
-    let contacted = 0, responded = 0, confirmed = 0, declined = 0;
-    for (const s of allSpeakers) {
-      const st = (s as any).status as string;
-      if (st === "contacted") contacted++;
-      else if (st === "responded") responded++;
-      else if (st === "confirmed") confirmed++;
-      else if (st === "declined") declined++;
-    }
-    return {
-      events: summaries.length,
-      speakers: allSpeakers.length,
-      contacted,
-      responded,
-      confirmed,
-      declined,
-    };
-  }, [summaries, allSpeakers]);
 
   const filtered = useMemo(() => {
     return summaries.filter((s) => {
@@ -302,21 +235,6 @@ function EventsGrid() {
               <Plus className="h-4 w-4 mr-1.5" />
               New Event
             </Button>
-          </div>
-        </div>
-
-        {/* Overview */}
-        <div className="surface-card p-4">
-          <div className="px-1 pb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Overview
-          </div>
-          <div className="flex flex-wrap items-stretch gap-3">
-            <Stat label="Events" value={stats.events} tone="neutral" />
-            <Stat label="Attendees" value={stats.speakers} tone="neutral" />
-            <Stat label="New" value={stats.contacted} tone="amber" />
-            <Stat label="Confirmed" value={stats.confirmed} tone="green" />
-            <Stat label="Reconfirmed" value={stats.responded} tone="violet" />
-            <Stat label="Declined" value={stats.declined} tone="red" />
           </div>
         </div>
 
