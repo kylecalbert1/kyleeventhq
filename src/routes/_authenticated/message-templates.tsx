@@ -487,3 +487,178 @@ function TemplateEditorDialog({
     </Dialog>
   );
 }
+
+/* ---------------- reusable content blocks ---------------- */
+
+type BlockDraft = { id?: string; name: string; body_markdown: string; position: number };
+
+function BlocksSection() {
+  const qc = useQueryClient();
+  const blocks = useQuery(messageBlocksQuery);
+  const [editing, setEditing] = useState<BlockDraft | null>(null);
+  const del = useServerFn(deleteMessageBlock);
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["messageBlocks"] });
+  const remove = useMutation({
+    mutationFn: (id: string) => del({ data: { id } }),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Block removed");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  return (
+    <section className="surface-card p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Content blocks</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Short reusable chunks you can drop into any template or into a message while you
+            generate it. They can use {"[[placeholders]]"} too.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setEditing({ name: "", body_markdown: "", position: 0 })}
+        >
+          <Plus className="mr-1.5 h-4 w-4" />
+          New block
+        </Button>
+      </div>
+
+      <div className="mt-3 divide-y divide-border rounded-xl border border-border">
+        {(blocks.data ?? []).map((b: MessageBlock) => (
+          <div key={b.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-foreground">{b.name}</div>
+              <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                {b.body_markdown}
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8"
+                onClick={() =>
+                  setEditing({
+                    id: b.id,
+                    name: b.name,
+                    body_markdown: b.body_markdown,
+                    position: b.position,
+                  })
+                }
+              >
+                <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-destructive hover:text-destructive"
+                onClick={() => remove.mutate(b.id)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        ))}
+        {(blocks.data ?? []).length === 0 && (
+          <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+            No blocks yet.
+          </div>
+        )}
+      </div>
+
+      <BlockEditorDialog
+        draft={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          invalidate();
+          setEditing(null);
+        }}
+      />
+    </section>
+  );
+}
+
+function BlockEditorDialog({
+  draft,
+  onClose,
+  onSaved,
+}: {
+  draft: BlockDraft | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const create = useServerFn(createMessageBlock);
+  const update = useServerFn(updateMessageBlock);
+  const [form, setForm] = useState<BlockDraft | null>(draft);
+  const [seededId, setSeededId] = useState<string | undefined>(draft?.id);
+  if (draft && (form === null || seededId !== draft.id)) {
+    setForm(draft);
+    setSeededId(draft.id);
+  }
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!form) return;
+      const payload = {
+        name: form.name,
+        body_markdown: form.body_markdown,
+        position: form.position ?? 0,
+      };
+      if (form.id) return update({ data: { id: form.id, patch: payload } });
+      return create({ data: payload });
+    },
+    onSuccess: () => {
+      toast.success("Block saved");
+      onSaved();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  if (!draft || !form) return null;
+
+  return (
+    <Dialog open={Boolean(draft)} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{form.id ? "Edit block" : "New block"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Name</Label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Body (markdown)</Label>
+            <Textarea
+              rows={8}
+              className="font-mono text-[12.5px]"
+              value={form.body_markdown}
+              onChange={(e) => setForm({ ...form, body_markdown: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Preview</Label>
+            <div
+              className="min-h-[60px] rounded-md border border-input bg-muted/30 px-3 py-2 text-sm leading-relaxed [&_a]:text-primary [&_a]:underline [&_li]:ml-4 [&_li]:list-disc [&_p]:my-2 [&_ul]:my-2"
+              dangerouslySetInnerHTML={{ __html: markdownToHtml(form.body_markdown) }}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || !form.name.trim()}>
+            {save.isPending ? "Saving…" : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
