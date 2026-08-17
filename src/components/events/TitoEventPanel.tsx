@@ -1,23 +1,57 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, ExternalLink, Sparkles, Users, AlertTriangle } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  ExternalLink,
+  Sparkles,
+  Users,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { eventReconciliationQuery } from "@/lib/queries";
-import {
-  syncEventFromTito,
-  linkSpeakerToTicket,
-  backfillSpeakerFromTicket,
-} from "@/lib/tito.functions";
+import { StatusPill } from "@/components/StatusPill";
+import { cn } from "@/lib/utils";
+import { eventReconciliationQuery, eventReleasesQuery } from "@/lib/queries";
+import { syncEventFromTito } from "@/lib/tito.functions";
+
+type ReleaseRow = {
+  id: string;
+  title: string | null;
+  quantity: number | null;
+  tickets_count: number | null;
+  registration_url: string | null;
+};
+
+type GroupKey = "speakers" | "sponsors" | "members" | "other" | "delegates";
+
+const GROUP_LABEL: Record<GroupKey, string> = {
+  delegates: "Delegates",
+  speakers: "Speakers",
+  sponsors: "Sponsors",
+  members: "Members",
+  other: "Other",
+};
+
+/** Classify a Tito release by its name. Case-insensitive, first match wins. */
+export function classifyRelease(title: string | null | undefined): GroupKey {
+  const t = (title ?? "").toLowerCase();
+  if (t.includes("speaker")) return "speakers";
+  if (t.includes("sponsor") || t.includes("client")) return "sponsors";
+  if (t.includes("member")) return "members";
+  if (t.includes("vendor") || t.includes("vip")) return "other";
+  return "delegates";
+}
 
 export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasTitoSlug: boolean }) {
   const qc = useQueryClient();
   const recon = useQuery({ ...eventReconciliationQuery(eventId), enabled: hasTitoSlug });
+  const releasesQ = useQuery({ ...eventReleasesQuery(eventId), enabled: hasTitoSlug });
   const sync = useServerFn(syncEventFromTito);
-  const link = useServerFn(linkSpeakerToTicket);
-  const backfill = useServerFn(backfillSpeakerFromTicket);
+  const [showEmpty, setShowEmpty] = useState(false);
 
   const syncMut = useMutation({
     mutationFn: () => sync({ data: { event_id: eventId } }),
@@ -51,29 +85,30 @@ export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasT
     return { label: `Last synced ${relTime(ms)}`, stale };
   }, [lastSyncedAt]);
 
-  const linkMut = useMutation({
-    mutationFn: (v: { speaker_id: string; ticket_id: string }) => link({ data: v }),
-    onSuccess: () => {
-      toast.success("Linked");
-      qc.invalidateQueries({ queryKey: ["eventReconciliation", eventId] });
-      qc.invalidateQueries({ queryKey: ["speakers"] });
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
-
-  const backfillMut = useMutation({
-    mutationFn: (ticket_id: string) => backfill({ data: { event_id: eventId, ticket_id } }),
-    onSuccess: () => {
-      toast.success("Added to tracker");
-      qc.invalidateQueries({ queryKey: ["eventReconciliation", eventId] });
-      qc.invalidateQueries({ queryKey: ["speakers"] });
-      qc.invalidateQueries({ queryKey: ["eventSummaries"] });
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
+  const grouped = useMemo(() => {
+    const rows = ((releasesQ.data ?? []) as ReleaseRow[]).map((r) => ({
+      ...r,
+      sold: r.tickets_count ?? 0,
+      capacity: typeof r.quantity === "number" && r.quantity > 0 ? r.quantity : null,
+      group: classifyRelease(r.title),
+    }));
+    const delegates = rows.filter((r) => r.group === "delegates");
+    const primary =
+      delegates.length > 0
+        ? [...delegates].sort((a, b) => b.sold - a.sold)[0]
+        : null;
+    const groups = (["delegates", "speakers", "sponsors", "members", "other"] as GroupKey[])
+      .map((key) => {
+        const items = rows
+          .filter((r) => r.group === key && r.id !== primary?.id)
+          .sort((a, b) => b.sold - a.sold || (a.title ?? "").localeCompare(b.title ?? ""));
+        return { key, items, total: items.reduce((n, r) => n + r.sold, 0) };
+      })
+      .filter((g) => g.items.length > 0);
+    return { primary, groups };
+  }, [releasesQ.data]);
 
   const links = recon.data?.links;
-  const breakdown = recon.data?.breakdown;
 
   if (!hasTitoSlug) {
     return (
@@ -133,17 +168,57 @@ export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasT
           </div>
         </div>
 
-        {breakdown && (
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <Stat label="Speaker pass" value={breakdown.speakerPass} tone="emerald" />
-            <Stat label="Speaker guest" value={breakdown.speakerGuest} tone="sky" />
-            <Stat label="Delegates" value={breakdown.delegate} tone="slate" />
-            <Stat
-              label={`Confirmed ${recon.data?.speaker_target ? `/ target ${recon.data.speaker_target}` : ""}`}
-              value={recon.data?.confirmed_count ?? 0}
-              tone="amber"
-            />
+        {/* Headline: the primary delegate release for this event */}
+        {grouped.primary && (
+          <div className="mt-4 rounded-xl bg-slate-50 ring-1 ring-slate-200 px-4 py-3.5">
+            <div className="flex items-end justify-between gap-3 flex-wrap">
+              <div className="text-sm font-semibold text-slate-900">
+                {grouped.primary.title ?? "Delegate pass"}
+              </div>
+              <div className="text-2xl font-semibold tabular-nums text-slate-900">
+                {grouped.primary.sold}
+                {grouped.primary.capacity !== null ? (
+                  <span className="text-base font-medium text-slate-500">
+                    {" "}
+                    of {grouped.primary.capacity}
+                  </span>
+                ) : (
+                  <span className="ml-2 text-xs font-medium text-slate-500">
+                    sold · no capacity set in Tito
+                  </span>
+                )}
+              </div>
+            </div>
+            {grouped.primary.capacity !== null && (
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-indigo-600"
+                  style={{
+                    width: `${Math.min(100, Math.round((grouped.primary.sold / grouped.primary.capacity) * 100))}%`,
+                  }}
+                />
+              </div>
+            )}
           </div>
+        )}
+
+        {/* Grouped subtotals, expandable */}
+        {grouped.groups.length > 0 && (
+          <div className="mt-3 divide-y divide-slate-100 rounded-xl ring-1 ring-slate-200">
+            {grouped.groups.map((g) => (
+              <GroupRow key={g.key} label={GROUP_LABEL[g.key]} total={g.total} items={g.items} showEmpty={showEmpty} />
+            ))}
+          </div>
+        )}
+
+        {grouped.groups.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowEmpty((v) => !v)}
+            className="mt-2 text-xs font-medium text-slate-500 hover:text-slate-800"
+          >
+            {showEmpty ? "Hide empty releases" : "Show empty releases"}
+          </button>
         )}
 
         {(links?.speaker_pass_link || links?.guest_pass_link) && (
@@ -156,30 +231,80 @@ export function TitoEventPanel({ eventId, hasTitoSlug }: { eventId: string; hasT
             )}
           </div>
         )}
-
-
-
       </Card>
-
-      {/* Reconciliation panel removed from the event detail page (too noisy).
-          The underlying reconciliation query/mutations stay intact and are still
-          used for the "Registered / Not yet registered" speaker filters. */}
-
     </div>
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: number; tone: "emerald" | "sky" | "slate" | "amber" }) {
-  const cls = {
-    emerald: "bg-emerald-50 text-emerald-900 ring-emerald-200",
-    sky: "bg-sky-50 text-sky-900 ring-sky-200",
-    slate: "bg-slate-50 text-slate-900 ring-slate-200",
-    amber: "bg-amber-50 text-amber-900 ring-amber-200",
-  }[tone];
+function GroupRow({
+  label,
+  total,
+  items,
+  showEmpty,
+}: {
+  label: string;
+  total: number;
+  items: Array<{ id: string; title: string | null; sold: number; capacity: number | null }>;
+  showEmpty: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const visible = showEmpty ? items : items.filter((r) => r.sold > 0);
+  const hidden = items.length - visible.length;
+
   return (
-    <div className={`rounded-xl ring-1 ${cls} px-3 py-2`}>
-      <div className="text-[11px] uppercase tracking-wider opacity-70">{label}</div>
-      <div className="text-lg font-semibold tabular-nums">{value}</div>
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-slate-50"
+      >
+        <span className="inline-flex items-center gap-2 text-sm font-medium text-slate-800">
+          {open ? (
+            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+          )}
+          {label}
+        </span>
+        <span className="inline-flex items-center gap-2">
+          {!showEmpty && hidden > 0 && (
+            <span className="text-[11px] text-slate-400">{hidden} empty hidden</span>
+          )}
+          <StatusPill className="bg-slate-100 text-slate-700 ring-slate-200 tabular-nums">
+            {total} sold
+          </StatusPill>
+        </span>
+      </button>
+      {open && (
+        <div className="px-4 pb-3">
+          {visible.length === 0 ? (
+            <div className="text-xs text-slate-400">Nothing sold in this group.</div>
+          ) : (
+            <div className="space-y-1.5">
+              {visible.map((r) => {
+                const full = r.capacity !== null && r.sold >= r.capacity;
+                return (
+                  <div key={r.id} className="flex items-center justify-between gap-3 text-xs">
+                    <span className="truncate text-slate-600">{r.title ?? "Release"}</span>
+                    <StatusPill
+                      className={cn(
+                        "tabular-nums",
+                        full
+                          ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
+                          : r.sold > 0
+                            ? "bg-indigo-50 text-indigo-700 ring-indigo-200"
+                            : "bg-slate-50 text-slate-500 ring-slate-200",
+                      )}
+                    >
+                      {r.capacity !== null ? `${r.sold} of ${r.capacity}` : `${r.sold} sold`}
+                    </StatusPill>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
