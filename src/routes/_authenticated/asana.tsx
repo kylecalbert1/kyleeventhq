@@ -3,13 +3,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Sparkles, ExternalLink, Check, Flame } from "lucide-react";
+import { Sparkles, ExternalLink, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { asanaTasksQuery, eventsQuery } from "@/lib/queries";
-import { createPriority } from "@/lib/priorities.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/asana")({
@@ -51,23 +50,6 @@ function AsanaPage() {
     }),
   );
 
-  const pinFn = useServerFn(createPriority);
-  const pinM = useMutation({
-    mutationFn: (t: any) =>
-      pinFn({
-        data: {
-          text: `${t.events?.code ? `${t.events.code} — ` : ""}${t.name}`,
-          event_id: t.event_id,
-          due_date: t.due_on,
-          source_asana_gid: t.asana_gid,
-        },
-      }),
-    onSuccess: () => {
-      toast.success("Pinned to My priorities");
-      qc.invalidateQueries({ queryKey: ["myPriorities"] });
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to pin"),
-  });
 
   const rows = (q.data ?? []) as any[];
   const eventOptions = useMemo(() => events.data ?? [], [events.data]);
@@ -166,11 +148,6 @@ function AsanaPage() {
                 >
                   {fmtDate(t.due_on)}
                 </span>
-                {!t.completed && (
-                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => pinM.mutate(t)}>
-                    <Flame className="h-3.5 w-3.5" />
-                  </Button>
-                )}
                 {url && (
                   <a href={url} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-slate-700 shrink-0">
                     <ExternalLink className="h-3.5 w-3.5" />
