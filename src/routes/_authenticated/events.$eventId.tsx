@@ -466,7 +466,7 @@ function EventDetail() {
         )}
       </Card>
 
-      <EventSpeakerBoardCard eventId={eventId} />
+      <EventSpeakerBoardCard eventId={eventId} speakerTarget={speakerTarget} />
 
       <EventMessagesPanel event={e as never} onEditEvent={() => setEditingEvent(true)} />
 
