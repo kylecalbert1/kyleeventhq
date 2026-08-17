@@ -2,9 +2,15 @@ import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, Send, Settings2, Undo2 } from "lucide-react";
+import { Send, Settings2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   messageTemplatesQuery,
@@ -12,28 +18,18 @@ import {
   eventMessageSendsQuery,
 } from "@/lib/queries";
 import {
-  markMessageSent,
   deleteMessageSend,
   type MessageTemplate,
 } from "@/lib/message-templates.functions";
 import {
+  STREAMS,
   streamMeta,
-  weeksSlotLabel,
-  targetDateFor,
-  statusFor,
-  formatDateShort,
+  currentWeeksOut,
+  isTypicalNow,
+  typicalWeeksLabel,
   type MessageEvent,
-  type TimelineStatus,
 } from "@/lib/message-render";
 import { GenerateMessageDialog } from "./GenerateMessageDialog";
-
-const statusChip: Record<TimelineStatus, { label: string; cls: string }> = {
-  sent: { label: "Sent", cls: "bg-emerald-100 text-emerald-800 ring-emerald-200" },
-  due: { label: "Due now", cls: "bg-amber-100 text-amber-900 ring-amber-200" },
-  overdue: { label: "Overdue", cls: "bg-red-100 text-red-800 ring-red-200" },
-  upcoming: { label: "Upcoming", cls: "bg-slate-100 text-slate-600 ring-slate-200" },
-  no_date: { label: "No event date", cls: "bg-slate-100 text-slate-600 ring-slate-200" },
-};
 
 export function EventMessagesPanel({
   event,
@@ -47,73 +43,43 @@ export function EventMessagesPanel({
   const sender = useQuery(messageSenderQuery);
   const sends = useQuery(eventMessageSendsQuery(event.id));
   const [generating, setGenerating] = useState<MessageTemplate | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [showAllSends, setShowAllSends] = useState(false);
 
-  const markSent = useServerFn(markMessageSent);
   const unmark = useServerFn(deleteMessageSend);
-
-  const invalidate = () =>
-    qc.invalidateQueries({ queryKey: ["eventMessageSends", event.id] });
-
-  const mark = useMutation({
-    mutationFn: (v: { template_id: string; recipient_count: number | null }) =>
-      markSent({ data: { event_id: event.id, ...v } }),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Logged as sent");
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
-
   const undo = useMutation({
     mutationFn: (id: string) => unmark({ data: { id } }),
     onSuccess: () => {
-      invalidate();
-      toast.success("Send removed");
+      qc.invalidateQueries({ queryKey: ["eventMessageSends", event.id] });
+      toast.success("Removed from the log");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
-  const sentByTemplate = useMemo(() => {
-    const m = new Map<string, { id: string; sent_at: string; recipient_count: number | null }>();
-    for (const s of sends.data ?? []) {
-      if (!s.template_id) continue;
-      const prev = m.get(s.template_id);
-      if (!prev || new Date(s.sent_at) > new Date(prev.sent_at)) {
-        m.set(s.template_id, {
-          id: s.id,
-          sent_at: s.sent_at,
-          recipient_count: s.recipient_count,
-        });
-      }
-    }
-    return m;
-  }, [sends.data]);
-
-  const applicable = useMemo(() => {
-    return (templates.data ?? []).filter(
-      (t) =>
-        (t.business_line === null || t.business_line === event.business_line) &&
-        (t.event_format === null || t.event_format === event.format),
-    );
-  }, [templates.data, event.business_line, event.format]);
-
-  const scheduled = useMemo(
+  const applicable = useMemo(
     () =>
-      applicable
-        .filter((t) => t.weeks_out !== null)
-        .sort(
-          (a, b) =>
-            (b.weeks_out ?? 0) - (a.weeks_out ?? 0) ||
-            a.position - b.position ||
-            a.name.localeCompare(b.name),
-        ),
-    [applicable],
-  );
-  const adhoc = useMemo(
-    () => applicable.filter((t) => t.weeks_out === null),
-    [applicable],
+      (templates.data ?? []).filter(
+        (t) =>
+          (t.business_line === null || t.business_line === event.business_line) &&
+          (t.event_format === null || t.event_format === event.format),
+      ),
+    [templates.data, event.business_line, event.format],
   );
 
+  const nowWeeks = currentWeeksOut(event.event_date);
+  const suggestions = useMemo(
+    () => applicable.filter((t) => isTypicalNow(t.typical_weeks, nowWeeks)).slice(0, 3),
+    [applicable, nowWeeks],
+  );
+
+  const templateName = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of templates.data ?? []) m.set(t.id, t.name);
+    return m;
+  }, [templates.data]);
+
+  const allSends = sends.data ?? [];
+  const visibleSends = showAllSends ? allSends : allSends.slice(0, 5);
   const firstName = sender.data?.firstName ?? "Team";
 
   return (
@@ -122,73 +88,101 @@ export function EventMessagesPanel({
         <div>
           <h2 className="text-base font-semibold text-foreground">Messages (Tito)</h2>
           <p className="text-xs text-muted-foreground">
-            The full cadence for this event, with real dates. Generate the copy, paste it into
-            Tito's Messages tab, then mark it as sent. Nothing is emailed from here.
+            Generate the copy for any message type whenever you need it, paste it into Tito's
+            Messages tab. Nothing is emailed from here.
           </p>
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link to="/message-templates">
-            <Settings2 className="mr-1.5 h-4 w-4" />
-            Edit templates
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/message-templates">
+              <Settings2 className="mr-1.5 h-4 w-4" />
+              Edit templates
+            </Link>
+          </Button>
+          <Button size="sm" onClick={() => setPicking(true)}>
+            <Send className="mr-1.5 h-4 w-4" />
+            Generate message
+          </Button>
+        </div>
       </div>
 
-      {!event.event_date && (
-        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">
-          Set an event date to see the schedule with real dates.
-        </div>
+      {suggestions.length > 0 && (
+        <p className="mt-3 text-[13px] text-muted-foreground">
+          Around now you'd usually send:{" "}
+          {suggestions.map((t, i) => (
+            <span key={t.id}>
+              {i > 0 && ", "}
+              <button
+                type="button"
+                className="underline underline-offset-2 hover:text-foreground"
+                onClick={() => setGenerating(t)}
+              >
+                {t.name}
+              </button>
+            </span>
+          ))}
+        </p>
       )}
 
-      <div className="mt-4 divide-y divide-border rounded-xl border border-border">
-        {scheduled.map((t) => {
-          const target = targetDateFor(event.event_date, t.weeks_out);
-          const sent = sentByTemplate.get(t.id) ?? null;
-          const st = statusFor(target, sent?.sent_at ?? null);
-          return (
-            <Row
-              key={t.id}
-              template={t}
-              target={target}
-              status={st}
-              sent={sent}
-              onGenerate={() => setGenerating(t)}
-              onMarkSent={(count) => mark.mutate({ template_id: t.id, recipient_count: count })}
-              onUndo={() => sent && undo.mutate(sent.id)}
-            />
-          );
-        })}
-        {scheduled.length === 0 && (
-          <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-            No scheduled templates match this event's business line and format.
+      <div className="mt-5">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Sent for this event
+        </div>
+        {allSends.length === 0 ? (
+          <div className="rounded-xl border border-border px-4 py-5 text-center text-sm text-muted-foreground">
+            Nothing logged yet.
           </div>
+        ) : (
+          <>
+            <div className="divide-y divide-border rounded-xl border border-border">
+              {visibleSends.map((s) => (
+                <div key={s.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-foreground">
+                      {s.template_id ? templateName.get(s.template_id) ?? "Message" : "Message"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(s.sent_at).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                      {s.recipient_count ? ` · ${s.recipient_count} recipients` : ""}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-muted-foreground"
+                    onClick={() => undo.mutate(s.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            {allSends.length > 5 && (
+              <button
+                type="button"
+                className="mt-2 text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                onClick={() => setShowAllSends((v) => !v)}
+              >
+                {showAllSends ? "Show less" : `Show all ${allSends.length}`}
+              </button>
+            )}
+          </>
         )}
       </div>
 
-      {adhoc.length > 0 && (
-        <>
-          <div className="mt-6 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Ad hoc / fire when needed
-          </div>
-          <div className="divide-y divide-border rounded-xl border border-border">
-            {adhoc.map((t) => (
-              <Row
-                key={t.id}
-                template={t}
-                target={null}
-                status={null}
-                sent={sentByTemplate.get(t.id) ?? null}
-                onGenerate={() => setGenerating(t)}
-                onMarkSent={(count) => mark.mutate({ template_id: t.id, recipient_count: count })}
-                onUndo={() => {
-                  const s = sentByTemplate.get(t.id);
-                  if (s) undo.mutate(s.id);
-                }}
-              />
-            ))}
-          </div>
-        </>
-      )}
+      <TypePickerDialog
+        open={picking}
+        onOpenChange={setPicking}
+        templates={applicable}
+        onPick={(t) => {
+          setPicking(false);
+          setGenerating(t);
+        }}
+      />
 
       <GenerateMessageDialog
         open={Boolean(generating)}
@@ -202,102 +196,80 @@ export function EventMessagesPanel({
   );
 }
 
-function Row({
-  template,
-  target,
-  status,
-  sent,
-  onGenerate,
-  onMarkSent,
-  onUndo,
+function TypePickerDialog({
+  open,
+  onOpenChange,
+  templates,
+  onPick,
 }: {
-  template: MessageTemplate;
-  target: Date | null;
-  status: TimelineStatus | null;
-  sent: { id: string; sent_at: string; recipient_count: number | null } | null;
-  onGenerate: () => void;
-  onMarkSent: (recipientCount: number | null) => void;
-  onUndo: () => void;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  templates: MessageTemplate[];
+  onPick: (t: MessageTemplate) => void;
 }) {
-  const [logging, setLogging] = useState(false);
-  const [count, setCount] = useState("");
-  const meta = streamMeta[template.stream];
-  const chip = status ? statusChip[status] : null;
+  const grouped = STREAMS.map((stream) => ({
+    stream,
+    list: templates
+      .filter((t) => t.stream === stream)
+      .sort((a, b) => a.position - b.position || a.name.localeCompare(b.name)),
+  })).filter((g) => g.list.length > 0);
 
   return (
-    <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-      <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-foreground">{template.name}</span>
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${meta.chip}`}>
-            {meta.label}
-          </span>
-        </div>
-        <div className="mt-0.5 text-xs text-muted-foreground">
-          {weeksSlotLabel(template.weeks_out)}
-          {target ? ` · ${formatDateShort(target)}` : ""}
-          {sent
-            ? ` · Sent ${new Date(sent.sent_at).toLocaleDateString("en-GB")}${
-                sent.recipient_count ? ` to ${sent.recipient_count}` : ""
-              }`
-            : ""}
-        </div>
-      </div>
-
-      {chip && (
-        <span
-          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ${chip.cls}`}
-        >
-          {chip.label}
-        </span>
-      )}
-
-      {logging ? (
-        <div className="flex items-center gap-1.5">
-          <Input
-            autoFocus
-            type="number"
-            min={0}
-            placeholder="Recipients"
-            className="h-8 w-28"
-            value={count}
-            onChange={(e) => setCount(e.target.value)}
-          />
-          <Button
-            size="sm"
-            className="h-8"
-            onClick={() => {
-              onMarkSent(count ? Number(count) : null);
-              setLogging(false);
-              setCount("");
-            }}
-          >
-            Save
-          </Button>
-          <Button size="sm" variant="ghost" className="h-8" onClick={() => setLogging(false)}>
-            Cancel
-          </Button>
-        </div>
-      ) : (
-        <div className="flex items-center gap-1.5">
-          <Button size="sm" variant="outline" className="h-8" onClick={onGenerate}>
-            <Send className="mr-1.5 h-3.5 w-3.5" />
-            Generate
-          </Button>
-          {sent ? (
-            <Button size="sm" variant="ghost" className="h-8" onClick={onUndo}>
-              <Undo2 className="mr-1.5 h-3.5 w-3.5" />
-              Undo
-            </Button>
-          ) : (
-            <Button size="sm" variant="ghost" className="h-8" onClick={() => setLogging(true)}>
-              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-              Mark as sent
-            </Button>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Pick a message type</DialogTitle>
+          <DialogDescription>
+            Every type can be generated as many times as you need.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-5">
+          {grouped.map(({ stream, list }) => {
+            const meta = streamMeta[stream];
+            return (
+              <section key={stream}>
+                <div className="mb-2 flex items-center gap-2">
+                  <span className={`h-2.5 w-2.5 rounded-full ${meta.dot}`} />
+                  <h3 className="text-sm font-semibold text-foreground">{meta.label}</h3>
+                </div>
+                <div className="grid gap-2">
+                  {list.map((t) => {
+                    const typical = typicalWeeksLabel(t.typical_weeks);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => onPick(t)}
+                        className="rounded-xl border border-border px-4 py-3 text-left transition hover:border-foreground/20 hover:bg-muted/40"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-foreground">{t.name}</span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${meta.chip}`}
+                          >
+                            {meta.label}
+                          </span>
+                          {typical && (
+                            <span className="text-[11px] text-muted-foreground">{typical}</span>
+                          )}
+                        </div>
+                        <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {t.subject}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+          {grouped.length === 0 && (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No templates match this event's business line and format.
+            </div>
           )}
         </div>
-      )}
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

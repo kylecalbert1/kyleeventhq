@@ -57,6 +57,7 @@ type EventRow = {
   sessions_start_time?: string | null;
   venue_notes?: string | null;
   join_instructions?: string | null;
+  dietary_url?: string | null;
   sales_contact_name?: string | null;
   sales_contact_email?: string | null;
   sales_contact_booking_link?: string | null;
@@ -92,6 +93,7 @@ const initial = {
   sessions_start_time: "",
   venue_notes: "",
   join_instructions: "",
+  dietary_url: "",
 };
 
 export function EventFormDialog({
@@ -143,6 +145,7 @@ export function EventFormDialog({
         sessions_start_time: event.sessions_start_time ?? "",
         venue_notes: event.venue_notes ?? "",
         join_instructions: event.join_instructions ?? "",
+        dietary_url: event.dietary_url ?? "",
       });
     } else {
       setForm(initial);
@@ -177,6 +180,7 @@ export function EventFormDialog({
         sessions_start_time: form.sessions_start_time.trim() || null,
         venue_notes: form.venue_notes.trim() || null,
         join_instructions: form.join_instructions.trim() || null,
+        dietary_url: form.dietary_url.trim() || null,
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
@@ -443,6 +447,17 @@ export function EventFormDialog({
                   value={form.venue_notes}
                   onChange={(e) => setForm({ ...form, venue_notes: e.target.value })}
                 />
+              </Field>
+              <Field label="Dietary requirements URL" full>
+                <Input
+                  type="url"
+                  placeholder="https://…"
+                  value={form.dietary_url}
+                  onChange={(e) => setForm({ ...form, dietary_url: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  The form where attendees submit dietary requirements and accessibility needs.
+                </p>
               </Field>
               <Field label="Join instructions (virtual)" full>
                 <Textarea

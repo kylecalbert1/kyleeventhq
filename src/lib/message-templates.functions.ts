@@ -6,12 +6,24 @@ export type MessageTemplate = {
   id: string;
   name: string;
   stream: "speakers" | "attendees" | "incomplete_tickets" | "everyone";
-  weeks_out: number | null;
+  /** Points in the cycle this type usually goes out. A hint only, never a schedule. */
+  typical_weeks: number[] | null;
   business_line: "AIAI" | "CSC" | null;
   event_format: "in_person" | "virtual" | null;
   subject: string;
   body_markdown: string;
   tito_filter_hint: string;
+  position: number;
+  is_seed: boolean;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MessageBlock = {
+  id: string;
+  name: string;
+  body_markdown: string;
   position: number;
   is_seed: boolean;
   is_archived: boolean;
@@ -32,7 +44,7 @@ export type EventMessageSend = {
 const TemplateInput = z.object({
   name: z.string().min(1),
   stream: z.enum(["speakers", "attendees", "incomplete_tickets", "everyone"]),
-  weeks_out: z.number().int().nullable(),
+  typical_weeks: z.array(z.number().int()).nullable(),
   business_line: z.enum(["AIAI", "CSC"]).nullable(),
   event_format: z.enum(["in_person", "virtual"]).nullable(),
   subject: z.string(),
@@ -41,6 +53,7 @@ const TemplateInput = z.object({
   position: z.number().int().optional(),
 });
 
+
 export const listMessageTemplates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -48,7 +61,7 @@ export const listMessageTemplates = createServerFn({ method: "GET" })
       .from("message_templates")
       .select("*")
       .eq("is_archived", false)
-      .order("weeks_out", { ascending: false, nullsFirst: false })
+      .order("position")
       .order("position")
       .order("name");
     if (error) throw new Error(error.message);
@@ -100,7 +113,7 @@ export const duplicateMessageTemplate = createServerFn({ method: "POST" })
       .insert({
         name: `${src.name} (copy)`,
         stream: src.stream,
-        weeks_out: src.weeks_out,
+        typical_weeks: src.typical_weeks,
         business_line: src.business_line,
         event_format: src.event_format,
         subject: src.subject,
@@ -217,4 +230,79 @@ export const getMessageSenderName = createServerFn({ method: "GET" })
     const token = local.split(/[._\-+0-9]+/).filter(Boolean)[0] ?? "";
     if (!token) return { firstName: "Team" };
     return { firstName: token[0].toUpperCase() + token.slice(1) };
+  });
+
+/* ---------------- reusable content blocks ---------------- */
+
+const BlockInput = z.object({
+  name: z.string().min(1),
+  body_markdown: z.string(),
+  position: z.number().int().optional(),
+});
+
+export const listMessageBlocks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("message_blocks")
+      .select("*")
+      .eq("is_archived", false)
+      .order("position")
+      .order("name");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as MessageBlock[];
+  });
+
+export const createMessageBlock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => BlockInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("message_blocks")
+      .insert({ ...data, is_seed: false })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row as MessageBlock;
+  });
+
+export const updateMessageBlock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ id: z.string().uuid(), patch: BlockInput.partial() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("message_blocks")
+      .update(data.patch)
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row as MessageBlock;
+  });
+
+export const deleteMessageBlock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: b } = await context.supabase
+      .from("message_blocks")
+      .select("is_seed")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (b?.is_seed) {
+      const { error } = await context.supabase
+        .from("message_blocks")
+        .update({ is_archived: true })
+        .eq("id", data.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await context.supabase
+        .from("message_blocks")
+        .delete()
+        .eq("id", data.id);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
   });

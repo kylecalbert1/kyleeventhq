@@ -38,6 +38,7 @@ const EventInput = z.object({
   sessions_start_time: z.string().nullable().optional(),
   venue_notes: z.string().nullable().optional(),
   join_instructions: z.string().nullable().optional(),
+  dietary_url: z.string().nullable().optional(),
 });
 
 

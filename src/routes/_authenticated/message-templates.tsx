@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
@@ -34,11 +34,19 @@ import {
 import {
   STREAMS,
   streamMeta,
-  weeksSlotLabel,
+  typicalWeeksLabel,
   markdownToHtml,
   PLACEHOLDER_HELP,
   type Stream,
 } from "@/lib/message-render";
+import { messageBlocksQuery } from "@/lib/queries";
+import {
+  createMessageBlock,
+  updateMessageBlock,
+  deleteMessageBlock,
+  type MessageBlock,
+} from "@/lib/message-templates.functions";
+import { InsertBlockMenu } from "@/components/messages/InsertBlockMenu";
 
 export const Route = createFileRoute("/_authenticated/message-templates")({
   head: () => ({
@@ -66,7 +74,7 @@ type Draft = {
   id?: string;
   name: string;
   stream: Stream;
-  weeks_out: string;
+  typical_weeks: string;
   business_line: string;
   event_format: string;
   subject: string;
@@ -78,7 +86,7 @@ type Draft = {
 const emptyDraft: Draft = {
   name: "",
   stream: "attendees",
-  weeks_out: "",
+  typical_weeks: "",
   business_line: "all",
   event_format: "all",
   subject: "",
@@ -118,14 +126,7 @@ function MessageTemplatesPage() {
     return STREAMS.map((stream) => {
       const list = rows
         .filter((t) => t.stream === stream)
-        .sort((a, b) => {
-          const aw = a.weeks_out;
-          const bw = b.weeks_out;
-          if (aw === null && bw === null) return a.name.localeCompare(b.name);
-          if (aw === null) return 1;
-          if (bw === null) return -1;
-          return bw - aw || a.position - b.position || a.name.localeCompare(b.name);
-        });
+        .sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
       return { stream, list };
     }).filter((g) => g.list.length > 0);
   }, [templates.data]);
@@ -135,7 +136,7 @@ function MessageTemplatesPage() {
       id: t.id,
       name: t.name,
       stream: t.stream,
-      weeks_out: t.weeks_out === null ? "" : String(t.weeks_out),
+      typical_weeks: (t.typical_weeks ?? []).join(", "),
       business_line: t.business_line ?? "all",
       event_format: t.event_format ?? "all",
       subject: t.subject,
@@ -178,6 +179,8 @@ function MessageTemplatesPage() {
 
         <PlaceholderCheatSheet />
 
+        <BlocksSection />
+
         {grouped.map(({ stream, list }) => {
           const meta = streamMeta[stream];
           return (
@@ -196,7 +199,7 @@ function MessageTemplatesPage() {
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${meta.chip}`}
                         >
-                          {weeksSlotLabel(t.weeks_out)}
+                          {typicalWeeksLabel(t.typical_weeks) ?? "Any time"}
                         </span>
                         {t.business_line && (
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 ring-1 ring-inset ring-slate-200">
@@ -261,6 +264,19 @@ function MessageTemplatesPage() {
   );
 }
 
+/** "12, 8, 6" -> [12, 8, 6]. Blank or junk -> null. */
+function parseTypicalWeeks(raw: string): number[] | null {
+  const nums = raw
+    .split(/[,\s]+/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map(Number)
+    .filter((n) => Number.isFinite(n))
+    .map((n) => Math.round(n));
+  const unique = [...new Set(nums)].sort((a, b) => b - a);
+  return unique.length ? unique : null;
+}
+
 function PlaceholderCheatSheet() {
   return (
     <div className="surface-card p-5">
@@ -296,6 +312,7 @@ function TemplateEditorDialog({
 }) {
   const create = useServerFn(createMessageTemplate);
   const update = useServerFn(updateMessageTemplate);
+  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const [form, setForm] = useState<Draft | null>(draft);
 
   // Re-seed the local form whenever a different template is opened.
@@ -311,7 +328,7 @@ function TemplateEditorDialog({
       const payload = {
         name: form.name,
         stream: form.stream,
-        weeks_out: form.weeks_out.trim() === "" ? null : Number(form.weeks_out),
+        typical_weeks: parseTypicalWeeks(form.typical_weeks),
         business_line:
           form.business_line === "all" ? null : (form.business_line as "AIAI" | "CSC"),
         event_format:
@@ -369,15 +386,15 @@ function TemplateEditorDialog({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Weeks out</Label>
+            <Label className="text-xs">Typical weeks (hint only)</Label>
             <Input
-              type="number"
-              placeholder="Blank = ad hoc"
-              value={form.weeks_out}
-              onChange={(e) => setForm({ ...form, weeks_out: e.target.value })}
+              placeholder="12, 8, 6, 4, 3, 2"
+              value={form.typical_weeks}
+              onChange={(e) => setForm({ ...form, typical_weeks: e.target.value })}
             />
             <p className="text-[11px] text-muted-foreground">
-              12 = twelve weeks before, 0 = event day, -3 = three weeks after, blank = ad hoc.
+              When this type usually goes out. 12 = twelve weeks before, 0 = event day, -3 =
+              three weeks after. Blank means any time. This never creates a schedule.
             </p>
           </div>
           <div className="space-y-1.5">
@@ -429,8 +446,16 @@ function TemplateEditorDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Body (markdown)</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Body (markdown)</Label>
+              <InsertBlockMenu
+                textareaRef={bodyRef}
+                value={form.body_markdown}
+                onChange={(v) => setForm({ ...form, body_markdown: v })}
+              />
+            </div>
             <Textarea
+              ref={bodyRef}
               rows={20}
               className="font-mono text-[12.5px]"
               value={form.body_markdown}
@@ -450,6 +475,181 @@ function TemplateEditorDialog({
           </div>
         </div>
 
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || !form.name.trim()}>
+            {save.isPending ? "Saving…" : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------------- reusable content blocks ---------------- */
+
+type BlockDraft = { id?: string; name: string; body_markdown: string; position: number };
+
+function BlocksSection() {
+  const qc = useQueryClient();
+  const blocks = useQuery(messageBlocksQuery);
+  const [editing, setEditing] = useState<BlockDraft | null>(null);
+  const del = useServerFn(deleteMessageBlock);
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["messageBlocks"] });
+  const remove = useMutation({
+    mutationFn: (id: string) => del({ data: { id } }),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Block removed");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  return (
+    <section className="surface-card p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Content blocks</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Short reusable chunks you can drop into any template or into a message while you
+            generate it. They can use {"[[placeholders]]"} too.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setEditing({ name: "", body_markdown: "", position: 0 })}
+        >
+          <Plus className="mr-1.5 h-4 w-4" />
+          New block
+        </Button>
+      </div>
+
+      <div className="mt-3 divide-y divide-border rounded-xl border border-border">
+        {(blocks.data ?? []).map((b: MessageBlock) => (
+          <div key={b.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-foreground">{b.name}</div>
+              <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                {b.body_markdown}
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8"
+                onClick={() =>
+                  setEditing({
+                    id: b.id,
+                    name: b.name,
+                    body_markdown: b.body_markdown,
+                    position: b.position,
+                  })
+                }
+              >
+                <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-destructive hover:text-destructive"
+                onClick={() => remove.mutate(b.id)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        ))}
+        {(blocks.data ?? []).length === 0 && (
+          <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+            No blocks yet.
+          </div>
+        )}
+      </div>
+
+      <BlockEditorDialog
+        draft={editing}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          invalidate();
+          setEditing(null);
+        }}
+      />
+    </section>
+  );
+}
+
+function BlockEditorDialog({
+  draft,
+  onClose,
+  onSaved,
+}: {
+  draft: BlockDraft | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const create = useServerFn(createMessageBlock);
+  const update = useServerFn(updateMessageBlock);
+  const [form, setForm] = useState<BlockDraft | null>(draft);
+  const [seededId, setSeededId] = useState<string | undefined>(draft?.id);
+  if (draft && (form === null || seededId !== draft.id)) {
+    setForm(draft);
+    setSeededId(draft.id);
+  }
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!form) return;
+      const payload = {
+        name: form.name,
+        body_markdown: form.body_markdown,
+        position: form.position ?? 0,
+      };
+      if (form.id) return update({ data: { id: form.id, patch: payload } });
+      return create({ data: payload });
+    },
+    onSuccess: () => {
+      toast.success("Block saved");
+      onSaved();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  if (!draft || !form) return null;
+
+  return (
+    <Dialog open={Boolean(draft)} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{form.id ? "Edit block" : "New block"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Name</Label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Body (markdown)</Label>
+            <Textarea
+              rows={8}
+              className="font-mono text-[12.5px]"
+              value={form.body_markdown}
+              onChange={(e) => setForm({ ...form, body_markdown: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Preview</Label>
+            <div
+              className="min-h-[60px] rounded-md border border-input bg-muted/30 px-3 py-2 text-sm leading-relaxed [&_a]:text-primary [&_a]:underline [&_li]:ml-4 [&_li]:list-disc [&_p]:my-2 [&_ul]:my-2"
+              dangerouslySetInnerHTML={{ __html: markdownToHtml(form.body_markdown) }}
+            />
+          </div>
+        </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel

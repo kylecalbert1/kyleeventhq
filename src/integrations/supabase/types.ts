@@ -455,6 +455,7 @@ export type Database = {
           business_line: Database["public"]["Enums"]["business_line"]
           code: string
           created_at: string
+          dietary_url: string | null
           event_date: string | null
           event_site_url: string | null
           external_agenda_url: string | null
@@ -495,6 +496,7 @@ export type Database = {
           business_line: Database["public"]["Enums"]["business_line"]
           code: string
           created_at?: string
+          dietary_url?: string | null
           event_date?: string | null
           event_site_url?: string | null
           external_agenda_url?: string | null
@@ -535,6 +537,7 @@ export type Database = {
           business_line?: Database["public"]["Enums"]["business_line"]
           code?: string
           created_at?: string
+          dietary_url?: string | null
           event_date?: string | null
           event_site_url?: string | null
           external_agenda_url?: string | null
@@ -593,6 +596,39 @@ export type Database = {
         }
         Relationships: []
       }
+      message_blocks: {
+        Row: {
+          body_markdown: string
+          created_at: string
+          id: string
+          is_archived: boolean
+          is_seed: boolean
+          name: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          body_markdown?: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          is_seed?: boolean
+          name: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          body_markdown?: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          is_seed?: boolean
+          name?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       message_templates: {
         Row: {
           body_markdown: string
@@ -607,8 +643,8 @@ export type Database = {
           stream: string
           subject: string
           tito_filter_hint: string
+          typical_weeks: number[] | null
           updated_at: string
-          weeks_out: number | null
         }
         Insert: {
           body_markdown?: string
@@ -623,8 +659,8 @@ export type Database = {
           stream: string
           subject?: string
           tito_filter_hint?: string
+          typical_weeks?: number[] | null
           updated_at?: string
-          weeks_out?: number | null
         }
         Update: {
           body_markdown?: string
@@ -639,8 +675,8 @@ export type Database = {
           stream?: string
           subject?: string
           tito_filter_hint?: string
+          typical_weeks?: number[] | null
           updated_at?: string
-          weeks_out?: number | null
         }
         Relationships: []
       }

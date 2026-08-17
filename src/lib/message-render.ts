@@ -98,34 +98,41 @@ export function weeksOutTone(eventDateIso: string | null | undefined, from = new
   return "green" as const;
 }
 
-/** Short label for a template's weeks_out slot. */
-export function weeksSlotLabel(weeksOut: number | null): string {
-  if (weeksOut === null) return "Ad hoc";
-  if (weeksOut === 0) return "Event day";
-  if (weeksOut > 0) return weeksOut === 1 ? "1 week out" : `${weeksOut} weeks out`;
-  const a = Math.abs(weeksOut);
-  return a === 1 ? "1 week after" : `${a} weeks after`;
+/**
+ * How many weeks out an event currently is. Positive = before the event,
+ * negative = after. Null when the event has no date.
+ *
+ * This is only ever used for gentle "around now you'd usually send" hints.
+ * It never drives a schedule, a checklist or a status.
+ */
+export function currentWeeksOut(eventDateIso: string | null | undefined, from = new Date()): number | null {
+  const d = daysUntil(eventDateIso, from);
+  if (d === null) return null;
+  return Math.round(d / 7);
 }
 
-/** The calendar date a template should go out for a given event. */
-export function targetDateFor(eventDateIso: string | null | undefined, weeksOut: number | null): Date | null {
-  const base = parseISODate(eventDateIso);
-  if (!base || weeksOut === null) return null;
-  const d = new Date(base);
-  d.setDate(d.getDate() - weeksOut * 7);
-  return d;
+/** "Usually 12, 8, 6, 4, 3, 2 weeks out" style hint, or null. */
+export function typicalWeeksLabel(weeks: number[] | null | undefined): string | null {
+  if (!weeks || weeks.length === 0) return null;
+  const sorted = [...weeks].sort((a, b) => b - a);
+  const parts = sorted.map((w) => {
+    if (w === 0) return "event day";
+    if (w > 0) return `${w}w before`;
+    return `${Math.abs(w)}w after`;
+  });
+  return `Usually ${parts.join(", ")}`;
 }
 
-export type TimelineStatus = "sent" | "due" | "overdue" | "upcoming" | "no_date";
-
-export function statusFor(target: Date | null, sentAt: string | null, from = new Date()): TimelineStatus {
-  if (sentAt) return "sent";
-  if (!target) return "no_date";
-  const diff = Math.round((startOfDay(target).getTime() - startOfDay(from).getTime()) / 86_400_000);
-  if (diff > 6) return "upcoming";
-  if (diff >= -6) return "due";
-  return "overdue";
+/** Does this type usually go out around the point the event is at now? */
+export function isTypicalNow(
+  weeks: number[] | null | undefined,
+  nowWeeksOut: number | null,
+  tolerance = 1,
+): boolean {
+  if (nowWeeksOut === null || !weeks || weeks.length === 0) return false;
+  return weeks.some((w) => Math.abs(w - nowWeeksOut) <= tolerance);
 }
+
 
 export function formatDateLong(d: Date | null): string {
   if (!d) return "";
@@ -156,6 +163,7 @@ export type MessageEvent = {
   sessions_start_time?: string | null;
   venue_notes?: string | null;
   join_instructions?: string | null;
+  dietary_url?: string | null;
 };
 
 export const PLACEHOLDER_HELP: { key: string; description: string }[] = [
@@ -171,6 +179,7 @@ export const PLACEHOLDER_HELP: { key: string; description: string }[] = [
   { key: "sessions_start_time", description: 'Sessions start, e.g. "9"' },
   { key: "venue_notes", description: "One-off venue requirements" },
   { key: "join_instructions", description: "Virtual joining instructions" },
+  { key: "dietary_url", description: "Dietary requirements form URL" },
   { key: "signoff", description: "Your first name plus the team name (automatic)" },
 ];
 
@@ -188,7 +197,9 @@ export const PLACEHOLDER_FIELD_LABEL: Record<string, string> = {
   sessions_start_time: "Sessions start time",
   venue_notes: "Venue notes",
   join_instructions: "Join instructions",
+  dietary_url: "Dietary requirements URL",
 };
+
 
 export function teamNameFor(businessLine: "AIAI" | "CSC"): string {
   return businessLine === "AIAI" ? "The AI AI Team" : "Customer Success Collective Team";
@@ -216,6 +227,8 @@ export function buildPlaceholderValues(
     sessions_start_time: event.sessions_start_time || null,
     venue_notes: event.venue_notes || null,
     join_instructions: event.join_instructions || null,
+    dietary_url: event.dietary_url || null,
+
     signoff: buildSignoff(userFirstName, event.business_line),
   };
 }
@@ -331,4 +344,46 @@ export function markdownToHtml(md: string): string {
   flushPara();
   flushList();
   return html.join("\n");
+}
+
+/* ------------------------------------------------------------------ */
+/* Reverse rendering (saving an edited message back to the template)   */
+/* ------------------------------------------------------------------ */
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Turn edited, rendered text back into template text by putting the
+ * [[placeholders]] back wherever this event's resolved values still appear.
+ *
+ * `lost` lists placeholders that were in the original template but can no
+ * longer be found in the edited text, meaning the user rewrote that part and
+ * it would be saved as literal text for this event.
+ */
+export function unrenderPlaceholders(
+  editedText: string,
+  originalTemplateText: string,
+  values: Record<string, string | null>,
+): { text: string; lost: string[] } {
+  const keys = new Set<string>();
+  for (const m of (originalTemplateText ?? "").matchAll(PLACEHOLDER_RE)) {
+    keys.add(String(m[1]).toLowerCase());
+  }
+  // Longest values first so a short value cannot eat part of a longer one.
+  const ordered = [...keys]
+    .map((k) => ({ key: k, value: values[k] ?? null }))
+    .filter((e): e is { key: string; value: string } => Boolean(e.value && e.value.trim()))
+    .sort((a, b) => b.value.length - a.value.length);
+
+  let out = editedText ?? "";
+  for (const { key, value } of ordered) {
+    out = out.replace(new RegExp(escapeRe(value), "g"), `[[${key}]]`);
+  }
+
+  const present = new Set<string>();
+  for (const m of out.matchAll(PLACEHOLDER_RE)) present.add(String(m[1]).toLowerCase());
+  const lost = [...keys].filter((k) => !present.has(k));
+  return { text: out, lost };
 }
