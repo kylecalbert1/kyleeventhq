@@ -30,7 +30,16 @@ const EventInput = z.object({
   sales_contact_name: z.string().nullable().optional(),
   sales_contact_email: z.string().nullable().optional(),
   sales_contact_booking_link: z.string().nullable().optional(),
+  // Message details - feed the [[placeholders]] in the message templates.
+  event_site_url: z.string().nullable().optional(),
+  venue_url: z.string().nullable().optional(),
+  venue_address: z.string().nullable().optional(),
+  registration_time: z.string().nullable().optional(),
+  sessions_start_time: z.string().nullable().optional(),
+  venue_notes: z.string().nullable().optional(),
+  join_instructions: z.string().nullable().optional(),
 });
+
 
 export const listEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
