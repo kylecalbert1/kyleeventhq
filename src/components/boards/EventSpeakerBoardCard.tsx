@@ -77,6 +77,7 @@ export function EventSpeakerBoardCard({
           <div className="flex flex-wrap items-center gap-2 mt-3">
             <StatusPill className="bg-emerald-600 text-white ring-emerald-600 font-semibold">
               {summary.data?.confirmed ?? 0} confirmed
+              {speakerTarget ? ` of ${speakerTarget} target` : ""}
             </StatusPill>
             <StatusPill className="bg-sky-600 text-white ring-sky-600 font-semibold">
               {summary.data?.prospective ?? 0} prospective
