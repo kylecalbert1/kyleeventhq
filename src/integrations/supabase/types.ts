@@ -272,6 +272,51 @@ export type Database = {
         }
         Relationships: []
       }
+      event_message_sends: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          notes: string | null
+          recipient_count: number | null
+          sent_at: string
+          template_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          notes?: string | null
+          recipient_count?: number | null
+          sent_at?: string
+          template_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          notes?: string | null
+          recipient_count?: number | null
+          sent_at?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_message_sends_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_message_sends_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_milestones: {
         Row: {
           created_at: string
@@ -411,10 +456,12 @@ export type Database = {
           code: string
           created_at: string
           event_date: string | null
+          event_site_url: string | null
           external_agenda_url: string | null
           final_signoff_due: string | null
           format: Database["public"]["Enums"]["event_format"]
           id: string
+          join_instructions: string | null
           kickoff_date: string | null
           launch_date: string | null
           name: string
@@ -423,15 +470,20 @@ export type Database = {
           proof1_due: string | null
           proof2_done: boolean
           proof2_due: string | null
+          registration_time: string | null
           sales_contact_booking_link: string | null
           sales_contact_email: string | null
           sales_contact_name: string | null
           self_status: Database["public"]["Enums"]["self_status"]
+          sessions_start_time: string | null
           signoff_done: boolean
           speaker_target: number
           tito_slug: string | null
           updated_at: string
           venue: string | null
+          venue_address: string | null
+          venue_notes: string | null
+          venue_url: string | null
           washup_date: string | null
           website_status: Database["public"]["Enums"]["website_stage"]
         }
@@ -444,10 +496,12 @@ export type Database = {
           code: string
           created_at?: string
           event_date?: string | null
+          event_site_url?: string | null
           external_agenda_url?: string | null
           final_signoff_due?: string | null
           format: Database["public"]["Enums"]["event_format"]
           id?: string
+          join_instructions?: string | null
           kickoff_date?: string | null
           launch_date?: string | null
           name: string
@@ -456,15 +510,20 @@ export type Database = {
           proof1_due?: string | null
           proof2_done?: boolean
           proof2_due?: string | null
+          registration_time?: string | null
           sales_contact_booking_link?: string | null
           sales_contact_email?: string | null
           sales_contact_name?: string | null
           self_status?: Database["public"]["Enums"]["self_status"]
+          sessions_start_time?: string | null
           signoff_done?: boolean
           speaker_target?: number
           tito_slug?: string | null
           updated_at?: string
           venue?: string | null
+          venue_address?: string | null
+          venue_notes?: string | null
+          venue_url?: string | null
           washup_date?: string | null
           website_status?: Database["public"]["Enums"]["website_stage"]
         }
@@ -477,10 +536,12 @@ export type Database = {
           code?: string
           created_at?: string
           event_date?: string | null
+          event_site_url?: string | null
           external_agenda_url?: string | null
           final_signoff_due?: string | null
           format?: Database["public"]["Enums"]["event_format"]
           id?: string
+          join_instructions?: string | null
           kickoff_date?: string | null
           launch_date?: string | null
           name?: string
@@ -489,15 +550,20 @@ export type Database = {
           proof1_due?: string | null
           proof2_done?: boolean
           proof2_due?: string | null
+          registration_time?: string | null
           sales_contact_booking_link?: string | null
           sales_contact_email?: string | null
           sales_contact_name?: string | null
           self_status?: Database["public"]["Enums"]["self_status"]
+          sessions_start_time?: string | null
           signoff_done?: boolean
           speaker_target?: number
           tito_slug?: string | null
           updated_at?: string
           venue?: string | null
+          venue_address?: string | null
+          venue_notes?: string | null
+          venue_url?: string | null
           washup_date?: string | null
           website_status?: Database["public"]["Enums"]["website_stage"]
         }
@@ -524,6 +590,57 @@ export type Database = {
           id?: string
           notes?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      message_templates: {
+        Row: {
+          body_markdown: string
+          business_line: string | null
+          created_at: string
+          event_format: string | null
+          id: string
+          is_archived: boolean
+          is_seed: boolean
+          name: string
+          position: number
+          stream: string
+          subject: string
+          tito_filter_hint: string
+          updated_at: string
+          weeks_out: number | null
+        }
+        Insert: {
+          body_markdown?: string
+          business_line?: string | null
+          created_at?: string
+          event_format?: string | null
+          id?: string
+          is_archived?: boolean
+          is_seed?: boolean
+          name: string
+          position?: number
+          stream: string
+          subject?: string
+          tito_filter_hint?: string
+          updated_at?: string
+          weeks_out?: number | null
+        }
+        Update: {
+          body_markdown?: string
+          business_line?: string | null
+          created_at?: string
+          event_format?: string | null
+          id?: string
+          is_archived?: boolean
+          is_seed?: boolean
+          name?: string
+          position?: number
+          stream?: string
+          subject?: string
+          tito_filter_hint?: string
+          updated_at?: string
+          weeks_out?: number | null
         }
         Relationships: []
       }

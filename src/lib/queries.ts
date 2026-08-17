@@ -20,6 +20,11 @@ import { listEmailTemplates } from "@/lib/email-templates.functions";
 import { listPastSpeakers } from "@/lib/directory.functions";
 import { getUserSettings } from "@/lib/user-settings.functions";
 import { listBoards, getBoard } from "@/lib/boards.functions";
+import {
+  listMessageTemplates,
+  listEventMessageSends,
+  getMessageSenderName,
+} from "@/lib/message-templates.functions";
 
 export const userSettingsQuery = queryOptions({
   queryKey: ["userSettings"],
@@ -176,4 +181,22 @@ export const boardQuery = (boardId: string) =>
   queryOptions({
     queryKey: ["speakerBoard", boardId],
     queryFn: () => getBoard({ data: { board_id: boardId } }),
+  });
+
+/* ---------------- Tito message templates ---------------- */
+export const messageTemplatesQuery = queryOptions({
+  queryKey: ["messageTemplates"] as const,
+  queryFn: () => listMessageTemplates(),
+});
+
+export const messageSenderQuery = queryOptions({
+  queryKey: ["messageSenderName"] as const,
+  queryFn: () => getMessageSenderName(),
+  staleTime: 5 * 60_000,
+});
+
+export const eventMessageSendsQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: ["eventMessageSends", eventId] as const,
+    queryFn: () => listEventMessageSends({ data: { event_id: eventId } }),
   });

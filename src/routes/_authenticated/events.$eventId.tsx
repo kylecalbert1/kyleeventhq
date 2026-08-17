@@ -71,6 +71,8 @@ import { assignSpeakerToAgendaItem } from "@/lib/speaker-drafts.functions";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { toast } from "sonner";
 import { fuzzyFilter } from "@/lib/fuzzy-search";
+import { EventMessagesPanel } from "@/components/messages/EventMessagesPanel";
+import { weeksOutLabel } from "@/lib/message-render";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
   loader: ({ params, context }) =>
@@ -353,6 +355,11 @@ function EventDetail() {
                 {e.business_line}
               </StatusPill>
               <span>· {labels.format[e.format as "in_person" | "virtual"]}</span>
+              {weeksOutLabel(e.event_date) && (
+                <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-800 ring-1 ring-inset ring-indigo-200">
+                  {weeksOutLabel(e.event_date)}
+                </span>
+              )}
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-slate-600">
@@ -460,6 +467,8 @@ function EventDetail() {
       </Card>
 
       <EventSpeakerBoardCard eventId={eventId} />
+
+      <EventMessagesPanel event={e as never} onEditEvent={() => setEditingEvent(true)} />
 
       <TitoEventPanel eventId={eventId} hasTitoSlug={Boolean((e as any).tito_slug)} />
 
