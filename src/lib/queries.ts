@@ -22,8 +22,10 @@ import { getUserSettings } from "@/lib/user-settings.functions";
 import { listBoards, getBoard } from "@/lib/boards.functions";
 import {
   listMessageTemplates,
+  listMessageBlocks,
   listEventMessageSends,
   getMessageSenderName,
+
 } from "@/lib/message-templates.functions";
 
 export const userSettingsQuery = queryOptions({
@@ -200,3 +202,8 @@ export const eventMessageSendsQuery = (eventId: string) =>
     queryKey: ["eventMessageSends", eventId] as const,
     queryFn: () => listEventMessageSends({ data: { event_id: eventId } }),
   });
+
+export const messageBlocksQuery = queryOptions({
+  queryKey: ["messageBlocks"] as const,
+  queryFn: () => listMessageBlocks(),
+});

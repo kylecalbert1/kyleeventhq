@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
@@ -34,11 +34,19 @@ import {
 import {
   STREAMS,
   streamMeta,
-  weeksSlotLabel,
+  typicalWeeksLabel,
   markdownToHtml,
   PLACEHOLDER_HELP,
   type Stream,
 } from "@/lib/message-render";
+import { messageBlocksQuery } from "@/lib/queries";
+import {
+  createMessageBlock,
+  updateMessageBlock,
+  deleteMessageBlock,
+  type MessageBlock,
+} from "@/lib/message-templates.functions";
+import { InsertBlockMenu } from "@/components/messages/InsertBlockMenu";
 
 export const Route = createFileRoute("/_authenticated/message-templates")({
   head: () => ({
@@ -66,7 +74,7 @@ type Draft = {
   id?: string;
   name: string;
   stream: Stream;
-  weeks_out: string;
+  typical_weeks: string;
   business_line: string;
   event_format: string;
   subject: string;
@@ -78,7 +86,7 @@ type Draft = {
 const emptyDraft: Draft = {
   name: "",
   stream: "attendees",
-  weeks_out: "",
+  typical_weeks: "",
   business_line: "all",
   event_format: "all",
   subject: "",
@@ -118,14 +126,7 @@ function MessageTemplatesPage() {
     return STREAMS.map((stream) => {
       const list = rows
         .filter((t) => t.stream === stream)
-        .sort((a, b) => {
-          const aw = a.weeks_out;
-          const bw = b.weeks_out;
-          if (aw === null && bw === null) return a.name.localeCompare(b.name);
-          if (aw === null) return 1;
-          if (bw === null) return -1;
-          return bw - aw || a.position - b.position || a.name.localeCompare(b.name);
-        });
+        .sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
       return { stream, list };
     }).filter((g) => g.list.length > 0);
   }, [templates.data]);
@@ -135,7 +136,7 @@ function MessageTemplatesPage() {
       id: t.id,
       name: t.name,
       stream: t.stream,
-      weeks_out: t.weeks_out === null ? "" : String(t.weeks_out),
+      typical_weeks: (t.typical_weeks ?? []).join(", "),
       business_line: t.business_line ?? "all",
       event_format: t.event_format ?? "all",
       subject: t.subject,
@@ -178,6 +179,8 @@ function MessageTemplatesPage() {
 
         <PlaceholderCheatSheet />
 
+        <BlocksSection />
+
         {grouped.map(({ stream, list }) => {
           const meta = streamMeta[stream];
           return (
@@ -196,7 +199,7 @@ function MessageTemplatesPage() {
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${meta.chip}`}
                         >
-                          {weeksSlotLabel(t.weeks_out)}
+                          {typicalWeeksLabel(t.typical_weeks) ?? "Any time"}
                         </span>
                         {t.business_line && (
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 ring-1 ring-inset ring-slate-200">
@@ -261,6 +264,19 @@ function MessageTemplatesPage() {
   );
 }
 
+/** "12, 8, 6" -> [12, 8, 6]. Blank or junk -> null. */
+function parseTypicalWeeks(raw: string): number[] | null {
+  const nums = raw
+    .split(/[,\s]+/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map(Number)
+    .filter((n) => Number.isFinite(n))
+    .map((n) => Math.round(n));
+  const unique = [...new Set(nums)].sort((a, b) => b - a);
+  return unique.length ? unique : null;
+}
+
 function PlaceholderCheatSheet() {
   return (
     <div className="surface-card p-5">
@@ -296,6 +312,7 @@ function TemplateEditorDialog({
 }) {
   const create = useServerFn(createMessageTemplate);
   const update = useServerFn(updateMessageTemplate);
+  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const [form, setForm] = useState<Draft | null>(draft);
 
   // Re-seed the local form whenever a different template is opened.
@@ -311,7 +328,7 @@ function TemplateEditorDialog({
       const payload = {
         name: form.name,
         stream: form.stream,
-        weeks_out: form.weeks_out.trim() === "" ? null : Number(form.weeks_out),
+        typical_weeks: parseTypicalWeeks(form.typical_weeks),
         business_line:
           form.business_line === "all" ? null : (form.business_line as "AIAI" | "CSC"),
         event_format:
@@ -369,15 +386,15 @@ function TemplateEditorDialog({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Weeks out</Label>
+            <Label className="text-xs">Typical weeks (hint only)</Label>
             <Input
-              type="number"
-              placeholder="Blank = ad hoc"
-              value={form.weeks_out}
-              onChange={(e) => setForm({ ...form, weeks_out: e.target.value })}
+              placeholder="12, 8, 6, 4, 3, 2"
+              value={form.typical_weeks}
+              onChange={(e) => setForm({ ...form, typical_weeks: e.target.value })}
             />
             <p className="text-[11px] text-muted-foreground">
-              12 = twelve weeks before, 0 = event day, -3 = three weeks after, blank = ad hoc.
+              When this type usually goes out. 12 = twelve weeks before, 0 = event day, -3 =
+              three weeks after. Blank means any time. This never creates a schedule.
             </p>
           </div>
           <div className="space-y-1.5">
@@ -429,8 +446,16 @@ function TemplateEditorDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Body (markdown)</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Body (markdown)</Label>
+              <InsertBlockMenu
+                textareaRef={bodyRef}
+                value={form.body_markdown}
+                onChange={(v) => setForm({ ...form, body_markdown: v })}
+              />
+            </div>
             <Textarea
+              ref={bodyRef}
               rows={20}
               className="font-mono text-[12.5px]"
               value={form.body_markdown}
