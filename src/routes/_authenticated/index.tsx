@@ -25,6 +25,7 @@ import { daysBetween } from "@/lib/status";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { getSyncHealth } from "@/lib/sync-health.functions";
 import { fuzzyMatch } from "@/lib/fuzzy-search";
+import { weeksOutLabel, weeksOutTone } from "@/lib/message-render";
 
 function SyncStalenessBanner() {
   const { data } = useQuery({
@@ -410,6 +411,8 @@ function EventCard({
   const days = eventDate ? daysBetween(new Date(), new Date(eventDate)) : null;
   const dateLabel = formatDateLong(eventDate);
   const isVirtual = ev.format === "virtual";
+  const weeksLabel = weeksOutLabel(ev.event_date);
+  const weeksTone = weeksOutTone(ev.event_date);
   const counts = perEvent.get(ev.id) ?? { contacted: 0, responded: 0, confirmed: 0, declined: 0, total: 0 };
   let awayPill: { label: string; tone: "neutral" | "amber" | "green" | "red" } | null = null;
   if (days !== null) {
@@ -455,7 +458,10 @@ function EventCard({
               </div>
             )}
           </div>
-          {awayPill && <Pill tone={awayPill.tone}>{awayPill.label}</Pill>}
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            {weeksLabel && <Pill tone={weeksTone}>{weeksLabel}</Pill>}
+            {awayPill && <Pill tone={awayPill.tone}>{awayPill.label}</Pill>}
+          </div>
         </div>
 
         <div className="mt-4 flex items-center gap-2 flex-wrap">
