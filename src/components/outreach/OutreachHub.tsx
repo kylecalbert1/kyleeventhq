@@ -136,6 +136,37 @@ export function OutreachHub({ eventId }: { eventId: string }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["eventOutreach", eventId] }),
   });
 
+  const addSnippet = useMutation({
+    mutationFn: async () =>
+      createSnippetFn({
+        data: {
+          event_id: eventId,
+          label: "New message type",
+          description: "",
+          body: "",
+          position: (q.data?.snippets?.length ?? 0) + 1,
+        },
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["eventOutreach", eventId] }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const patchSnippet = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: any }) =>
+      updateSnippetFn({ data: { id, patch } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["eventOutreach", eventId] }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const removeSnippet = useMutation({
+    mutationFn: async (id: string) => deleteSnippetFn({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["eventOutreach", eventId] });
+      toast.success("Removed");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
   return (
     <div className="space-y-6">
       <Card className="p-5 rounded-2xl border-slate-200/70 border-l-4 border-l-indigo-500">
