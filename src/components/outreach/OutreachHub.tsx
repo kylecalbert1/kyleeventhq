@@ -14,6 +14,9 @@ import {
   createSavedSearch,
   updateSavedSearch,
   deleteSavedSearch,
+  createOutreachSnippet,
+  updateOutreachSnippet,
+  deleteOutreachSnippet,
 } from "@/lib/outreach-hub.functions";
 
 async function copy(text: string, label: string) {
@@ -81,6 +84,9 @@ export function OutreachHub({ eventId }: { eventId: string }) {
   const createFn = useServerFn(createSavedSearch);
   const updateFn = useServerFn(updateSavedSearch);
   const deleteFn = useServerFn(deleteSavedSearch);
+  const createSnippetFn = useServerFn(createOutreachSnippet);
+  const updateSnippetFn = useServerFn(updateOutreachSnippet);
+  const deleteSnippetFn = useServerFn(deleteOutreachSnippet);
 
   const initial = useMemo(
     () => ({
@@ -134,6 +140,37 @@ export function OutreachHub({ eventId }: { eventId: string }) {
   const removeSearch = useMutation({
     mutationFn: async (id: string) => deleteFn({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["eventOutreach", eventId] }),
+  });
+
+  const addSnippet = useMutation({
+    mutationFn: async () =>
+      createSnippetFn({
+        data: {
+          event_id: eventId,
+          label: "New message type",
+          description: "",
+          body: "",
+          position: (q.data?.snippets?.length ?? 0) + 1,
+        },
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["eventOutreach", eventId] }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const patchSnippet = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: any }) =>
+      updateSnippetFn({ data: { id, patch } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["eventOutreach", eventId] }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const removeSnippet = useMutation({
+    mutationFn: async (id: string) => deleteSnippetFn({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["eventOutreach", eventId] });
+      toast.success("Removed");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
   return (
@@ -205,6 +242,44 @@ export function OutreachHub({ eventId }: { eventId: string }) {
             onChange={(v) => setForm((f) => ({ ...f, colleague_linkedin: v }))}
           />
         </div>
+      </Card>
+
+      <Card className="p-5 rounded-2xl border-slate-200/70 border-l-4 border-l-sky-500">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Custom message types</h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Your own reusable messages for this event — VIP invites, "more information"
+              replies, anything else. Add or remove them as you like.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            onClick={() => addSnippet.mutate()}
+            disabled={addSnippet.isPending}
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" /> New message type
+          </Button>
+        </div>
+        {(q.data?.snippets ?? []).length === 0 ? (
+          <div className="text-xs text-slate-500 py-4 text-center">
+            No custom message types yet.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {(q.data?.snippets ?? []).map((s: any) => (
+              <SnippetCard
+                key={s.id}
+                row={s}
+                onPatch={(patch) => patchSnippet.mutate({ id: s.id, patch })}
+                onDelete={() => removeSnippet.mutate(s.id)}
+                saving={patchSnippet.isPending}
+              />
+            ))}
+          </div>
+        )}
       </Card>
 
       <Card className="p-5 rounded-2xl border-slate-200/70 border-l-4 border-l-emerald-500">
@@ -316,6 +391,70 @@ function SearchRow({
       <Button variant="ghost" size="sm" onClick={onDelete}>
         <Trash2 className="h-3.5 w-3.5 text-red-500" />
       </Button>
+    </div>
+  );
+}
+
+function SnippetCard({
+  row,
+  onPatch,
+  onDelete,
+  saving,
+}: {
+  row: { id: string; label: string; description: string | null; body: string };
+  onPatch: (patch: { label?: string; description?: string; body?: string }) => void;
+  onDelete: () => void;
+  saving?: boolean;
+}) {
+  const [label, setLabel] = useState(row.label);
+  const [description, setDescription] = useState(row.description ?? "");
+  const [body, setBody] = useState(row.body ?? "");
+  useEffect(() => {
+    setLabel(row.label);
+    setDescription(row.description ?? "");
+    setBody(row.body ?? "");
+  }, [row.label, row.description, row.body]);
+
+  const dirty =
+    label !== row.label || description !== (row.description ?? "") || body !== (row.body ?? "");
+
+  return (
+    <div className="rounded-xl border border-slate-200/70 bg-white p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <Input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="e.g. VIP invite"
+          className="flex-1 font-medium"
+        />
+        <Button
+          size="sm"
+          className="rounded-full"
+          disabled={!dirty || saving}
+          onClick={() => onPatch({ label, description, body })}
+        >
+          <Save className="h-3.5 w-3.5 mr-1.5" /> Save
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => copy(body, label)}>
+          <Copy className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onDelete}>
+          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+        </Button>
+      </div>
+      <Input
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="When you use this (optional)"
+        className="text-xs"
+      />
+      <Textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        rows={6}
+        placeholder="Message text. Use *FN* as a first-name placeholder."
+        className="font-mono text-[13px] leading-relaxed"
+      />
     </div>
   );
 }

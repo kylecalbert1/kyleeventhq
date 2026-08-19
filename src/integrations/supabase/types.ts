@@ -408,6 +408,47 @@ export type Database = {
           },
         ]
       }
+      event_outreach_snippets: {
+        Row: {
+          body: string
+          created_at: string
+          description: string | null
+          event_id: string
+          id: string
+          label: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          description?: string | null
+          event_id: string
+          id?: string
+          label: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          description?: string | null
+          event_id?: string
+          id?: string
+          label?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_outreach_snippets_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_saved_searches: {
         Row: {
           created_at: string
