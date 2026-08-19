@@ -119,3 +119,75 @@ export const deleteSavedSearch = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/* ---------------- custom message types (VIP, more-info, etc.) ---------------- */
+
+export type OutreachSnippet = {
+  id: string;
+  event_id: string;
+  label: string;
+  description: string | null;
+  body: string;
+  position: number;
+};
+
+export const createOutreachSnippet = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        event_id: z.string().uuid(),
+        label: z.string().min(1),
+        description: z.string().nullable().optional(),
+        body: z.string().optional(),
+        position: z.number().int().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("event_outreach_snippets")
+      .insert(data)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row as OutreachSnippet;
+  });
+
+export const updateOutreachSnippet = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        patch: z.object({
+          label: z.string().min(1).optional(),
+          description: z.string().nullable().optional(),
+          body: z.string().optional(),
+          position: z.number().int().optional(),
+        }),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("event_outreach_snippets")
+      .update(data.patch)
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row as OutreachSnippet;
+  });
+
+export const deleteOutreachSnippet = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("event_outreach_snippets")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
