@@ -14,7 +14,7 @@ export const getEventOutreach = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ event_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const [outreach, searches] = await Promise.all([
+    const [outreach, searches, snippets] = await Promise.all([
       context.supabase
         .from("event_outreach")
         .select("*")
@@ -25,10 +25,20 @@ export const getEventOutreach = createServerFn({ method: "GET" })
         .select("*")
         .eq("event_id", data.event_id)
         .order("position"),
+      context.supabase
+        .from("event_outreach_snippets")
+        .select("*")
+        .eq("event_id", data.event_id)
+        .order("position"),
     ]);
     if (outreach.error) throw new Error(outreach.error.message);
     if (searches.error) throw new Error(searches.error.message);
-    return { outreach: outreach.data, searches: searches.data ?? [] };
+    if (snippets.error) throw new Error(snippets.error.message);
+    return {
+      outreach: outreach.data,
+      searches: searches.data ?? [],
+      snippets: snippets.data ?? [],
+    };
   });
 
 export const upsertEventOutreach = createServerFn({ method: "POST" })
