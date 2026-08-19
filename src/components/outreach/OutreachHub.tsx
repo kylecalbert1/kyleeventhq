@@ -394,3 +394,67 @@ function SearchRow({
     </div>
   );
 }
+
+function SnippetCard({
+  row,
+  onPatch,
+  onDelete,
+  saving,
+}: {
+  row: { id: string; label: string; description: string | null; body: string };
+  onPatch: (patch: { label?: string; description?: string; body?: string }) => void;
+  onDelete: () => void;
+  saving?: boolean;
+}) {
+  const [label, setLabel] = useState(row.label);
+  const [description, setDescription] = useState(row.description ?? "");
+  const [body, setBody] = useState(row.body ?? "");
+  useEffect(() => {
+    setLabel(row.label);
+    setDescription(row.description ?? "");
+    setBody(row.body ?? "");
+  }, [row.label, row.description, row.body]);
+
+  const dirty =
+    label !== row.label || description !== (row.description ?? "") || body !== (row.body ?? "");
+
+  return (
+    <div className="rounded-xl border border-slate-200/70 bg-white p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <Input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="e.g. VIP invite"
+          className="flex-1 font-medium"
+        />
+        <Button
+          size="sm"
+          className="rounded-full"
+          disabled={!dirty || saving}
+          onClick={() => onPatch({ label, description, body })}
+        >
+          <Save className="h-3.5 w-3.5 mr-1.5" /> Save
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => copy(body, label)}>
+          <Copy className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onDelete}>
+          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+        </Button>
+      </div>
+      <Input
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="When you use this (optional)"
+        className="text-xs"
+      />
+      <Textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        rows={6}
+        placeholder="Message text. Use *FN* as a first-name placeholder."
+        className="font-mono text-[13px] leading-relaxed"
+      />
+    </div>
+  );
+}
