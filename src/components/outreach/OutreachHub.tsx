@@ -84,6 +84,9 @@ export function OutreachHub({ eventId }: { eventId: string }) {
   const createFn = useServerFn(createSavedSearch);
   const updateFn = useServerFn(updateSavedSearch);
   const deleteFn = useServerFn(deleteSavedSearch);
+  const createSnippetFn = useServerFn(createOutreachSnippet);
+  const updateSnippetFn = useServerFn(updateOutreachSnippet);
+  const deleteSnippetFn = useServerFn(deleteOutreachSnippet);
 
   const initial = useMemo(
     () => ({
