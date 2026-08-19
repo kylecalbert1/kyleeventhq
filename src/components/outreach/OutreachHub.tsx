@@ -207,6 +207,44 @@ export function OutreachHub({ eventId }: { eventId: string }) {
         </div>
       </Card>
 
+      <Card className="p-5 rounded-2xl border-slate-200/70 border-l-4 border-l-sky-500">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Custom message types</h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Your own reusable messages for this event — VIP invites, "more information"
+              replies, anything else. Add or remove them as you like.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            onClick={() => addSnippet.mutate()}
+            disabled={addSnippet.isPending}
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" /> New message type
+          </Button>
+        </div>
+        {(q.data?.snippets ?? []).length === 0 ? (
+          <div className="text-xs text-slate-500 py-4 text-center">
+            No custom message types yet.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {(q.data?.snippets ?? []).map((s: any) => (
+              <SnippetCard
+                key={s.id}
+                row={s}
+                onPatch={(patch) => patchSnippet.mutate({ id: s.id, patch })}
+                onDelete={() => removeSnippet.mutate(s.id)}
+                saving={patchSnippet.isPending}
+              />
+            ))}
+          </div>
+        )}
+      </Card>
+
       <Card className="p-5 rounded-2xl border-slate-200/70 border-l-4 border-l-emerald-500">
         <div className="flex items-center justify-between mb-4">
           <div>
