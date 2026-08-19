@@ -14,6 +14,9 @@ import {
   createSavedSearch,
   updateSavedSearch,
   deleteSavedSearch,
+  createOutreachSnippet,
+  updateOutreachSnippet,
+  deleteOutreachSnippet,
 } from "@/lib/outreach-hub.functions";
 
 async function copy(text: string, label: string) {
