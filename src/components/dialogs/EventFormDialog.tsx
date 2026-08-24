@@ -274,6 +274,11 @@ export function EventFormDialog({
           <Field label="Event date">
             <Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
           </Field>
+          <Field label="End date">
+            <Input type="date" value={form.event_end_date} onChange={(e) => setForm({ ...form, event_end_date: e.target.value })} />
+            <p className="mt-1 text-xs text-muted-foreground">Leave blank for a single-day event.</p>
+          </Field>
+
           <Field label="Launch date">
             <Input type="date" value={form.launch_date} onChange={(e) => setForm({ ...form, launch_date: e.target.value })} />
           </Field>
