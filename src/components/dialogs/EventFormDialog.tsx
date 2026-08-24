@@ -36,6 +36,8 @@ type EventRow = {
   business_line: "AIAI" | "CSC";
   format: "in_person" | "virtual";
   event_date: string | null;
+  event_end_date?: string | null;
+
   venue: string | null;
   kickoff_date: string | null;
   washup_date: string | null;
