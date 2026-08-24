@@ -498,6 +498,7 @@ export type Database = {
           created_at: string
           dietary_url: string | null
           event_date: string | null
+          event_end_date: string | null
           event_site_url: string | null
           external_agenda_url: string | null
           final_signoff_due: string | null
@@ -541,6 +542,7 @@ export type Database = {
           created_at?: string
           dietary_url?: string | null
           event_date?: string | null
+          event_end_date?: string | null
           event_site_url?: string | null
           external_agenda_url?: string | null
           final_signoff_due?: string | null
@@ -584,6 +586,7 @@ export type Database = {
           created_at?: string
           dietary_url?: string | null
           event_date?: string | null
+          event_end_date?: string | null
           event_site_url?: string | null
           external_agenda_url?: string | null
           final_signoff_due?: string | null
