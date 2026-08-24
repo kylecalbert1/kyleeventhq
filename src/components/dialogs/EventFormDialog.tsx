@@ -73,6 +73,8 @@ const initial = {
   business_line: "AIAI" as "AIAI" | "CSC",
   format: "in_person" as "in_person" | "virtual",
   event_date: "",
+  event_end_date: "",
+
   venue: "",
   kickoff_date: "",
   washup_date: "",
