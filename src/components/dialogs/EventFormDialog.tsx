@@ -467,6 +467,27 @@ export function EventFormDialog({
                   The form where attendees submit dietary requirements and accessibility needs.
                 </p>
               </Field>
+              <Field label="Room block URL" full>
+                <Input
+                  type="url"
+                  placeholder="https://…"
+                  value={form.room_block_url}
+                  onChange={(e) => setForm({ ...form, room_block_url: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Hotel booking link for the negotiated room block.
+                </p>
+              </Field>
+              <Field label="Room block notes" full>
+                <Input
+                  placeholder="$249/night, capped at 250 rooms, book by 7 September"
+                  value={form.room_block_notes}
+                  onChange={(e) => setForm({ ...form, room_block_notes: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Price per room, room cap, booking cut-off date, and any other key terms.
+                </p>
+              </Field>
               <Field label="Join instructions (virtual)" full>
                 <Textarea
                   rows={2}
