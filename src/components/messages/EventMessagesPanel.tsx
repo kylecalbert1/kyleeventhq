@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Send, Settings2, Trash2 } from "lucide-react";
+import { Send, Settings2, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,7 +29,8 @@ import {
   typicalWeeksLabel,
   type MessageEvent,
 } from "@/lib/message-render";
-import { GenerateMessageDialog } from "./GenerateMessageDialog";
+import { GenerateMessageDialog, type DraftTemplate } from "./GenerateMessageDialog";
+import { AiComposeDialog } from "./AiComposeDialog";
 
 export function EventMessagesPanel({
   event,
@@ -42,7 +43,8 @@ export function EventMessagesPanel({
   const templates = useQuery(messageTemplatesQuery);
   const sender = useQuery(messageSenderQuery);
   const sends = useQuery(eventMessageSendsQuery(event.id));
-  const [generating, setGenerating] = useState<MessageTemplate | null>(null);
+  const [generating, setGenerating] = useState<DraftTemplate | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   const [picking, setPicking] = useState(false);
   const [showAllSends, setShowAllSends] = useState(false);
 
@@ -98,6 +100,10 @@ export function EventMessagesPanel({
               <Settings2 className="mr-1.5 h-4 w-4" />
               Edit templates
             </Link>
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setAiOpen(true)}>
+            <Sparkles className="mr-1.5 h-4 w-4" />
+            Describe a message
           </Button>
           <Button size="sm" onClick={() => setPicking(true)}>
             <Send className="mr-1.5 h-4 w-4" />
@@ -199,6 +205,23 @@ export function EventMessagesPanel({
           setPicking(false);
           setGenerating(t);
         }}
+      />
+
+      <AiComposeDialog
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        eventId={event.id}
+        onDraft={(d) =>
+          setGenerating({
+            id: null,
+            name: d.name,
+            stream: d.stream,
+            typical_weeks: d.typical_weeks,
+            event_format: d.event_format,
+            subject: d.subject,
+            body_markdown: d.body_markdown,
+          })
+        }
       />
 
       <GenerateMessageDialog

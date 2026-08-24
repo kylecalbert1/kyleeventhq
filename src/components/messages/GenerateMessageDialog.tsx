@@ -37,9 +37,23 @@ import {
 } from "@/lib/message-render";
 import {
   updateMessageTemplate,
+  createMessageTemplate,
   markMessageSent,
   type MessageTemplate,
 } from "@/lib/message-templates.functions";
+
+/**
+ * Either a saved template row, or an unsaved AI draft (id === null).
+ */
+export type DraftTemplate = Omit<
+  MessageTemplate,
+  "id" | "business_line" | "tito_filter_hint" | "position" | "is_seed" | "is_archived" | "created_at" | "updated_at"
+> & {
+  id: string | null;
+  business_line?: MessageTemplate["business_line"];
+  tito_filter_hint?: string;
+  position?: number;
+};
 import { InsertBlockMenu } from "./InsertBlockMenu";
 
 export function GenerateMessageDialog({
@@ -52,7 +66,7 @@ export function GenerateMessageDialog({
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  template: MessageTemplate | null;
+  template: DraftTemplate | null;
   event: MessageEvent;
   userFirstName: string;
   onEditEvent?: () => void;
@@ -66,6 +80,7 @@ export function GenerateMessageDialog({
   const [warnLost, setWarnLost] = useState<string[] | null>(null);
 
   const update = useServerFn(updateMessageTemplate);
+  const createTemplate = useServerFn(createMessageTemplate);
   const logSend = useServerFn(markMessageSent);
 
   const rendered = useMemo(() => {
@@ -81,9 +96,36 @@ export function GenerateMessageDialog({
     setRecipients("");
   }, [template?.id, rendered?.subject, rendered?.body]);
 
+  const isDraft = Boolean(template) && template!.id === null;
   const edited =
     Boolean(rendered) && (subject !== rendered!.subject || body !== rendered!.body);
   const blocked = (rendered?.missing.length ?? 0) > 0;
+
+  const saveAsTemplate = useMutation({
+    mutationFn: async () => {
+      if (!template) return;
+      const values = buildPlaceholderValues(event, userFirstName);
+      const s = unrenderPlaceholders(subject, template.subject, values);
+      const b = unrenderPlaceholders(body, template.body_markdown, values);
+      return createTemplate({
+        data: {
+          name: template.name,
+          stream: template.stream,
+          typical_weeks: template.typical_weeks ?? null,
+          business_line: template.business_line ?? null,
+          event_format: template.event_format ?? null,
+          subject: s.text,
+          body_markdown: b.text,
+          tito_filter_hint: template.tito_filter_hint ?? "",
+        },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["messageTemplates"] });
+      toast.success("Saved to your templates");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
 
   const saveTemplate = useMutation({
     mutationFn: async () => {
@@ -91,6 +133,7 @@ export function GenerateMessageDialog({
       const values = buildPlaceholderValues(event, userFirstName);
       const s = unrenderPlaceholders(subject, template.subject, values);
       const b = unrenderPlaceholders(body, template.body_markdown, values);
+      if (!template.id) return;
       return update({
         data: { id: template.id, patch: { subject: s.text, body_markdown: b.text } },
       });
@@ -108,7 +151,7 @@ export function GenerateMessageDialog({
       return logSend({
         data: {
           event_id: event.id,
-          template_id: template.id,
+          template_id: template.id ?? null,
           recipient_count: recipients ? Number(recipients) : null,
         },
       });
@@ -269,14 +312,25 @@ export function GenerateMessageDialog({
           </div>
 
           <DialogFooter className="flex-wrap gap-2 sm:justify-between">
-            <Button
-              variant="outline"
-              disabled={!edited || saveTemplate.isPending}
-              onClick={attemptSaveToTemplate}
-            >
-              <Save className="mr-1.5 h-4 w-4" />
-              Save changes to template
-            </Button>
+            {isDraft ? (
+              <Button
+                variant="outline"
+                disabled={saveAsTemplate.isPending}
+                onClick={() => saveAsTemplate.mutate()}
+              >
+                <Save className="mr-1.5 h-4 w-4" />
+                Save as template
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                disabled={!edited || saveTemplate.isPending}
+                onClick={attemptSaveToTemplate}
+              >
+                <Save className="mr-1.5 h-4 w-4" />
+                Save changes to template
+              </Button>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <Input
                 type="number"

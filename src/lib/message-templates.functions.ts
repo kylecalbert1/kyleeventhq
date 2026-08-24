@@ -175,7 +175,7 @@ export const markMessageSent = createServerFn({ method: "POST" })
     z
       .object({
         event_id: z.string().uuid(),
-        template_id: z.string().uuid(),
+        template_id: z.string().uuid().nullable(),
         recipient_count: z.number().int().min(0).nullable().optional(),
         notes: z.string().nullable().optional(),
         sent_at: z.string().optional(),
@@ -187,7 +187,7 @@ export const markMessageSent = createServerFn({ method: "POST" })
       .from("event_message_sends")
       .insert({
         event_id: data.event_id,
-        template_id: data.template_id,
+        template_id: data.template_id ?? null,
         recipient_count: data.recipient_count ?? null,
         notes: data.notes ?? null,
         ...(data.sent_at ? { sent_at: data.sent_at } : {}),
