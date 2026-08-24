@@ -164,6 +164,8 @@ export type MessageEvent = {
   venue_notes?: string | null;
   join_instructions?: string | null;
   dietary_url?: string | null;
+  room_block_url?: string | null;
+  room_block_notes?: string | null;
 };
 
 export const PLACEHOLDER_HELP: { key: string; description: string }[] = [
@@ -180,6 +182,8 @@ export const PLACEHOLDER_HELP: { key: string; description: string }[] = [
   { key: "venue_notes", description: "One-off venue requirements" },
   { key: "join_instructions", description: "Virtual joining instructions" },
   { key: "dietary_url", description: "Dietary requirements form URL" },
+  { key: "room_block_url", description: "Hotel room block booking URL" },
+  { key: "room_block_notes", description: "Room block notes (price, cap, cut-off)" },
   { key: "signoff", description: "Your first name plus the team name (automatic)" },
 ];
 
@@ -198,6 +202,8 @@ export const PLACEHOLDER_FIELD_LABEL: Record<string, string> = {
   venue_notes: "Venue notes",
   join_instructions: "Join instructions",
   dietary_url: "Dietary requirements URL",
+  room_block_url: "Room block URL",
+  room_block_notes: "Room block notes",
 };
 
 
@@ -228,6 +234,8 @@ export function buildPlaceholderValues(
     venue_notes: event.venue_notes || null,
     join_instructions: event.join_instructions || null,
     dietary_url: event.dietary_url || null,
+    room_block_url: event.room_block_url || null,
+    room_block_notes: event.room_block_notes || null,
 
     signoff: buildSignoff(userFirstName, event.business_line),
   };
