@@ -184,6 +184,8 @@ export type MessageEvent = {
   business_line: "AIAI" | "CSC";
   format: "in_person" | "virtual";
   event_date: string | null;
+  event_end_date?: string | null;
+
   venue: string | null;
   external_agenda_url: string | null;
   event_site_url?: string | null;
