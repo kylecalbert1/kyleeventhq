@@ -129,6 +129,8 @@ export function EventFormDialog({
         business_line: event.business_line,
         format: event.format,
         event_date: event.event_date ?? "",
+        event_end_date: event.event_end_date ?? "",
+
         venue: event.venue ?? "",
         kickoff_date: event.kickoff_date ?? "",
         washup_date: event.washup_date ?? "",
