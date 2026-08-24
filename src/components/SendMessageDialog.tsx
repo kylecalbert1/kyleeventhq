@@ -801,8 +801,16 @@ export function SendMessageDialog({
           )}
         </DialogFooter>
       </DialogContent>
+      <AiComposeEmailDialog
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        eventId={eventId}
+        group={group}
+        onDraft={applyAiDraft}
+      />
     </Dialog>
   );
+
 }
 
 function ToggleBtn({
