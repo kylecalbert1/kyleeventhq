@@ -58,6 +58,8 @@ type EventRow = {
   venue_notes?: string | null;
   join_instructions?: string | null;
   dietary_url?: string | null;
+  room_block_url?: string | null;
+  room_block_notes?: string | null;
   sales_contact_name?: string | null;
   sales_contact_email?: string | null;
   sales_contact_booking_link?: string | null;
@@ -94,6 +96,8 @@ const initial = {
   venue_notes: "",
   join_instructions: "",
   dietary_url: "",
+  room_block_url: "",
+  room_block_notes: "",
 };
 
 export function EventFormDialog({
@@ -146,6 +150,8 @@ export function EventFormDialog({
         venue_notes: event.venue_notes ?? "",
         join_instructions: event.join_instructions ?? "",
         dietary_url: event.dietary_url ?? "",
+        room_block_url: event.room_block_url ?? "",
+        room_block_notes: event.room_block_notes ?? "",
       });
     } else {
       setForm(initial);
@@ -181,6 +187,8 @@ export function EventFormDialog({
         venue_notes: form.venue_notes.trim() || null,
         join_instructions: form.join_instructions.trim() || null,
         dietary_url: form.dietary_url.trim() || null,
+        room_block_url: form.room_block_url.trim() || null,
+        room_block_notes: form.room_block_notes.trim() || null,
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
