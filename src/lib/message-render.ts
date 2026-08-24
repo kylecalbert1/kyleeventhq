@@ -255,7 +255,7 @@ export function buildPlaceholderValues(
   return {
     event_name: event.name || null,
     event_site_url: event.event_site_url || null,
-    event_date_long: d ? formatDateLong(d) : null,
+    event_date_long: formatEventDateRange(event.event_date, event.event_end_date) || null,
     event_day_name: d ? new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(d) : null,
     agenda_url: event.external_agenda_url || null,
     venue_name: event.venue || null,
