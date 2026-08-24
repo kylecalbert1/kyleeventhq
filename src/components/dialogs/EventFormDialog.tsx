@@ -170,6 +170,8 @@ export function EventFormDialog({
       const payload = {
         ...rest,
         event_date: form.event_date || null,
+        event_end_date: form.event_end_date || null,
+
         venue: form.venue || null,
         kickoff_date: form.kickoff_date || null,
         washup_date: form.washup_date || null,
