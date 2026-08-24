@@ -246,6 +246,8 @@ export function SendMessageDialog({
   const [bodyHtml, setBodyHtml] = useState<string>("");
   const [originalSubject, setOriginalSubject] = useState<string>("");
   const [originalBody, setOriginalBody] = useState<string>("");
+  const [aiOpen, setAiOpen] = useState(false);
+
 
   const [previewing, setPreviewing] = useState(false);
   const [sending, setSending] = useState(false);
