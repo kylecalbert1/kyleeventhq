@@ -11,7 +11,9 @@ import {
   ArrowLeft,
   ChevronDown,
   Mail,
+  Sparkles,
 } from "lucide-react";
+
 import {
   Dialog,
   DialogContent,
@@ -35,6 +37,10 @@ import {
 import { sendGmailEmail } from "@/lib/email.functions";
 import { logEmailSend } from "@/lib/email-sends.functions";
 import { SendHistoryPanel } from "@/components/SendHistoryPanel";
+import { AiComposeEmailDialog } from "@/components/AiComposeEmailDialog";
+import type { AiEmailDraft } from "@/lib/email-ai.functions";
+
+
 
 // ---------- Recipient shape ----------
 type Recipient = {
@@ -240,6 +246,8 @@ export function SendMessageDialog({
   const [bodyHtml, setBodyHtml] = useState<string>("");
   const [originalSubject, setOriginalSubject] = useState<string>("");
   const [originalBody, setOriginalBody] = useState<string>("");
+  const [aiOpen, setAiOpen] = useState(false);
+
 
   const [previewing, setPreviewing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -427,6 +435,22 @@ export function SendMessageDialog({
     if (bodyRef.current) bodyRef.current.innerHTML = escapeToInitialHtml(bodyWithGreeting);
   }
 
+  function applyAiDraft(draft: AiEmailDraft) {
+    // Same path as applyTemplate, but not backed by a saved template.
+    setTemplateId("");
+    setSubject(draft.subject);
+    const bodyWithGreeting = /^\s*(hi|hello|dear)\b/i.test(draft.body)
+      ? draft.body
+      : `Hi {{first_name}},\n\n${draft.body}`;
+    const html = escapeToInitialHtml(bodyWithGreeting);
+    setBodyHtml(html);
+    setOriginalSubject(draft.subject);
+    setOriginalBody(bodyWithGreeting);
+    if (bodyRef.current) bodyRef.current.innerHTML = html;
+  }
+
+
+
   function resetToTemplate() {
     setSubject(originalSubject);
     const html = escapeToInitialHtml(originalBody);
@@ -590,7 +614,21 @@ export function SendMessageDialog({
 
             {/* 5. Email type (template) */}
             <section className="surface-card p-5 space-y-2">
-              <FieldLabel>Email type</FieldLabel>
+              <FieldLabel
+                right={
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px]"
+                    onClick={() => setAiOpen(true)}
+                  >
+                    <Sparkles className="mr-1 h-3 w-3" />
+                    Describe a message
+                  </Button>
+                }
+              >
+                Email type
+              </FieldLabel>
               <LabeledSelect value={templateId} onChange={applyTemplate}>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -600,6 +638,7 @@ export function SendMessageDialog({
               </LabeledSelect>
               <HelpText>Loads the subject and body below — you can still edit both.</HelpText>
             </section>
+
 
             {/* 6. Send to (audience segments) — only in group mode */}
             {audienceMode === "group" && (
@@ -762,8 +801,16 @@ export function SendMessageDialog({
           )}
         </DialogFooter>
       </DialogContent>
+      <AiComposeEmailDialog
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        eventId={eventId}
+        group={group}
+        onDraft={applyAiDraft}
+      />
     </Dialog>
   );
+
 }
 
 function ToggleBtn({
