@@ -8,6 +8,8 @@ const EventInput = z.object({
   business_line: z.enum(["AIAI", "CSC"]),
   format: z.enum(["in_person", "virtual"]),
   event_date: z.string().nullable().optional(),
+  event_end_date: z.string().nullable().optional(),
+
   venue: z.string().nullable().optional(),
   kickoff_date: z.string().nullable().optional(),
   washup_date: z.string().nullable().optional(),
