@@ -590,7 +590,21 @@ export function SendMessageDialog({
 
             {/* 5. Email type (template) */}
             <section className="surface-card p-5 space-y-2">
-              <FieldLabel>Email type</FieldLabel>
+              <FieldLabel
+                right={
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px]"
+                    onClick={() => setAiOpen(true)}
+                  >
+                    <Sparkles className="mr-1 h-3 w-3" />
+                    Describe a message
+                  </Button>
+                }
+              >
+                Email type
+              </FieldLabel>
               <LabeledSelect value={templateId} onChange={applyTemplate}>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -600,6 +614,7 @@ export function SendMessageDialog({
               </LabeledSelect>
               <HelpText>Loads the subject and body below — you can still edit both.</HelpText>
             </section>
+
 
             {/* 6. Send to (audience segments) — only in group mode */}
             {audienceMode === "group" && (
