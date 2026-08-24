@@ -139,6 +139,36 @@ export function formatDateLong(d: Date | null): string {
   return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(d);
 }
 
+/**
+ * Format an event's date, collapsing a start/end pair into a range.
+ * - no/equal end date: "12 November 2026"
+ * - same month and year: "12–13 November 2026"
+ * - crossing a boundary: "30 November – 1 December 2026"
+ */
+export function formatEventDateRange(
+  startIso: string | null | undefined,
+  endIso?: string | null,
+): string {
+  const start = parseISODate(startIso);
+  if (!start) return "";
+  const end = parseISODate(endIso);
+  const day = (d: Date) => String(d.getDate());
+  const month = (d: Date) => new Intl.DateTimeFormat("en-GB", { month: "long" }).format(d);
+  const year = (d: Date) => String(d.getFullYear());
+
+  if (!end || end.getTime() <= start.getTime()) {
+    return `${day(start)} ${month(start)} ${year(start)}`;
+  }
+  if (month(start) === month(end) && year(start) === year(end)) {
+    return `${day(start)}–${day(end)} ${month(start)} ${year(start)}`;
+  }
+  if (year(start) === year(end)) {
+    return `${day(start)} ${month(start)} – ${day(end)} ${month(end)} ${year(end)}`;
+  }
+  return `${day(start)} ${month(start)} ${year(start)} – ${day(end)} ${month(end)} ${year(end)}`;
+}
+
+
 export function formatDateShort(d: Date | null): string {
   if (!d) return "";
   return new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(d);
