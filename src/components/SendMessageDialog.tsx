@@ -435,6 +435,22 @@ export function SendMessageDialog({
     if (bodyRef.current) bodyRef.current.innerHTML = escapeToInitialHtml(bodyWithGreeting);
   }
 
+  function applyAiDraft(draft: AiEmailDraft) {
+    // Same path as applyTemplate, but not backed by a saved template.
+    setTemplateId("");
+    setSubject(draft.subject);
+    const bodyWithGreeting = /^\s*(hi|hello|dear)\b/i.test(draft.body)
+      ? draft.body
+      : `Hi {{first_name}},\n\n${draft.body}`;
+    const html = escapeToInitialHtml(bodyWithGreeting);
+    setBodyHtml(html);
+    setOriginalSubject(draft.subject);
+    setOriginalBody(bodyWithGreeting);
+    if (bodyRef.current) bodyRef.current.innerHTML = html;
+  }
+
+
+
   function resetToTemplate() {
     setSubject(originalSubject);
     const html = escapeToInitialHtml(originalBody);
