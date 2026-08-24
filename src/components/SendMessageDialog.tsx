@@ -11,7 +11,9 @@ import {
   ArrowLeft,
   ChevronDown,
   Mail,
+  Sparkles,
 } from "lucide-react";
+
 import {
   Dialog,
   DialogContent,
