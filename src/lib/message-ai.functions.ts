@@ -80,6 +80,7 @@ export const generateMessageDraft = createServerFn({ method: "POST" })
       "business_line",
       "format",
       "event_date",
+      "event_end_date",
       "venue",
       "venue_address",
       "registration_time",

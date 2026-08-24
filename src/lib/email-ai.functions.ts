@@ -95,7 +95,7 @@ export const generateEmailDraft = createServerFn({ method: "POST" })
     if (!event) throw new Error("Event not found");
 
     const ev = event as Record<string, unknown>;
-    const eventContext = ["name", "code", "format", "event_date", "venue", "venue_address"]
+    const eventContext = ["name", "code", "format", "event_date", "event_end_date", "venue", "venue_address"]
       .map((k) => `${k}: ${ev[k] == null ? "(not set)" : String(ev[k])}`)
       .join("\n");
 

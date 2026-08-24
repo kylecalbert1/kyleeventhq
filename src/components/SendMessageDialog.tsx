@@ -37,6 +37,7 @@ import {
 import { sendGmailEmail } from "@/lib/email.functions";
 import { logEmailSend } from "@/lib/email-sends.functions";
 import { SendHistoryPanel } from "@/components/SendHistoryPanel";
+import { formatEventDateRange } from "@/lib/message-render";
 import { AiComposeEmailDialog } from "@/components/AiComposeEmailDialog";
 import type { AiEmailDraft } from "@/lib/email-ai.functions";
 
