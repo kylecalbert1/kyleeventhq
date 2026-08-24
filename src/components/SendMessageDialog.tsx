@@ -37,6 +37,7 @@ import {
 import { sendGmailEmail } from "@/lib/email.functions";
 import { logEmailSend } from "@/lib/email-sends.functions";
 import { SendHistoryPanel } from "@/components/SendHistoryPanel";
+import { formatEventDateRange } from "@/lib/message-render";
 import { AiComposeEmailDialog } from "@/components/AiComposeEmailDialog";
 import type { AiEmailDraft } from "@/lib/email-ai.functions";
 
@@ -284,13 +285,11 @@ export function SendMessageDialog({
   const past = pastQ.data ?? [];
   // Use the plain event name in the header banner (no code prefix).
   const eventName = evQ.data?.name ?? "";
-  const eventDate = evQ.data?.event_date
-    ? new Date(evQ.data.event_date).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-    : "";
+  const eventDate = formatEventDateRange(
+    evQ.data?.event_date,
+    (evQ.data as { event_end_date?: string | null } | undefined)?.event_end_date,
+  );
+
   const venue = evQ.data?.venue ?? "";
   const salesContactName = evQ.data?.sales_contact_name ?? "";
   const salesContactEmail = evQ.data?.sales_contact_email ?? "";

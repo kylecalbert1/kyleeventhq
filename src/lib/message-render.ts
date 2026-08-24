@@ -139,6 +139,36 @@ export function formatDateLong(d: Date | null): string {
   return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(d);
 }
 
+/**
+ * Format an event's date, collapsing a start/end pair into a range.
+ * - no/equal end date: "12 November 2026"
+ * - same month and year: "12–13 November 2026"
+ * - crossing a boundary: "30 November – 1 December 2026"
+ */
+export function formatEventDateRange(
+  startIso: string | null | undefined,
+  endIso?: string | null,
+): string {
+  const start = parseISODate(startIso);
+  if (!start) return "";
+  const end = parseISODate(endIso);
+  const day = (d: Date) => String(d.getDate());
+  const month = (d: Date) => new Intl.DateTimeFormat("en-GB", { month: "long" }).format(d);
+  const year = (d: Date) => String(d.getFullYear());
+
+  if (!end || end.getTime() <= start.getTime()) {
+    return `${day(start)} ${month(start)} ${year(start)}`;
+  }
+  if (month(start) === month(end) && year(start) === year(end)) {
+    return `${day(start)}–${day(end)} ${month(start)} ${year(start)}`;
+  }
+  if (year(start) === year(end)) {
+    return `${day(start)} ${month(start)} – ${day(end)} ${month(end)} ${year(end)}`;
+  }
+  return `${day(start)} ${month(start)} ${year(start)} – ${day(end)} ${month(end)} ${year(end)}`;
+}
+
+
 export function formatDateShort(d: Date | null): string {
   if (!d) return "";
   return new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(d);
@@ -154,6 +184,8 @@ export type MessageEvent = {
   business_line: "AIAI" | "CSC";
   format: "in_person" | "virtual";
   event_date: string | null;
+  event_end_date?: string | null;
+
   venue: string | null;
   external_agenda_url: string | null;
   event_site_url?: string | null;
@@ -223,7 +255,7 @@ export function buildPlaceholderValues(
   return {
     event_name: event.name || null,
     event_site_url: event.event_site_url || null,
-    event_date_long: d ? formatDateLong(d) : null,
+    event_date_long: formatEventDateRange(event.event_date, event.event_end_date) || null,
     event_day_name: d ? new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(d) : null,
     agenda_url: event.external_agenda_url || null,
     venue_name: event.venue || null,

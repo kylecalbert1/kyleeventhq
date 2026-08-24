@@ -36,6 +36,8 @@ type EventRow = {
   business_line: "AIAI" | "CSC";
   format: "in_person" | "virtual";
   event_date: string | null;
+  event_end_date?: string | null;
+
   venue: string | null;
   kickoff_date: string | null;
   washup_date: string | null;
@@ -71,6 +73,8 @@ const initial = {
   business_line: "AIAI" as "AIAI" | "CSC",
   format: "in_person" as "in_person" | "virtual",
   event_date: "",
+  event_end_date: "",
+
   venue: "",
   kickoff_date: "",
   washup_date: "",
@@ -125,6 +129,8 @@ export function EventFormDialog({
         business_line: event.business_line,
         format: event.format,
         event_date: event.event_date ?? "",
+        event_end_date: event.event_end_date ?? "",
+
         venue: event.venue ?? "",
         kickoff_date: event.kickoff_date ?? "",
         washup_date: event.washup_date ?? "",
@@ -164,6 +170,8 @@ export function EventFormDialog({
       const payload = {
         ...rest,
         event_date: form.event_date || null,
+        event_end_date: form.event_end_date || null,
+
         venue: form.venue || null,
         kickoff_date: form.kickoff_date || null,
         washup_date: form.washup_date || null,
@@ -274,6 +282,11 @@ export function EventFormDialog({
           <Field label="Event date">
             <Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
           </Field>
+          <Field label="End date">
+            <Input type="date" value={form.event_end_date} onChange={(e) => setForm({ ...form, event_end_date: e.target.value })} />
+            <p className="mt-1 text-xs text-muted-foreground">Leave blank for a single-day event.</p>
+          </Field>
+
           <Field label="Launch date">
             <Input type="date" value={form.launch_date} onChange={(e) => setForm({ ...form, launch_date: e.target.value })} />
           </Field>
