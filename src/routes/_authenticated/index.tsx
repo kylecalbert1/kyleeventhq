@@ -128,6 +128,7 @@ function Pill({
 function EventsGrid() {
   const { data } = useQuery(eventSummariesQuery);
   const { data: speakers } = useQuery(speakersQuery());
+  const { data: cardTargetsByEvent } = useQuery(cardTargetsQuery);
   const [creating, setCreating] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -263,7 +264,7 @@ function EventsGrid() {
             {upcomingSorted.length > 0 ? (
               <div className="space-y-3">
                 {upcomingSorted.map((s) => (
-                  <EventCard key={(s.event as any).id} s={s} perEvent={perEvent} />
+                  <EventCard key={(s.event as any).id} s={s} perEvent={perEvent} cardTargetsByEvent={cardTargetsByEvent} />
                 ))}
               </div>
             ) : (
@@ -294,7 +295,7 @@ function EventsGrid() {
                 {pastOpen && (
                   <div className="mt-3 space-y-3 opacity-90">
                     {pastSorted.map((s) => (
-                      <EventCard key={(s.event as any).id} s={s} perEvent={perEvent} past />
+                      <EventCard key={(s.event as any).id} s={s} perEvent={perEvent} cardTargetsByEvent={cardTargetsByEvent} past />
                     ))}
                   </div>
                 )}
