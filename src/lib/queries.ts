@@ -20,6 +20,8 @@ import { listEmailTemplates } from "@/lib/email-templates.functions";
 import { listPastSpeakers } from "@/lib/directory.functions";
 import { getUserSettings } from "@/lib/user-settings.functions";
 import { listBoards, getBoard } from "@/lib/boards.functions";
+import { listEventTargets, listCardTargets } from "@/lib/event-targets.functions";
+
 import {
   listMessageTemplates,
   listMessageBlocks,
