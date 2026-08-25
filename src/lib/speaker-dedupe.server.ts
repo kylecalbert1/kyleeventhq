@@ -77,13 +77,43 @@ export async function findOrMergeSpeaker(
   }
 
 
+  // Every speaker on an event that has a board must land on that board, so it
+  // can never become an invisible orphan. Default to the board's first column.
+  const payload: Record<string, unknown> = { ...input };
+  if (eventId && !payload.board_column_id) {
+    const col = await defaultColumnForEvent(supabase, eventId);
+    if (col) payload.board_column_id = col;
+  }
+
   const { data: row, error } = await supabase
     .from("speakers")
-    .insert(input)
+    .insert(payload)
     .select()
     .single();
   if (error) throw new Error(error.message);
   return { row, merged: false, merged_fields: [] };
+}
+
+/** First column of the (oldest) board linked to an event, if any. */
+export async function defaultColumnForEvent(
+  supabase: AnyClient,
+  eventId: string,
+): Promise<string | null> {
+  const { data: boards } = await supabase
+    .from("speaker_boards")
+    .select("id, created_at")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  const boardId = (boards ?? [])[0]?.id;
+  if (!boardId) return null;
+  const { data: cols } = await supabase
+    .from("speaker_board_columns")
+    .select("id, position")
+    .eq("board_id", boardId)
+    .order("position", { ascending: true })
+    .limit(1);
+  return (cols ?? [])[0]?.id ?? null;
 }
 
 /** Batch variant: processes rows sequentially, reusing existing matches. */
