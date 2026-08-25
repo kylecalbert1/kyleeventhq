@@ -471,9 +471,10 @@ function EventDetail() {
 
       <TitoEventPanel eventId={eventId} hasTitoSlug={Boolean((e as any).tito_slug)} />
 
-
+      <EventLinksCard eventId={eventId} />
 
       <OutreachKitCard eventId={eventId} />
+
 
       {/* Speakers section: one search bar + one filter row */}
       <section className="space-y-3">
