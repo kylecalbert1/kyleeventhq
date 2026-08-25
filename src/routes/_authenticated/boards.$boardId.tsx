@@ -161,21 +161,28 @@ function BoardPage() {
     [columns],
   );
 
-  // Duplicate detection: two or more speakers on this board sharing an email.
+  // Duplicate detection: speakers on this board sharing an email OR a
+  // normalized name (blank emails are common, so name is the real signal).
   const dupGroups = useMemo(() => {
     const map = new Map<string, any[]>();
+    const push = (k: string, s: any) => {
+      const cur = map.get(k) ?? [];
+      if (!cur.some((x) => x.id === s.id)) map.set(k, [...cur, s]);
+    };
     for (const s of speakers) {
-      const k = normEmailKey(s.email);
-      if (!k) continue;
-      map.set(k, [...(map.get(k) ?? []), s]);
+      const e = normEmailKey(s.email);
+      if (e) push(`e:${e}`, s);
+      const n = (s.name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      if (n) push(`n:${n}`, s);
     }
     const out = new Map<string, any[]>();
     for (const [, group] of map) {
       if (group.length < 2) continue;
-      for (const s of group) out.set(s.id, group);
+      for (const s of group) if (!out.has(s.id)) out.set(s.id, group);
     }
     return out;
   }, [speakers]);
+
 
   const filtered = useMemo(() => {
     return fuzzyFilter(speakers, term, (s: any) => [s.name, s.company, s.title, s.email]);
