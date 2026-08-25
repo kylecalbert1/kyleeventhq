@@ -127,6 +127,27 @@ export function SpeakerDetailDialog({
     [speaker, activity.data, sends.data],
   );
 
+  const qc = useQueryClient();
+  const del = useServerFn(deleteSpeaker);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!speaker) return;
+    setDeleting(true);
+    try {
+      await del({ data: { id: speaker.id } });
+      toast.success(`${speaker.name} deleted`);
+      setConfirmDelete(false);
+      onOpenChange(false);
+      qc.invalidateQueries();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not delete this speaker");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const stage = useMemo(() => (speaker ? stageOf(speaker) : null), [speaker]);
   const liSearch = useMemo(
     () => linkedinSearchUrl(speaker?.name, speaker?.company),
