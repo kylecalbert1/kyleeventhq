@@ -18,6 +18,7 @@ import {
 
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { CommandBar } from "@/components/CommandBar";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean };
 
