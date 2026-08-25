@@ -7,6 +7,13 @@ export type TargetSource = "manual" | "tito_delegate_tickets";
 
 export type WeeklyPoint = { week_start: string; count: number };
 
+export type BreakdownItem = {
+  title: string;
+  tickets_count: number;
+  price: number | null;
+  revenue: number | null;
+};
+
 export type EventTarget = {
   id: string;
   event_id: string;
@@ -23,6 +30,9 @@ export type EventTarget = {
   recent_avg_per_week?: number;
   tone?: "green" | "amber" | "red";
   met?: boolean;
+  breakdown?: BreakdownItem[];
+  total_revenue?: number | null;
+  currency?: "$" | "£";
 };
 
 function mondayOf(d: Date): Date {
@@ -49,12 +59,24 @@ function weeksUntil(eventDate: string | null | undefined): number {
   return Math.max(1, Math.ceil(ms / (7 * 24 * 60 * 60 * 1000)));
 }
 
-type ReleaseRow = { title: string | null; tickets_count: number | null; event_slug: string };
+type ReleaseRow = {
+  title: string | null;
+  tickets_count: number | null;
+  event_slug: string;
+  raw?: any;
+};
 
 function primaryDelegateRelease(rows: ReleaseRow[]) {
   const delegates = rows.filter((r) => classifyRelease(r.title) === "delegates");
   if (delegates.length === 0) return null;
   return [...delegates].sort((a, b) => (b.tickets_count ?? 0) - (a.tickets_count ?? 0))[0]!;
+}
+
+function currencyFromLocation(location: string | null | undefined): "$" | "£" {
+  const t = (location ?? "").toLowerCase();
+  const ukTerms = ["london", "manchester", "edinburgh", "birmingham", "uk", "united kingdom"];
+  if (ukTerms.some((term) => t.includes(term))) return "£";
+  return "$";
 }
 
 export const listEventTargets = createServerFn({ method: "GET" })
@@ -77,14 +99,45 @@ export const listEventTargets = createServerFn({ method: "GET" })
 
     const slug = ev?.tito_slug ?? null;
     let releases: ReleaseRow[] = [];
+    let currency: "$" | "£" = "$";
     if (slug) {
-      const { data: rel } = await context.supabase
-        .from("tito_releases")
-        .select("title, tickets_count, event_slug")
-        .eq("event_slug", slug);
+      const [{ data: rel }, { data: titoEvent }] = await Promise.all([
+        context.supabase
+          .from("tito_releases")
+          .select("title, tickets_count, event_slug, raw")
+          .eq("event_slug", slug),
+        context.supabase
+          .from("tito_events")
+          .select("location")
+          .eq("slug", slug)
+          .maybeSingle(),
+      ]);
       releases = (rel ?? []) as ReleaseRow[];
+      currency = currencyFromLocation(titoEvent?.location);
     }
     const primary = releases.length ? primaryDelegateRelease(releases) : null;
+
+    const delegateReleases = releases
+      .filter((r) => classifyRelease(r.title) === "delegates")
+      .map((r) => {
+        const paymentType = r.raw?.payment_type;
+        const priceRaw = r.raw?.price;
+        const parsedPrice = typeof priceRaw === "number" ? priceRaw : null;
+        const price = paymentType === "free" ? null : parsedPrice;
+        const count = r.tickets_count ?? 0;
+        return {
+          title: r.title ?? "Untitled",
+          tickets_count: count,
+          price,
+          revenue: price !== null ? price * count : null,
+        };
+      })
+      .sort((a, b) => b.tickets_count - a.tickets_count);
+
+    const totalRevenue = delegateReleases.reduce<number | null>((sum, item) => {
+      if (item.revenue === null) return sum;
+      return (sum ?? 0) + item.revenue;
+    }, null);
 
     let weekly: WeeklyPoint[] = [];
     if (slug && primary?.title) {
@@ -123,7 +176,15 @@ export const listEventTargets = createServerFn({ method: "GET" })
       }
 
       if (!slug || !primary) {
-        return { ...base, current_value: 0, unavailable: true, weekly: [] };
+        return {
+          ...base,
+          current_value: 0,
+          unavailable: true,
+          weekly: [],
+          breakdown: delegateReleases,
+          total_revenue: null,
+          currency,
+        };
       }
 
       const current = primary.tickets_count ?? 0;
@@ -151,6 +212,9 @@ export const listEventTargets = createServerFn({ method: "GET" })
         recent_avg_per_week: Math.round(recent * 10) / 10,
         tone,
         met,
+        breakdown: delegateReleases,
+        total_revenue: totalRevenue,
+        currency,
       };
     });
   });

@@ -380,6 +380,43 @@ function TargetHeroCard({
               </div>
             </div>
           )}
+
+          {isTito && target.breakdown && target.breakdown.length > 0 && (
+            <div className="mt-5 space-y-3">
+              {target.total_revenue !== null && target.total_revenue !== undefined && (
+                <div className="rounded-xl px-3 py-2.5 ring-1 ring-inset ring-slate-200 bg-slate-50">
+                  <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                    Total revenue
+                  </div>
+                  <div className="text-xl font-semibold tabular-nums text-slate-800">
+                    {target.currency}
+                    {target.total_revenue.toLocaleString()}
+                  </div>
+                </div>
+              )}
+              <div>
+                <div className="text-[11px] uppercase tracking-wide text-slate-500 mb-1.5">
+                  Breakdown
+                </div>
+                <div className="divide-y divide-slate-100 border-t border-slate-100">
+                  {target.breakdown.map((item) => (
+                    <div
+                      key={item.title}
+                      className="flex items-center justify-between py-2 text-sm"
+                    >
+                      <span className="text-muted-foreground">{item.title}</span>
+                      <span className="tabular-nums text-slate-800">
+                        {item.tickets_count} sold
+                        {item.revenue !== null && item.revenue !== undefined
+                          ? ` · ${target.currency}${item.revenue.toLocaleString()}`
+                          : null}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {isTito && chartData.length > 0 && (
