@@ -194,6 +194,13 @@ export function CommandBar() {
             )}
           </div>
         )}
+
+        {!run.isPending && result?.intent === "compose_message" && (
+          <div className="mt-2 text-xs text-muted-foreground">
+            Drafted using the same generator as Describe a message on the event page — review before
+            sending.
+          </div>
+        )}
       </div>
 
       <SpeakerDetailDialog
