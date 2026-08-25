@@ -863,22 +863,27 @@ export const findSpeakerEmail = createServerFn({ method: "POST" })
     if (!clean) return { connected: true as const, email: null, name: null };
 
     const myEmail = await gmailProfileEmail(lovableKey, gmailKey);
-    const search = await gmailSearch(`in:sent to:"${clean}"`, lovableKey, gmailKey, 5);
-    const messages = search.messages ?? [];
-    const wanted = clean.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
 
-    for (const m of messages.slice(0, 5)) {
+    // Search 1: full name anywhere in the sent message (subject/body/headers).
+    // We no longer restrict to `to:"name"` because this app sends bare email
+    // addresses in the To header, so the display name is never there.
+    let messages = (await gmailSearch(`in:sent "${clean}"`, lovableKey, gmailKey, 10)).messages ?? [];
+
+    // Search 2: fallback to first name only, for templates that greet "Hi Firstname,".
+    const firstName = clean.split(/\s+/)[0];
+    if (messages.length === 0 && firstName && firstName !== clean) {
+      messages = (await gmailSearch(`in:sent "${firstName}"`, lovableKey, gmailKey, 10)).messages ?? [];
+    }
+
+    for (const m of messages.slice(0, 10)) {
       const thread = await gmailGetThread(m.threadId, lovableKey, gmailKey);
       for (const msg of thread.messages ?? []) {
+        // Pull the actual recipient email from the To header. It's stored as a
+        // bare address, which is exactly what we need; just exclude myself.
         for (const a of splitAddresses(header(msg.payload.headers, "To"))) {
           if (myEmail && a.email === myEmail) continue;
-          const hay = a.raw.toLowerCase();
-          const matchesName = wanted.every((t) => hay.includes(t));
-          const local = a.email.split("@")[0]?.replace(/[._\-+]+/g, " ") ?? "";
-          const matchesLocal = wanted.every((t) => local.includes(t));
-          if (matchesName || matchesLocal) {
-            return { connected: true as const, email: a.email, name: clean };
-          }
+          if (!a.email.includes("@")) continue;
+          return { connected: true as const, email: a.email, name: clean };
         }
       }
     }
