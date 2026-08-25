@@ -99,7 +99,9 @@ ${text.slice(0, 2000)}
     const eventId = parsed.event_match?.event_id ?? null;
     return {
       intent:
-        parsed.intent === "search_speakers" || parsed.intent === "scan_gmail_for_event"
+        parsed.intent === "search_speakers" ||
+        parsed.intent === "scan_gmail_for_event" ||
+        parsed.intent === "compose_message"
           ? parsed.intent
           : "unknown",
       event_match: {
