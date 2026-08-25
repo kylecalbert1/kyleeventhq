@@ -68,8 +68,22 @@ export const updateSpeaker = createServerFn({ method: "POST" })
 
 export const deleteSpeaker = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d) =>
+    z.object({ id: z.string().uuid(), force: z.boolean().optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
+    if (!data.force) {
+      const { count, error: cErr } = await context.supabase
+        .from("email_send_recipients")
+        .select("id", { count: "exact", head: true })
+        .eq("speaker_id", data.id);
+      if (cErr) throw new Error(cErr.message);
+      if ((count ?? 0) > 0) {
+        throw new Error(
+          `This speaker has ${count} logged email${count === 1 ? "" : "s"} in send history, so it can't be deleted. Remove it from the board instead if you just want it out of the way.`,
+        );
+      }
+    }
     const { error } = await context.supabase.from("speakers").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
