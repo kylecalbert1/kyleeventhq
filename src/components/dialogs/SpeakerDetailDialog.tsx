@@ -1,5 +1,7 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
   Building2,
   Mail,
@@ -13,7 +15,19 @@ import {
   Send,
   UserPlus,
   Activity,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { deleteSpeaker } from "@/lib/speakers.functions";
 import {
   Dialog,
   DialogContent,
@@ -113,6 +127,27 @@ export function SpeakerDetailDialog({
     [speaker, activity.data, sends.data],
   );
 
+  const qc = useQueryClient();
+  const del = useServerFn(deleteSpeaker);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!speaker) return;
+    setDeleting(true);
+    try {
+      await del({ data: { id: speaker.id } });
+      toast.success(`${speaker.name} deleted`);
+      setConfirmDelete(false);
+      onOpenChange(false);
+      qc.invalidateQueries();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not delete this speaker");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const stage = useMemo(() => (speaker ? stageOf(speaker) : null), [speaker]);
   const liSearch = useMemo(
     () => linkedinSearchUrl(speaker?.name, speaker?.company),
@@ -191,6 +226,14 @@ export function SpeakerDetailDialog({
               </Button>
               <Button size="sm" onClick={onEdit}>
                 <Pencil className="h-4 w-4 mr-1.5" /> Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" /> Delete
               </Button>
             </div>
           </div>
@@ -300,6 +343,30 @@ export function SpeakerDetailDialog({
           <span>Updated {fmtDate(speaker.updated_at)}</span>
         </div>
       </DialogContent>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {speaker.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This can&apos;t be undone. If this speaker has email send history, deletion is
+              blocked — remove them from the board instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDelete();
+              }}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
