@@ -324,41 +324,43 @@ export function BulkEmailDialog({
   async function performSendAll() {
     setSendingAll(true);
     const toSend = activeRecipients;
+    // Collect results from the loop itself. Reading React state to decide what
+    // to log dropped recipients whose status update had not committed yet, so
+    // a 5-person batch could log a single recipient.
+    const succeeded: NonNullable<SendResult>[] = [];
     for (const r of toSend) {
       if (status[r.id] === "sent") continue;
       // eslint-disable-next-line no-await-in-loop
-      await performSend(r);
+      const res = await performSend(r);
+      if (res) succeeded.push(res);
     }
     setSendingAll(false);
-    // After the loop, gather everyone from this batch currently marked sent
-    // and log one batch.
-    setStatus((currentStatus) => {
-      const sentRecipients = toSend
-        .filter((r) => currentStatus[r.id] === "sent")
-        .map((r) => ({ id: r.id, name: r.name, email: r.email! }));
-      if (sentRecipients.length > 0) {
-        logSend({
+
+    if (succeeded.length > 0) {
+      try {
+        await logSend({
           data: {
             event_id: eventId ?? null,
             template_type: activeTemplateSlug,
-            subject,
-            body,
-            recipients: sentRecipients.map((r) => ({
+            // Log the rendered copy that actually went out, not the raw
+            // template with unresolved {{placeholders}}.
+            subject: succeeded[0].subject,
+            body: succeeded[0].body,
+            recipients: succeeded.map((r) => ({
               speaker_id: r.id,
               email: r.email,
               name: r.name,
             })),
           },
-        })
-          .then(() => {
-            qcInvalidate.invalidateQueries({ queryKey: ["emailSends"] });
-            qcInvalidate.invalidateQueries({ queryKey: ["speakerActivity"] });
-          })
-          .catch((e) => console.error("Failed to log batch email send:", e));
+        });
+        qcInvalidate.invalidateQueries({ queryKey: ["emailSends"] });
+        qcInvalidate.invalidateQueries({ queryKey: ["speakerActivity"] });
+      } catch (e) {
+        console.error("Failed to log batch email send:", e);
       }
-      return currentStatus;
-    });
+    }
   }
+
 
   const sentCount = Object.values(status).filter((s) => s === "sent").length;
   const failedCount = Object.values(status).filter((s) => s === "failed").length;
