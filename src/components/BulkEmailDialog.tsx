@@ -290,12 +290,21 @@ export function BulkEmailDialog({
           console.error("Failed to log individual email send:", e);
         }
       }
+      return {
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        subject: finalSubject,
+        body: withSig,
+      };
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed";
       setErrors((x) => ({ ...x, [r.id]: msg }));
       setStatus((s) => ({ ...s, [r.id]: "failed" }));
+      return null;
     }
   }
+
 
   function requestSendOne(r: (typeof rows)[number]) {
     if (!r.email) return;
