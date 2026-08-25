@@ -343,6 +343,31 @@ export function SpeakerDetailDialog({
           <span>Updated {fmtDate(speaker.updated_at)}</span>
         </div>
       </DialogContent>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {speaker.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This can&apos;t be undone. If this speaker has email send history, deletion is
+              blocked — remove them from the board instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDelete();
+              }}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
