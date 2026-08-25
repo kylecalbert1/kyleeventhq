@@ -365,8 +365,7 @@ export function SpeakerDetailDialog({
               {deleting ? "Deleting…" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogFooter>
-      </AlertDialogContent>
+        </AlertDialogContent>
       </AlertDialog>
     </Dialog>
   );
