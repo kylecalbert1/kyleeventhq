@@ -34,6 +34,7 @@ import { Route as AuthenticatedBoardsBoardIdRouteImport } from './routes/_authen
 import { Route as ApiPublicHooksTitoWebhookRouteImport } from './routes/api/public/hooks/tito-webhook'
 import { Route as ApiPublicHooksTitoNightlyRouteImport } from './routes/api/public/hooks/tito-nightly'
 import { Route as ApiPublicHooksAsanaNightlyRouteImport } from './routes/api/public/hooks/asana-nightly'
+import { Route as AuthenticatedEventsEventIdDashboardRouteImport } from './routes/_authenticated/events.$eventId_.dashboard'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -172,6 +173,12 @@ const ApiPublicHooksAsanaNightlyRoute =
     path: '/api/public/hooks/asana-nightly',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedEventsEventIdDashboardRoute =
+  AuthenticatedEventsEventIdDashboardRouteImport.update({
+    id: '/events/$eventId_/dashboard',
+    path: '/events/$eventId/dashboard',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/tools/logo-converter': typeof AuthenticatedToolsLogoConverterRoute
   '/boards/': typeof AuthenticatedBoardsIndexRoute
   '/tito/': typeof AuthenticatedTitoIndexRoute
+  '/events/$eventId/dashboard': typeof AuthenticatedEventsEventIdDashboardRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
   '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
   '/api/public/hooks/tito-webhook': typeof ApiPublicHooksTitoWebhookRoute
@@ -221,6 +229,7 @@ export interface FileRoutesByTo {
   '/tools/logo-converter': typeof AuthenticatedToolsLogoConverterRoute
   '/boards': typeof AuthenticatedBoardsIndexRoute
   '/tito': typeof AuthenticatedTitoIndexRoute
+  '/events/$eventId/dashboard': typeof AuthenticatedEventsEventIdDashboardRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
   '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
   '/api/public/hooks/tito-webhook': typeof ApiPublicHooksTitoWebhookRoute
@@ -249,6 +258,7 @@ export interface FileRoutesById {
   '/_authenticated/tools/logo-converter': typeof AuthenticatedToolsLogoConverterRoute
   '/_authenticated/boards/': typeof AuthenticatedBoardsIndexRoute
   '/_authenticated/tito/': typeof AuthenticatedTitoIndexRoute
+  '/_authenticated/events/$eventId_/dashboard': typeof AuthenticatedEventsEventIdDashboardRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
   '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
   '/api/public/hooks/tito-webhook': typeof ApiPublicHooksTitoWebhookRoute
@@ -277,6 +287,7 @@ export interface FileRouteTypes {
     | '/tools/logo-converter'
     | '/boards/'
     | '/tito/'
+    | '/events/$eventId/dashboard'
     | '/api/public/hooks/asana-nightly'
     | '/api/public/hooks/tito-nightly'
     | '/api/public/hooks/tito-webhook'
@@ -303,6 +314,7 @@ export interface FileRouteTypes {
     | '/tools/logo-converter'
     | '/boards'
     | '/tito'
+    | '/events/$eventId/dashboard'
     | '/api/public/hooks/asana-nightly'
     | '/api/public/hooks/tito-nightly'
     | '/api/public/hooks/tito-webhook'
@@ -330,6 +342,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tools/logo-converter'
     | '/_authenticated/boards/'
     | '/_authenticated/tito/'
+    | '/_authenticated/events/$eventId_/dashboard'
     | '/api/public/hooks/asana-nightly'
     | '/api/public/hooks/tito-nightly'
     | '/api/public/hooks/tito-webhook'
@@ -520,6 +533,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksAsanaNightlyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/events/$eventId_/dashboard': {
+      id: '/_authenticated/events/$eventId_/dashboard'
+      path: '/events/$eventId/dashboard'
+      fullPath: '/events/$eventId/dashboard'
+      preLoaderRoute: typeof AuthenticatedEventsEventIdDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -556,6 +576,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedToolsLogoConverterRoute: typeof AuthenticatedToolsLogoConverterRoute
   AuthenticatedBoardsIndexRoute: typeof AuthenticatedBoardsIndexRoute
   AuthenticatedTitoIndexRoute: typeof AuthenticatedTitoIndexRoute
+  AuthenticatedEventsEventIdDashboardRoute: typeof AuthenticatedEventsEventIdDashboardRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -578,6 +599,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedToolsLogoConverterRoute: AuthenticatedToolsLogoConverterRoute,
   AuthenticatedBoardsIndexRoute: AuthenticatedBoardsIndexRoute,
   AuthenticatedTitoIndexRoute: AuthenticatedTitoIndexRoute,
+  AuthenticatedEventsEventIdDashboardRoute:
+    AuthenticatedEventsEventIdDashboardRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

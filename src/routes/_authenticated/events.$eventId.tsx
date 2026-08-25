@@ -61,7 +61,7 @@ import { sendGmailEmail } from "@/lib/email.functions";
 import { logEmailSend } from "@/lib/email-sends.functions";
 import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
-import { EventTargetsPanel } from "@/components/events/EventTargetsPanel";
+import { EventTargetsSummaryCard } from "@/components/events/EventTargetsSummaryCard";
 import { EventLinksCard } from "@/components/events/EventLinksCard";
 import { EventBoardLink } from "@/components/boards/EventBoardLink";
 import { EventSpeakerBoardCard } from "@/components/boards/EventSpeakerBoardCard";
@@ -470,7 +470,7 @@ function EventDetail() {
 
       <EventMessagesPanel event={e as never} onEditEvent={() => setEditingEvent(true)} />
 
-      <EventTargetsPanel eventId={eventId} hasTitoSlug={Boolean((e as any).tito_slug)} />
+      <EventTargetsSummaryCard eventId={eventId} />
 
       <EventLinksCard eventId={eventId} />
 
