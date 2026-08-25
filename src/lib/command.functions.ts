@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { generateMessageDraft, type AiMessageDraft } from "@/lib/message-ai.functions";
+import { type MessageEvent } from "@/lib/message-render";
 
 export const runCommand = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
