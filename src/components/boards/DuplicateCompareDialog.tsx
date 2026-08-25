@@ -77,9 +77,10 @@ export function DuplicateCompareDialog({
         </DialogHeader>
         {candidates.length > 2 && (
           <p className="text-xs text-muted-foreground">
-            {candidates.length} records share this email — comparing the first two.
+            {candidates.length} records match on name or email — comparing the first two.
           </p>
         )}
+
         <div className="grid grid-cols-2 gap-3">
           {pair.map((c) => (
             <button

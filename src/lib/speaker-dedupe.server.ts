@@ -19,6 +19,12 @@ function normEmail(v: unknown): string {
   return typeof v === "string" ? v.trim().toLowerCase() : "";
 }
 
+/** Same normalization as the Asana import: lowercase, non-alphanumeric -> space. */
+function normName(v: unknown): string {
+  return typeof v === "string" ? v.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() : "";
+}
+
+
 function isBlank(v: unknown): boolean {
   return v === null || v === undefined || v === "";
 }
@@ -33,18 +39,19 @@ export async function findOrMergeSpeaker(
 ): Promise<{ row: any; merged: boolean; merged_fields: string[] }> {
   const eventId = typeof input.event_id === "string" ? input.event_id : "";
   const email = normEmail(input.email);
+  const name = normName(input.name);
 
-  if (eventId && email) {
+  if (eventId && (email || name)) {
     const { data: candidates, error: findErr } = await supabase
       .from("speakers")
       .select("*")
-      .eq("event_id", eventId)
-      .not("email", "is", null);
+      .eq("event_id", eventId);
     if (findErr) throw new Error(findErr.message);
 
-    const existing = (candidates ?? []).find(
-      (r: Record<string, unknown>) => normEmail(r.email) === email,
-    );
+    const list = (candidates ?? []) as Array<Record<string, unknown>>;
+    const existing =
+      (email ? list.find((r) => normEmail(r.email) === email) : undefined) ??
+      (name ? list.find((r) => normName(r.name) === name) : undefined);
 
     if (existing) {
       const patch: Record<string, unknown> = {};
@@ -53,6 +60,8 @@ export async function findOrMergeSpeaker(
         if (isBlank(v)) continue;
         if (isBlank(existing[k])) patch[k] = v;
       }
+      // Email is normally skipped (it is the match key); fill it when blank.
+      if (email && isBlank(existing.email)) patch.email = input.email;
       if (Object.keys(patch).length) {
         const { data: updated, error: upErr } = await supabase
           .from("speakers")
@@ -66,6 +75,7 @@ export async function findOrMergeSpeaker(
       return { row: existing, merged: true, merged_fields: [] };
     }
   }
+
 
   const { data: row, error } = await supabase
     .from("speakers")
