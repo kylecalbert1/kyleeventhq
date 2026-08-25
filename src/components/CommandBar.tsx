@@ -40,6 +40,8 @@ export function CommandBar() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [openSpeaker, setOpenSpeaker] = useState<any | null>(null);
 
+  const sender = useQuery(messageSenderQuery);
+
   const run = useMutation({
     mutationFn: () => runCommand({ data: { text: text.trim(), eventId } }),
     onSuccess: (r: any) => {
