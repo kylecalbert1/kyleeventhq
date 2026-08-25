@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SpeakerDetailDialog } from "@/components/dialogs/SpeakerDetailDialog";
+import {
+  GenerateMessageDialog,
+  type DraftTemplate,
+} from "@/components/messages/GenerateMessageDialog";
+import { messageSenderQuery } from "@/lib/queries";
 import { runCommand, addSpeakerFromSuggestion } from "@/lib/command.functions";
 
 type Suggestion = {
@@ -34,6 +39,8 @@ export function CommandBar() {
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [openSpeaker, setOpenSpeaker] = useState<any | null>(null);
+
+  const sender = useQuery(messageSenderQuery);
 
   const run = useMutation({
     mutationFn: () => runCommand({ data: { text: text.trim(), eventId } }),
@@ -187,6 +194,13 @@ export function CommandBar() {
             )}
           </div>
         )}
+
+        {!run.isPending && result?.intent === "compose_message" && (
+          <div className="mt-2 text-xs text-muted-foreground">
+            Drafted using the same generator as Describe a message on the event page — review before
+            sending.
+          </div>
+        )}
       </div>
 
       <SpeakerDetailDialog
@@ -201,6 +215,24 @@ export function CommandBar() {
         onEdit={() => {}}
         onEmail={() => {}}
       />
+
+      {result?.intent === "compose_message" && (
+        <GenerateMessageDialog
+          open={result?.intent === "compose_message"}
+          onOpenChange={(v) => !v && dismissAll()}
+          template={{
+            id: null,
+            name: result.draft.name,
+            stream: result.draft.stream,
+            typical_weeks: result.draft.typical_weeks,
+            event_format: result.draft.event_format,
+            subject: result.draft.subject,
+            body_markdown: result.draft.body_markdown,
+          } as DraftTemplate}
+          event={result.event}
+          userFirstName={sender.data?.firstName ?? "Team"}
+        />
+      )}
     </div>
   );
 }
