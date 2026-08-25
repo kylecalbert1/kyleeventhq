@@ -560,6 +560,53 @@ export type Database = {
           },
         ]
       }
+      event_targets: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          label: string
+          manual_current_value: number | null
+          position: number
+          show_on_card: boolean
+          source: string
+          target_value: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          label: string
+          manual_current_value?: number | null
+          position?: number
+          show_on_card?: boolean
+          source?: string
+          target_value: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          label?: string
+          manual_current_value?: number | null
+          position?: number
+          show_on_card?: boolean
+          source?: string
+          target_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_targets_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           asana_last_synced_at: string | null
