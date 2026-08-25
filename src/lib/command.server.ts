@@ -5,7 +5,7 @@
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1";
 
 export type CommandPlan = {
-  intent: "search_speakers" | "scan_gmail_for_event" | "unknown";
+  intent: "search_speakers" | "scan_gmail_for_event" | "compose_message" | "unknown";
   event_match: {
     event_id: string | null;
     confidence: "high" | "medium" | "low" | "ambiguous" | "none";
