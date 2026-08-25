@@ -28,6 +28,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { FindEmailButton } from "@/components/speakers/FindEmailButton";
+
 
 export type SpeakerStatus = "new" | "contacted" | "in_conversation" | "responded" | "confirmed" | "declined";
 
