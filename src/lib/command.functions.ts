@@ -49,7 +49,7 @@ export const runCommand = createServerFn({ method: "POST" })
         .limit(50);
 
       if (plan.event_match.event_id) q = q.eq("event_id", plan.event_match.event_id);
-      if (plan.filters.status) q = q.eq("status", plan.filters.status);
+      if (plan.filters.status) q = q.eq("status", plan.filters.status as never);
       if (plan.filters.missing === "email") q = q.or("email.is.null,email.eq.");
       if (plan.filters.missing === "bio") q = q.eq("bio_received", false);
       if (plan.filters.missing === "headshot") q = q.eq("headshot_received", false);
