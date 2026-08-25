@@ -120,8 +120,10 @@ export const listEventTargets = createServerFn({ method: "GET" })
     const delegateReleases = releases
       .filter((r) => classifyRelease(r.title) === "delegates")
       .map((r) => {
+        const paymentType = r.raw?.payment_type;
         const priceRaw = r.raw?.price;
-        const price = typeof priceRaw === "number" ? priceRaw : null;
+        const parsedPrice = typeof priceRaw === "number" ? priceRaw : null;
+        const price = paymentType === "free" ? null : parsedPrice;
         const count = r.tickets_count ?? 0;
         return {
           title: r.title ?? "Untitled",
