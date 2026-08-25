@@ -28,6 +28,8 @@ import { listSpeakerSends } from "@/lib/email-sends.functions";
 import { buildSpeakerTimeline, type TimelineKind } from "@/lib/speaker-timeline";
 import { initialsOf } from "@/lib/gmail";
 import { linkedinSearchUrl } from "@/lib/linkedin-search";
+import { FindEmailButton } from "@/components/speakers/FindEmailButton";
+
 
 function bhDone(s: any): boolean {
   if (typeof s?.bio_and_headshot_received === "boolean") return s.bio_and_headshot_received;
