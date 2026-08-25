@@ -174,7 +174,15 @@ export const listEventTargets = createServerFn({ method: "GET" })
       }
 
       if (!slug || !primary) {
-        return { ...base, current_value: 0, unavailable: true, weekly: [] };
+        return {
+          ...base,
+          current_value: 0,
+          unavailable: true,
+          weekly: [],
+          breakdown: delegateReleases,
+          total_revenue: null,
+          currency,
+        };
       }
 
       const current = primary.tickets_count ?? 0;
