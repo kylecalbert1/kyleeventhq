@@ -19,6 +19,12 @@ function normEmail(v: unknown): string {
   return typeof v === "string" ? v.trim().toLowerCase() : "";
 }
 
+/** Same normalization as the Asana import: lowercase, non-alphanumeric -> space. */
+function normName(v: unknown): string {
+  return typeof v === "string" ? v.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() : "";
+}
+
+
 function isBlank(v: unknown): boolean {
   return v === null || v === undefined || v === "";
 }
