@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SpeakerDetailDialog } from "@/components/dialogs/SpeakerDetailDialog";
+import {
+  GenerateMessageDialog,
+  type DraftTemplate,
+} from "@/components/messages/GenerateMessageDialog";
+import { messageSenderQuery } from "@/lib/queries";
 import { runCommand, addSpeakerFromSuggestion } from "@/lib/command.functions";
 
 type Suggestion = {
