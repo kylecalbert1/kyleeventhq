@@ -227,6 +227,14 @@ export function SpeakerDetailDialog({
               <Button size="sm" onClick={onEdit}>
                 <Pencil className="h-4 w-4 mr-1.5" /> Edit
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" /> Delete
+              </Button>
             </div>
           </div>
         </div>
