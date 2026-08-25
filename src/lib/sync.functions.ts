@@ -378,6 +378,8 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       ? `newer_than:60d (${emails.map((e) => `from:${e} OR to:${e}`).join(" OR ")})`
       : "";
 
+    const myEmail = await gmailProfileEmail(lovableKey, gmailKey);
+
     const threadIds = new Set<string>();
     const q1 = await gmailSearch(subjectQuery, lovableKey, gmailKey, 25);
     (q1.messages ?? []).forEach((m) => threadIds.add(m.threadId));
@@ -410,8 +412,11 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
         if (!messages.length) continue;
         const last = messages[messages.length - 1];
         const subject = header(last.payload.headers, "Subject");
-        const from = header(last.payload.headers, "From");
-        const to = header(last.payload.headers, "To");
+        // Who this thread is *about*: the external participant, not simply the
+        // sender of the last message (which is often me).
+        const external = externalParticipant(messages as any, myEmail);
+        const from = external?.raw ?? header(last.payload.headers, "From");
+
 
         // Build full recent context from up to the last 6 messages (oldest first)
         const recent = messages.slice(-6);
