@@ -209,8 +209,8 @@ export const updateEventTarget = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = { ...data.patch };
-    if (patch['source'] === "tito_delegate_tickets") patch['manual_current_value'] = null;
+    const patch = { ...data.patch };
+    if (patch.source === "tito_delegate_tickets") patch.manual_current_value = null;
     const { error } = await context.supabase
       .from("event_targets")
       .update(patch)
