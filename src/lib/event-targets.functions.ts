@@ -59,12 +59,24 @@ function weeksUntil(eventDate: string | null | undefined): number {
   return Math.max(1, Math.ceil(ms / (7 * 24 * 60 * 60 * 1000)));
 }
 
-type ReleaseRow = { title: string | null; tickets_count: number | null; event_slug: string };
+type ReleaseRow = {
+  title: string | null;
+  tickets_count: number | null;
+  event_slug: string;
+  raw?: any;
+};
 
 function primaryDelegateRelease(rows: ReleaseRow[]) {
   const delegates = rows.filter((r) => classifyRelease(r.title) === "delegates");
   if (delegates.length === 0) return null;
   return [...delegates].sort((a, b) => (b.tickets_count ?? 0) - (a.tickets_count ?? 0))[0]!;
+}
+
+function currencyFromLocation(location: string | null | undefined): "$" | "£" {
+  const t = (location ?? "").toLowerCase();
+  const ukTerms = ["london", "manchester", "edinburgh", "birmingham", "uk", "united kingdom"];
+  if (ukTerms.some((term) => t.includes(term))) return "£";
+  return "$";
 }
 
 export const listEventTargets = createServerFn({ method: "GET" })
