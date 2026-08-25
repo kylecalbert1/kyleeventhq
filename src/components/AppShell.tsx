@@ -4,12 +4,10 @@ import {
   Users,
   Globe,
   LogOut,
-  ClipboardCheck,
   Inbox,
   Reply,
   Mail,
   ListChecks,
-  CalendarDays,
   Megaphone,
   Sparkles,
   Ticket,
@@ -42,8 +40,6 @@ const NAV_PRIMARY: NavItem[] = [
 
 
 const NAV_OPS: NavItem[] = [
-  { to: "/milestones", label: "Kickoff & washup", icon: CalendarDays },
-  { to: "/proofing", label: "Proofing", icon: ClipboardCheck },
   { to: "/asana", label: "Asana", icon: Sparkles },
   { to: "/sponsor-inbox", label: "Sponsor inbox", icon: Inbox },
   { to: "/tools/logo-converter", label: "Logo converter", icon: Wand2 },

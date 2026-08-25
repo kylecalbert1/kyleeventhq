@@ -62,6 +62,7 @@ import { logEmailSend } from "@/lib/email-sends.functions";
 import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
 import { TitoEventPanel } from "@/components/events/TitoEventPanel";
+import { EventLinksCard } from "@/components/events/EventLinksCard";
 import { EventBoardLink } from "@/components/boards/EventBoardLink";
 import { EventSpeakerBoardCard } from "@/components/boards/EventSpeakerBoardCard";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";

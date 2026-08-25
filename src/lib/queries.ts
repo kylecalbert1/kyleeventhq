@@ -13,6 +13,7 @@ import { listAsanaTasks, getOverdueWebsiteAsanaCount } from "@/lib/asana-tasks.f
 import { listOutreachAccounts, listTeamChecklist } from "@/lib/outreach.functions";
 import { listEmailSends } from "@/lib/email-sends.functions";
 import { getEventOutreach } from "@/lib/outreach-hub.functions";
+import { listEventLinkSections } from "@/lib/event-links.functions";
 import { listAgendaItems, listAgendaTemplates } from "@/lib/agenda.functions";
 import { listEventReleases, getEventReconciliation, getEventTitoLinks, listTitoEventsForPicker } from "@/lib/tito.functions";
 import { listEmailTemplates } from "@/lib/email-templates.functions";
@@ -69,6 +70,12 @@ export const emailSendsQuery = (eventId?: string) =>
   queryOptions({
     queryKey: qk.emailSends(eventId),
     queryFn: () => listEmailSends({ data: eventId ? { event_id: eventId } : {} }),
+  });
+
+export const eventLinkSectionsQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: ["eventLinkSections", eventId],
+    queryFn: () => listEventLinkSections({ data: { event_id: eventId } }),
   });
 
 export const emailTemplatesQuery = queryOptions({
