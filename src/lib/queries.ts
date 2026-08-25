@@ -202,3 +202,16 @@ export const messageBlocksQuery = queryOptions({
   queryKey: ["messageBlocks"] as const,
   queryFn: () => listMessageBlocks(),
 });
+
+/* ---------------- event targets ---------------- */
+export const eventTargetsQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: ["eventTargets", eventId] as const,
+    queryFn: () => listEventTargets({ data: { event_id: eventId } }),
+  });
+
+export const cardTargetsQuery = queryOptions({
+  queryKey: ["cardTargets"] as const,
+  queryFn: () => listCardTargets(),
+});
+
