@@ -205,10 +205,14 @@ export function SpeakerDetailDialog({
                   <span className="truncate">{speaker.email}</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Mail className="h-4 w-4" /> No email on file
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Mail className="h-4 w-4" /> No email on file
+                  </div>
+                  <FindEmailButton speakerId={speaker.id} name={speaker.name} />
                 </div>
               )}
+
               {speaker.linkedin_url && (
                 <a
                   href={speaker.linkedin_url}
