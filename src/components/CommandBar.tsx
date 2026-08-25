@@ -215,6 +215,24 @@ export function CommandBar() {
         onEdit={() => {}}
         onEmail={() => {}}
       />
+
+      {result?.intent === "compose_message" && (
+        <GenerateMessageDialog
+          open={result?.intent === "compose_message"}
+          onOpenChange={(v) => !v && dismissAll()}
+          template={{
+            id: null,
+            name: result.draft.name,
+            stream: result.draft.stream,
+            typical_weeks: result.draft.typical_weeks,
+            event_format: result.draft.event_format,
+            subject: result.draft.subject,
+            body_markdown: result.draft.body_markdown,
+          } as DraftTemplate}
+          event={result.event}
+          userFirstName={sender.data?.firstName ?? "Team"}
+        />
+      )}
     </div>
   );
 }
