@@ -99,14 +99,43 @@ export const listEventTargets = createServerFn({ method: "GET" })
 
     const slug = ev?.tito_slug ?? null;
     let releases: ReleaseRow[] = [];
+    let currency: "$" | "£" = "$";
     if (slug) {
-      const { data: rel } = await context.supabase
-        .from("tito_releases")
-        .select("title, tickets_count, event_slug")
-        .eq("event_slug", slug);
+      const [{ data: rel }, { data: titoEvent }] = await Promise.all([
+        context.supabase
+          .from("tito_releases")
+          .select("title, tickets_count, event_slug, raw")
+          .eq("event_slug", slug),
+        context.supabase
+          .from("tito_events")
+          .select("location")
+          .eq("slug", slug)
+          .maybeSingle(),
+      ]);
       releases = (rel ?? []) as ReleaseRow[];
+      currency = currencyFromLocation(titoEvent?.location);
     }
     const primary = releases.length ? primaryDelegateRelease(releases) : null;
+
+    const delegateReleases = releases
+      .filter((r) => classifyRelease(r.title) === "delegates")
+      .map((r) => {
+        const priceRaw = r.raw?.price;
+        const price = typeof priceRaw === "number" ? priceRaw : null;
+        const count = r.tickets_count ?? 0;
+        return {
+          title: r.title ?? "Untitled",
+          tickets_count: count,
+          price,
+          revenue: price !== null ? price * count : null,
+        };
+      })
+      .sort((a, b) => b.tickets_count - a.tickets_count);
+
+    const totalRevenue = delegateReleases.reduce<number | null>((sum, item) => {
+      if (item.revenue === null) return sum;
+      return (sum ?? 0) + item.revenue;
+    }, null);
 
     let weekly: WeeklyPoint[] = [];
     if (slug && primary?.title) {
