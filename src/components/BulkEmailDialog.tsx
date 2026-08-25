@@ -232,15 +232,24 @@ export function BulkEmailDialog({
   const activeRecipients = sendable.filter((r) => optedIn[r.id]);
   const optedOutCount = sendable.length - activeRecipients.length;
 
+  type SendResult = {
+    id: string;
+    name: string;
+    email: string;
+    subject: string;
+    body: string;
+  } | null;
+
   async function performSend(
     r: (typeof rows)[number],
     override?: { subject: string; body: string },
     logIndividually = false,
-  ) {
+  ): Promise<SendResult> {
     if (!r.email) {
       setStatus((s) => ({ ...s, [r.id]: "skipped" }));
-      return;
+      return null;
     }
+
     setStatus((s) => ({ ...s, [r.id]: "sending" }));
     try {
       // Every outbound message goes as HTML with `\n` → `<br/>` and any
