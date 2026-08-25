@@ -195,6 +195,63 @@ async function gmailGetThread(threadId: string, lovableKey: string, gmailKey: st
   };
 }
 
+async function gmailProfileEmail(lovableKey: string, gmailKey: string): Promise<string> {
+  try {
+    const res = await fetch(`${GMAIL_GATEWAY}/users/me/profile`, {
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": gmailKey,
+      },
+    });
+    if (!res.ok) return "";
+    const body = (await res.json()) as { emailAddress?: string };
+    return (body.emailAddress ?? "").toLowerCase().trim();
+  } catch {
+    return "";
+  }
+}
+
+/** Splits a raw From/To header into individual "Name <email>" participants. */
+function splitAddresses(header: string): Array<{ raw: string; email: string }> {
+  if (!header) return [];
+  return header
+    .split(/,(?![^<]*>)/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .map((raw) => {
+      const m = raw.match(/<([^>]+)>/);
+      const email = (m ? m[1] : raw).toLowerCase().trim();
+      return { raw, email };
+    })
+    .filter((a) => a.email.includes("@"));
+}
+
+/**
+ * Finds the external participant of a thread — i.e. whoever is not me or on my
+ * own domain. Scans From and To across every message rather than trusting the
+ * last message's From header, which may well be my own outbound email.
+ */
+function externalParticipant(
+  messages: Array<{ payload: { headers: Array<{ name: string; value: string }> } }>,
+  myEmail: string,
+): { raw: string; email: string } | null {
+  const myDomain = domainOf(myEmail);
+  const seen = new Map<string, { raw: string; email: string }>();
+  for (const m of messages) {
+    for (const name of ["From", "To", "Cc"]) {
+      for (const a of splitAddresses(header(m.payload.headers, name))) {
+        if (myEmail && a.email === myEmail) continue;
+        if (myDomain && domainOf(a.email) === myDomain) continue;
+        if (/(noreply|no-reply|notifications?@|calendar-notification)/i.test(a.email)) continue;
+        if (!seen.has(a.email)) seen.set(a.email, a);
+      }
+    }
+  }
+  return seen.size ? Array.from(seen.values())[0] : null;
+}
+
+
+
 function decodeB64Url(s: string) {
   const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
   try {
@@ -321,6 +378,8 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       ? `newer_than:60d (${emails.map((e) => `from:${e} OR to:${e}`).join(" OR ")})`
       : "";
 
+    const myEmail = await gmailProfileEmail(lovableKey, gmailKey);
+
     const threadIds = new Set<string>();
     const q1 = await gmailSearch(subjectQuery, lovableKey, gmailKey, 25);
     (q1.messages ?? []).forEach((m) => threadIds.add(m.threadId));
@@ -353,8 +412,11 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
         if (!messages.length) continue;
         const last = messages[messages.length - 1];
         const subject = header(last.payload.headers, "Subject");
-        const from = header(last.payload.headers, "From");
-        const to = header(last.payload.headers, "To");
+        // Who this thread is *about*: the external participant, not simply the
+        // sender of the last message (which is often me).
+        const external = externalParticipant(messages as any, myEmail);
+        const from = external?.raw ?? header(last.payload.headers, "From");
+
 
         // Build full recent context from up to the last 6 messages (oldest first)
         const recent = messages.slice(-6);
@@ -776,4 +838,49 @@ export const revertBio = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     return row;
+  });
+
+// ============ FIND EMAIL FOR A SPEAKER (one Gmail sent-mail lookup) ============
+
+/** Strips a title/company tail from a stored speaker name. */
+export function cleanPersonName(raw: string): string {
+  let n = (raw ?? "").trim();
+  n = n.split(",")[0] ?? n;
+  n = n.split(/\s+\bat\b\s+/i)[0] ?? n;
+  n = n.split(/\s+[-–—|]\s+/)[0] ?? n;
+  return n.replace(/\s+/g, " ").trim();
+}
+
+export const findSpeakerEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ name: z.string().min(2) }).parse(d))
+  .handler(async ({ data }) => {
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    const gmailKey = process.env.GOOGLE_MAIL_API_KEY;
+    if (!lovableKey || !gmailKey) return { connected: false as const, email: null, name: null };
+
+    const clean = cleanPersonName(data.name);
+    if (!clean) return { connected: true as const, email: null, name: null };
+
+    const myEmail = await gmailProfileEmail(lovableKey, gmailKey);
+    const search = await gmailSearch(`in:sent to:"${clean}"`, lovableKey, gmailKey, 5);
+    const messages = search.messages ?? [];
+    const wanted = clean.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
+
+    for (const m of messages.slice(0, 5)) {
+      const thread = await gmailGetThread(m.threadId, lovableKey, gmailKey);
+      for (const msg of thread.messages ?? []) {
+        for (const a of splitAddresses(header(msg.payload.headers, "To"))) {
+          if (myEmail && a.email === myEmail) continue;
+          const hay = a.raw.toLowerCase();
+          const matchesName = wanted.every((t) => hay.includes(t));
+          const local = a.email.split("@")[0]?.replace(/[._\-+]+/g, " ") ?? "";
+          const matchesLocal = wanted.every((t) => local.includes(t));
+          if (matchesName || matchesLocal) {
+            return { connected: true as const, email: a.email, name: clean };
+          }
+        }
+      }
+    }
+    return { connected: true as const, email: null, name: clean };
   });

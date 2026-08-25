@@ -28,6 +28,8 @@ import { listSpeakerSends } from "@/lib/email-sends.functions";
 import { buildSpeakerTimeline, type TimelineKind } from "@/lib/speaker-timeline";
 import { initialsOf } from "@/lib/gmail";
 import { linkedinSearchUrl } from "@/lib/linkedin-search";
+import { FindEmailButton } from "@/components/speakers/FindEmailButton";
+
 
 function bhDone(s: any): boolean {
   if (typeof s?.bio_and_headshot_received === "boolean") return s.bio_and_headshot_received;
@@ -205,10 +207,14 @@ export function SpeakerDetailDialog({
                   <span className="truncate">{speaker.email}</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Mail className="h-4 w-4" /> No email on file
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Mail className="h-4 w-4" /> No email on file
+                  </div>
+                  <FindEmailButton speakerId={speaker.id} name={speaker.name} />
                 </div>
               )}
+
               {speaker.linkedin_url && (
                 <a
                   href={speaker.linkedin_url}

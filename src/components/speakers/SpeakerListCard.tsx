@@ -28,6 +28,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { FindEmailButton } from "@/components/speakers/FindEmailButton";
+
 
 export type SpeakerStatus = "new" | "contacted" | "in_conversation" | "responded" | "confirmed" | "declined";
 
@@ -366,8 +368,12 @@ export function SpeakerListCard({
           )}
 
           {missingFields.length > 0 && (
-            <div className="text-[12px] text-slate-400">Missing: {missingFields.join(", ")}</div>
+            <div className="space-y-1.5">
+              <div className="text-[12px] text-slate-400">Missing: {missingFields.join(", ")}</div>
+              {!s.email && <FindEmailButton speakerId={s.id} name={s.name} />}
+            </div>
           )}
+
 
           {(addedShort || lastShort) && (
             <div className="flex items-center justify-between text-xs text-slate-400">
