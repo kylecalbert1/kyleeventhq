@@ -33,7 +33,9 @@ export function EventLinksCard({ eventId }: { eventId: string }) {
     refresh();
   }
 
-  const sections = q.data ?? [];
+  // Generated DB types don't cover the new tables yet, so widen here.
+  const sections = (q.data ?? []) as unknown as EventLinkSection[];
+
 
   return (
     <section className="space-y-3">
