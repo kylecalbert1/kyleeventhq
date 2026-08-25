@@ -210,6 +210,9 @@ export const listEventTargets = createServerFn({ method: "GET" })
         recent_avg_per_week: Math.round(recent * 10) / 10,
         tone,
         met,
+        breakdown: delegateReleases,
+        total_revenue: totalRevenue,
+        currency,
       };
     });
   });
