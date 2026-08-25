@@ -165,6 +165,39 @@ export const runCommand = createServerFn({ method: "POST" })
       };
     }
 
+    if (plan.intent === "compose_message") {
+      const eventId = plan.event_match.event_id;
+      const okConfidence =
+        plan.event_match.confidence === "high" || plan.event_match.confidence === "medium";
+      const event = eventList.find((e) => e.id === eventId);
+      if (!eventId || !okConfidence || !event) {
+        return {
+          intent: "unknown" as const,
+          clarification:
+            plan.clarification ||
+            "I need to know which event to compose a message for — name it more precisely.",
+        };
+      }
+
+      const { data: fullEvent, error: evErr } = await context.supabase
+        .from("events")
+        .select("*")
+        .eq("id", eventId)
+        .maybeSingle();
+      if (evErr) throw new Error(evErr.message);
+      if (!fullEvent) throw new Error("Event not found");
+
+      const draft = await generateMessageDraft({
+        data: { prompt: data.text, event_id: eventId },
+      });
+
+      return {
+        intent: "compose_message" as const,
+        event: fullEvent as MessageEvent,
+        draft: draft as AiMessageDraft,
+      };
+    }
+
     return { intent: "unknown" as const, clarification: plan.clarification };
   });
 
