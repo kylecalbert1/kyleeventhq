@@ -195,6 +195,63 @@ async function gmailGetThread(threadId: string, lovableKey: string, gmailKey: st
   };
 }
 
+async function gmailProfileEmail(lovableKey: string, gmailKey: string): Promise<string> {
+  try {
+    const res = await fetch(`${GMAIL_GATEWAY}/users/me/profile`, {
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": gmailKey,
+      },
+    });
+    if (!res.ok) return "";
+    const body = (await res.json()) as { emailAddress?: string };
+    return (body.emailAddress ?? "").toLowerCase().trim();
+  } catch {
+    return "";
+  }
+}
+
+/** Splits a raw From/To header into individual "Name <email>" participants. */
+function splitAddresses(header: string): Array<{ raw: string; email: string }> {
+  if (!header) return [];
+  return header
+    .split(/,(?![^<]*>)/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .map((raw) => {
+      const m = raw.match(/<([^>]+)>/);
+      const email = (m ? m[1] : raw).toLowerCase().trim();
+      return { raw, email };
+    })
+    .filter((a) => a.email.includes("@"));
+}
+
+/**
+ * Finds the external participant of a thread — i.e. whoever is not me or on my
+ * own domain. Scans From and To across every message rather than trusting the
+ * last message's From header, which may well be my own outbound email.
+ */
+function externalParticipant(
+  messages: Array<{ payload: { headers: Array<{ name: string; value: string }> } }>,
+  myEmail: string,
+): { raw: string; email: string } | null {
+  const myDomain = domainOf(myEmail);
+  const seen = new Map<string, { raw: string; email: string }>();
+  for (const m of messages) {
+    for (const name of ["From", "To", "Cc"]) {
+      for (const a of splitAddresses(header(m.payload.headers, name))) {
+        if (myEmail && a.email === myEmail) continue;
+        if (myDomain && domainOf(a.email) === myDomain) continue;
+        if (/(noreply|no-reply|notifications?@|calendar-notification)/i.test(a.email)) continue;
+        if (!seen.has(a.email)) seen.set(a.email, a);
+      }
+    }
+  }
+  return seen.size ? Array.from(seen.values())[0] : null;
+}
+
+
+
 function decodeB64Url(s: string) {
   const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
   try {
