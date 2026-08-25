@@ -37,14 +37,15 @@ export async function classifyCommand(
     .map((e) => `- id=${e.id} | code=${e.code} | name=${e.name}`)
     .join("\n");
 
-  const prompt = `You interpret a short instruction typed by an event operations manager into a command bar. You may ONLY choose between two actions, or "unknown".
+  const prompt = `You interpret a short instruction typed by an event operations manager into a command bar. You may ONLY choose between three actions, or "unknown".
 
 Return ONLY a compact JSON object matching this schema:
-{"intent":"search_speakers"|"scan_gmail_for_event"|"unknown","event_match":{"event_id":string|null,"confidence":"high"|"medium"|"low"|"ambiguous"|"none"},"filters":{"status":string|null,"missing":"bio"|"headshot"|"email"|"banner"|null,"free_text":string|null},"gmail_keywords":[],"clarification":""}
+{"intent":"search_speakers"|"scan_gmail_for_event"|"compose_message"|"unknown","event_match":{"event_id":string|null,"confidence":"high"|"medium"|"low"|"ambiguous"|"none"},"filters":{"status":string|null,"missing":"bio"|"headshot"|"email"|"banner"|null,"free_text":string|null},"gmail_keywords":[],"clarification":""}
 
 Intents:
 - "search_speakers": the user wants to look up / list speakers, optionally filtered by event, status, or missing bio/headshot/email/banner.
 - "scan_gmail_for_event": the user wants to scan Gmail for potential new speakers for a specific event.
+- "compose_message": the user wants to draft/write/generate a message to send to speakers and/or attendees (e.g. "write a welcome message to my attendees and speakers with a link to the dietary form", "draft a reminder about the hotel deadline").
 - "unknown": ANYTHING else, or anything you are not confident about.
 
 Rules:
@@ -57,7 +58,7 @@ ${eventList || "(no events)"}
       ? `The user is currently on the page for event id ${contextEventId}. Use that event if the text does not name a different one (confidence "high").`
       : `There is no current page event context.`
   }
-- "scan_gmail_for_event" requires a resolved event with confidence "high" or "medium"; otherwise return "unknown" with a clarification.
+- "scan_gmail_for_event" and "compose_message" each require a resolved event with confidence "high" or "medium"; otherwise return "unknown" with a clarification.
 - filters.free_text is any leftover person/company/title text to search on, else null.
 - gmail_keywords: a few extra search terms drawn from the instruction, else [].
 - clarification: only meaningful for "unknown"; otherwise "".
