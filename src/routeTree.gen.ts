@@ -19,9 +19,7 @@ import { Route as AuthenticatedSpeakerSourcingRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSentMessagesRouteImport } from './routes/_authenticated/sent-messages'
 import { Route as AuthenticatedReplyNeededRouteImport } from './routes/_authenticated/reply-needed'
-import { Route as AuthenticatedProofingRouteImport } from './routes/_authenticated/proofing'
 import { Route as AuthenticatedOutreachRouteImport } from './routes/_authenticated/outreach'
-import { Route as AuthenticatedMilestonesRouteImport } from './routes/_authenticated/milestones'
 import { Route as AuthenticatedMessageTemplatesRouteImport } from './routes/_authenticated/message-templates'
 import { Route as AuthenticatedBannersRouteImport } from './routes/_authenticated/banners'
 import { Route as AuthenticatedAsanaRouteImport } from './routes/_authenticated/asana'
@@ -90,19 +88,9 @@ const AuthenticatedReplyNeededRoute =
     path: '/reply-needed',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedProofingRoute = AuthenticatedProofingRouteImport.update({
-  id: '/proofing',
-  path: '/proofing',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedOutreachRoute = AuthenticatedOutreachRouteImport.update({
   id: '/outreach',
   path: '/outreach',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedMilestonesRoute = AuthenticatedMilestonesRouteImport.update({
-  id: '/milestones',
-  path: '/milestones',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMessageTemplatesRoute =
@@ -192,9 +180,7 @@ export interface FileRoutesByFullPath {
   '/asana': typeof AuthenticatedAsanaRoute
   '/banners': typeof AuthenticatedBannersRoute
   '/message-templates': typeof AuthenticatedMessageTemplatesRoute
-  '/milestones': typeof AuthenticatedMilestonesRoute
   '/outreach': typeof AuthenticatedOutreachRoute
-  '/proofing': typeof AuthenticatedProofingRoute
   '/reply-needed': typeof AuthenticatedReplyNeededRoute
   '/sent-messages': typeof AuthenticatedSentMessagesRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -219,9 +205,7 @@ export interface FileRoutesByTo {
   '/asana': typeof AuthenticatedAsanaRoute
   '/banners': typeof AuthenticatedBannersRoute
   '/message-templates': typeof AuthenticatedMessageTemplatesRoute
-  '/milestones': typeof AuthenticatedMilestonesRoute
   '/outreach': typeof AuthenticatedOutreachRoute
-  '/proofing': typeof AuthenticatedProofingRoute
   '/reply-needed': typeof AuthenticatedReplyNeededRoute
   '/sent-messages': typeof AuthenticatedSentMessagesRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -249,9 +233,7 @@ export interface FileRoutesById {
   '/_authenticated/asana': typeof AuthenticatedAsanaRoute
   '/_authenticated/banners': typeof AuthenticatedBannersRoute
   '/_authenticated/message-templates': typeof AuthenticatedMessageTemplatesRoute
-  '/_authenticated/milestones': typeof AuthenticatedMilestonesRoute
   '/_authenticated/outreach': typeof AuthenticatedOutreachRoute
-  '/_authenticated/proofing': typeof AuthenticatedProofingRoute
   '/_authenticated/reply-needed': typeof AuthenticatedReplyNeededRoute
   '/_authenticated/sent-messages': typeof AuthenticatedSentMessagesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -280,9 +262,7 @@ export interface FileRouteTypes {
     | '/asana'
     | '/banners'
     | '/message-templates'
-    | '/milestones'
     | '/outreach'
-    | '/proofing'
     | '/reply-needed'
     | '/sent-messages'
     | '/settings'
@@ -307,9 +287,7 @@ export interface FileRouteTypes {
     | '/asana'
     | '/banners'
     | '/message-templates'
-    | '/milestones'
     | '/outreach'
-    | '/proofing'
     | '/reply-needed'
     | '/sent-messages'
     | '/settings'
@@ -336,9 +314,7 @@ export interface FileRouteTypes {
     | '/_authenticated/asana'
     | '/_authenticated/banners'
     | '/_authenticated/message-templates'
-    | '/_authenticated/milestones'
     | '/_authenticated/outreach'
-    | '/_authenticated/proofing'
     | '/_authenticated/reply-needed'
     | '/_authenticated/sent-messages'
     | '/_authenticated/settings'
@@ -439,25 +415,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReplyNeededRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/proofing': {
-      id: '/_authenticated/proofing'
-      path: '/proofing'
-      fullPath: '/proofing'
-      preLoaderRoute: typeof AuthenticatedProofingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/outreach': {
       id: '/_authenticated/outreach'
       path: '/outreach'
       fullPath: '/outreach'
       preLoaderRoute: typeof AuthenticatedOutreachRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/milestones': {
-      id: '/_authenticated/milestones'
-      path: '/milestones'
-      fullPath: '/milestones'
-      preLoaderRoute: typeof AuthenticatedMilestonesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/message-templates': {
@@ -579,9 +541,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAsanaRoute: typeof AuthenticatedAsanaRoute
   AuthenticatedBannersRoute: typeof AuthenticatedBannersRoute
   AuthenticatedMessageTemplatesRoute: typeof AuthenticatedMessageTemplatesRoute
-  AuthenticatedMilestonesRoute: typeof AuthenticatedMilestonesRoute
   AuthenticatedOutreachRoute: typeof AuthenticatedOutreachRoute
-  AuthenticatedProofingRoute: typeof AuthenticatedProofingRoute
   AuthenticatedReplyNeededRoute: typeof AuthenticatedReplyNeededRoute
   AuthenticatedSentMessagesRoute: typeof AuthenticatedSentMessagesRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -603,9 +563,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAsanaRoute: AuthenticatedAsanaRoute,
   AuthenticatedBannersRoute: AuthenticatedBannersRoute,
   AuthenticatedMessageTemplatesRoute: AuthenticatedMessageTemplatesRoute,
-  AuthenticatedMilestonesRoute: AuthenticatedMilestonesRoute,
   AuthenticatedOutreachRoute: AuthenticatedOutreachRoute,
-  AuthenticatedProofingRoute: AuthenticatedProofingRoute,
   AuthenticatedReplyNeededRoute: AuthenticatedReplyNeededRoute,
   AuthenticatedSentMessagesRoute: AuthenticatedSentMessagesRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
