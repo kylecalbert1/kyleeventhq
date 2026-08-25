@@ -142,7 +142,7 @@ export const fetchLeadSuggestions = createServerFn({ method: "POST" })
 
 // ============ EMAIL SYNC ============
 
-async function gmailSearch(
+export async function gmailSearch(
   query: string,
   lovableKey: string,
   gmailKey: string,
@@ -165,7 +165,7 @@ async function gmailSearch(
   return (await res.json()) as { messages?: Array<{ id: string; threadId: string }> };
 }
 
-async function gmailGetThread(threadId: string, lovableKey: string, gmailKey: string) {
+export async function gmailGetThread(threadId: string, lovableKey: string, gmailKey: string) {
   const res = await fetch(
     `${GMAIL_GATEWAY}/users/me/threads/${threadId}?format=full`,
     {
@@ -195,7 +195,7 @@ async function gmailGetThread(threadId: string, lovableKey: string, gmailKey: st
   };
 }
 
-async function gmailProfileEmail(lovableKey: string, gmailKey: string): Promise<string> {
+export async function gmailProfileEmail(lovableKey: string, gmailKey: string): Promise<string> {
   try {
     const res = await fetch(`${GMAIL_GATEWAY}/users/me/profile`, {
       headers: {
@@ -212,7 +212,7 @@ async function gmailProfileEmail(lovableKey: string, gmailKey: string): Promise<
 }
 
 /** Splits a raw From/To header into individual "Name <email>" participants. */
-function splitAddresses(header: string): Array<{ raw: string; email: string }> {
+export function splitAddresses(header: string): Array<{ raw: string; email: string }> {
   if (!header) return [];
   return header
     .split(/,(?![^<]*>)/)
@@ -231,7 +231,7 @@ function splitAddresses(header: string): Array<{ raw: string; email: string }> {
  * own domain. Scans From and To across every message rather than trusting the
  * last message's From header, which may well be my own outbound email.
  */
-function externalParticipant(
+export function externalParticipant(
   messages: Array<{ payload: { headers: Array<{ name: string; value: string }> } }>,
   myEmail: string,
 ): { raw: string; email: string } | null {
@@ -261,7 +261,7 @@ function decodeB64Url(s: string) {
   }
 }
 
-function extractText(payload: any): string {
+export function extractText(payload: any): string {
   if (!payload) return "";
   if (payload.mimeType === "text/plain" && payload.body?.data)
     return decodeB64Url(payload.body.data);
@@ -275,7 +275,7 @@ function extractText(payload: any): string {
   return "";
 }
 
-function header(headers: Array<{ name: string; value: string }>, name: string) {
+export function header(headers: Array<{ name: string; value: string }>, name: string) {
   return headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value ?? "";
 }
 

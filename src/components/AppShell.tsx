@@ -18,6 +18,7 @@ import {
 
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { CommandBar } from "@/components/CommandBar";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean };
 
@@ -109,7 +110,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </aside>
-      <main className="flex-1 min-w-0">{children ?? <Outlet />}</main>
+      <main className="flex-1 min-w-0">
+        <CommandBar />
+        {children ?? <Outlet />}
+      </main>
     </div>
   );
 }
