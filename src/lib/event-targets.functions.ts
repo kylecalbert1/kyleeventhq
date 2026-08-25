@@ -7,6 +7,13 @@ export type TargetSource = "manual" | "tito_delegate_tickets";
 
 export type WeeklyPoint = { week_start: string; count: number };
 
+export type BreakdownItem = {
+  title: string;
+  tickets_count: number;
+  price: number | null;
+  revenue: number | null;
+};
+
 export type EventTarget = {
   id: string;
   event_id: string;
@@ -23,6 +30,9 @@ export type EventTarget = {
   recent_avg_per_week?: number;
   tone?: "green" | "amber" | "red";
   met?: boolean;
+  breakdown?: BreakdownItem[];
+  total_revenue?: number | null;
+  currency?: "$" | "£";
 };
 
 function mondayOf(d: Date): Date {
