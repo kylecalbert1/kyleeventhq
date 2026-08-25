@@ -155,13 +155,19 @@ function EventDashboardPage() {
                 <span className="text-muted-foreground"> · {(ev.data as any).code}</span>
               ) : null}
             </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-2">
               Sales dashboard
-              <PageHelp title="Sales dashboard">
-                Track ticket and revenue targets for this event. Tito-linked targets pull live
-                delegate ticket sales; manual targets are numbers you keep updated yourself.
-              </PageHelp>
+              <PageHelp
+                title="Sales dashboard"
+                what="Track ticket and revenue targets for this event. Tito-linked targets pull live delegate ticket sales; manual targets are numbers you keep updated yourself."
+                steps={[
+                  "Add a target and choose whether you type the number or it comes from Tito.",
+                  "Use Sync from Tito to pull the latest ticket sales.",
+                  "Watch the 10-week trend and needed-per-week pace.",
+                ]}
+              />
             </p>
+
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {hasTitoSlug && (
