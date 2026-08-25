@@ -839,3 +839,48 @@ export const revertBio = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+// ============ FIND EMAIL FOR A SPEAKER (one Gmail sent-mail lookup) ============
+
+/** Strips a title/company tail from a stored speaker name. */
+export function cleanPersonName(raw: string): string {
+  let n = (raw ?? "").trim();
+  n = n.split(",")[0] ?? n;
+  n = n.split(/\s+\bat\b\s+/i)[0] ?? n;
+  n = n.split(/\s+[-–—|]\s+/)[0] ?? n;
+  return n.replace(/\s+/g, " ").trim();
+}
+
+export const findSpeakerEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ name: z.string().min(2) }).parse(d))
+  .handler(async ({ data }) => {
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    const gmailKey = process.env.GOOGLE_MAIL_API_KEY;
+    if (!lovableKey || !gmailKey) return { connected: false as const, email: null, name: null };
+
+    const clean = cleanPersonName(data.name);
+    if (!clean) return { connected: true as const, email: null, name: null };
+
+    const myEmail = await gmailProfileEmail(lovableKey, gmailKey);
+    const search = await gmailSearch(`in:sent to:"${clean}"`, lovableKey, gmailKey, 5);
+    const messages = search.messages ?? [];
+    const wanted = clean.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
+
+    for (const m of messages.slice(0, 5)) {
+      const thread = await gmailGetThread(m.threadId, lovableKey, gmailKey);
+      for (const msg of thread.messages ?? []) {
+        for (const a of splitAddresses(header(msg.payload.headers, "To"))) {
+          if (myEmail && a.email === myEmail) continue;
+          const hay = a.raw.toLowerCase();
+          const matchesName = wanted.every((t) => hay.includes(t));
+          const local = a.email.split("@")[0]?.replace(/[._\-+]+/g, " ") ?? "";
+          const matchesLocal = wanted.every((t) => local.includes(t));
+          if (matchesName || matchesLocal) {
+            return { connected: true as const, email: a.email, name: clean };
+          }
+        }
+      }
+    }
+    return { connected: true as const, email: null, name: clean };
+  });
