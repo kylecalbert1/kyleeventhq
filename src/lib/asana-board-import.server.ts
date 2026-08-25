@@ -95,17 +95,29 @@ export function matchColumn(
   return first;
 }
 
-/** Splits "Jane Doe - VP Eng, Acme" style Asana task names into parts. */
+/**
+ * Splits Asana task names into person / title / company.
+ * Handles "Jane Doe - VP Eng, Acme" and plain "Jane Doe, VP Eng, Acme".
+ */
 export function parseTaskName(name: string): { name: string; title: string | null; company: string | null } {
   const cleaned = name.replace(/\s+/g, " ").trim();
   const parts = cleaned.split(/\s+[-–—|]\s+|\s*\(\s*/);
-  const person = (parts[0] ?? cleaned).replace(/\)$/, "").trim();
-  const rest = cleaned.slice(person.length).replace(/^[\s\-–—|(]+/, "").replace(/\)$/, "").trim();
+  let person = (parts[0] ?? cleaned).replace(/\)$/, "").trim();
+  let rest = cleaned.slice(person.length).replace(/^[\s\-–—|(]+/, "").replace(/\)$/, "").trim();
+
+  // Fallback: no dash/paren separator, but a comma-separated "Name, Title, Company".
+  if (parts.length === 1 && !rest && cleaned.includes(",")) {
+    const idx = cleaned.indexOf(",");
+    person = cleaned.slice(0, idx).trim();
+    rest = cleaned.slice(idx + 1).trim();
+  }
+
   if (!rest) return { name: person, title: null, company: null };
   const bits = rest.split(/\s*[,@]\s*|\s+at\s+/i).filter(Boolean);
   if (bits.length >= 2) return { name: person, title: bits[0].trim(), company: bits.slice(1).join(", ").trim() };
   return { name: person, title: null, company: bits[0]?.trim() ?? null };
 }
+
 
 export async function importAsanaProjectToBoard(
   supabase: AnyClient,
