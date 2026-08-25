@@ -18,12 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
 import { SyncDialog } from "@/components/SyncDialog";
-import { eventSummariesQuery, speakersQuery, overdueWebsiteAsanaQuery } from "@/lib/queries";
+import { eventSummariesQuery, speakersQuery, overdueWebsiteAsanaQuery, cardTargetsQuery } from "@/lib/queries";
 import { daysBetween } from "@/lib/status";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { getSyncHealth } from "@/lib/sync-health.functions";
 import { fuzzyMatch } from "@/lib/fuzzy-search";
 import { weeksOutLabel, weeksOutTone } from "@/lib/message-render";
+import type { CardTarget } from "@/lib/event-targets.functions";
 
 function SyncStalenessBanner() {
   const { data } = useQuery({
@@ -313,10 +314,12 @@ function EventCard({
   s,
   perEvent,
   past,
+  cardTargetsByEvent,
 }: {
   s: any;
   perEvent: Map<string, { contacted: number; responded: number; confirmed: number; declined: number; total: number }>;
   past?: boolean;
+  cardTargetsByEvent?: Record<string, CardTarget[]>;
 }) {
   const ev = s.event as any;
   const eventDate = ev.event_date ?? ev.launch_date;
@@ -326,6 +329,7 @@ function EventCard({
   const weeksLabel = weeksOutLabel(ev.event_date);
   const weeksTone = weeksOutTone(ev.event_date);
   const counts = perEvent.get(ev.id) ?? { contacted: 0, responded: 0, confirmed: 0, declined: 0, total: 0 };
+  const cardTargets = cardTargetsByEvent?.[ev.id] ?? [];
   let awayPill: { label: string; tone: "neutral" | "amber" | "green" | "red" } | null = null;
   if (days !== null) {
     if (days < 0) awayPill = { label: `${Math.abs(days)}d ago`, tone: "neutral" };
@@ -377,12 +381,37 @@ function EventCard({
         </div>
 
         <div className="mt-4 flex items-center gap-2 flex-wrap">
-          <Pill tone="neutral">{counts.total} attendees</Pill>
-          {counts.contacted > 0 && <Pill tone="amber">{counts.contacted} registered</Pill>}
-          {counts.confirmed > 0 && <Pill tone="green">{counts.confirmed} confirmed</Pill>}
+          {counts.confirmed > 0 && <Pill tone="green">{counts.confirmed} confirmed speakers</Pill>}
           {counts.declined > 0 && <Pill tone="red">{counts.declined} declined</Pill>}
           {s.bannersSent > 0 && <Pill tone="blue">{s.bannersSent} speakers/sponsors</Pill>}
         </div>
+
+        {cardTargets.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {cardTargets.map((t) => {
+              const pct =
+                t.target_value > 0
+                  ? Math.min(100, Math.round((t.current_value / t.target_value) * 100))
+                  : 0;
+              return (
+                <div key={t.id}>
+                  <div className="flex items-center justify-between text-[11px] text-slate-600">
+                    <span className="truncate">{t.label}</span>
+                    <span className="tabular-nums">
+                      {t.current_value} / {t.target_value}
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div
+                      className="h-full rounded-full bg-slate-700"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </Link>
   );
