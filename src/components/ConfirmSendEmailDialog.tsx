@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
 import { toEmailHtml } from "@/lib/email-format";
 import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
+import { toast } from "sonner";
 
 export type ConfirmDraft = {
   to: string;
@@ -78,6 +79,12 @@ export function ConfirmSendEmailDialog({
           qc.invalidateQueries({ queryKey: ["speakerActivity"] });
         } catch (e) {
           console.error("Failed to log email send:", e);
+          toast.error(
+            `Email sent, but saving it to Send history failed: ${
+              e instanceof Error ? e.message : "unknown error"
+            }`,
+            { duration: 12000 },
+          );
         }
       }
       onOpenChange(false);

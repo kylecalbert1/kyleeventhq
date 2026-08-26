@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
   Bold,
   Italic,
@@ -504,19 +505,36 @@ export function SendMessageDialog({
       }
       if (successful.length) {
         const tpl = templates.find((t) => t.id === templateId);
-        await logSend({
-          data: {
-            event_id: eventId,
-            template_type: (tpl?.slug ?? "custom") as any,
-            subject,
-            body: htmlToPlain(fullHtml),
-            recipients: successful.map((r) => ({
-              speaker_id: r.speaker_id,
-              email: r.email,
-              name: r.name,
-            })),
-          },
-        });
+        try {
+          await logSend({
+            data: {
+              event_id: eventId,
+              template_type: tpl?.slug ?? "custom",
+              subject,
+              body: htmlToPlain(fullHtml),
+              recipients: successful.map((r) => ({
+                speaker_id: r.speaker_id,
+                email: r.email,
+                name: r.name,
+              })),
+            },
+          });
+          toast.success(
+            `Sent ${successful.length} message${
+              successful.length === 1 ? "" : "s"
+            } · logged to Send history`,
+          );
+        } catch (err) {
+          console.error("Failed to log message send:", err);
+          const msg = err instanceof Error ? err.message : "unknown error";
+          setSendError(`Sent ${successful.length} message(s), but saving to Send history failed: ${msg}`);
+          toast.error(
+            `Sent ${successful.length} message(s), but saving them to Send history failed: ${msg}`,
+            { duration: 12000 },
+          );
+        }
+      } else {
+        toast.error("No messages were sent.");
       }
       qc.invalidateQueries({ queryKey: ["emailSends"] });
       qc.invalidateQueries({ queryKey: ["speakers"] });
