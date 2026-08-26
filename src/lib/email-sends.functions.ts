@@ -91,7 +91,7 @@ export const logEmailSend = createServerFn({ method: "POST" })
       .map((r) => ({
         speaker_id: r.speaker_id!,
         event_type: "email_sent",
-        note: `${TEMPLATE_LABELS[data.template_type as TemplateType] ?? data.template_type} - ${data.subject}`,
+        note: `${(TEMPLATE_LABELS as Record<string, string | undefined>)[data.template_type] ?? data.template_type} - ${data.subject}`,
       }));
     if (activityRows.length) {
       await context.supabase.from("speaker_activity_log").insert(activityRows);
