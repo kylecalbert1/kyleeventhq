@@ -29,6 +29,7 @@ import { toEmailHtml } from "@/lib/email-format";
 import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
 import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery, eventQuery } from "@/lib/queries";
 import { EmailTemplateManagerDialog } from "@/components/EmailTemplateManagerDialog";
+import { toast } from "sonner";
 
 // Sentinel for the "start from a blank slate" option, since real template
 // IDs are UUIDs and won't collide with this value.
@@ -288,6 +289,11 @@ export function BulkEmailDialog({
           qcInvalidate.invalidateQueries({ queryKey: ["speakerActivity"] });
         } catch (e) {
           console.error("Failed to log individual email send:", e);
+          toast.error(
+            `Email sent to ${r.email}, but saving it to Send history failed: ${
+              e instanceof Error ? e.message : "unknown error"
+            }`,
+          );
         }
       }
       return {
@@ -336,7 +342,12 @@ export function BulkEmailDialog({
     }
     setSendingAll(false);
 
-    if (succeeded.length > 0) {
+    if (succeeded.length === 0) {
+      toast.error("No emails were sent.");
+      return;
+    }
+
+    {
       try {
         await logSend({
           data: {
@@ -355,8 +366,22 @@ export function BulkEmailDialog({
         });
         qcInvalidate.invalidateQueries({ queryKey: ["emailSends"] });
         qcInvalidate.invalidateQueries({ queryKey: ["speakerActivity"] });
+        const failed = toSend.length - succeeded.length;
+        toast.success(
+          `Sent ${succeeded.length} email${succeeded.length === 1 ? "" : "s"}${
+            failed > 0 ? ` · ${failed} failed` : ""
+          } · logged to Send history`,
+        );
       } catch (e) {
         console.error("Failed to log batch email send:", e);
+        toast.error(
+          `Sent ${succeeded.length} email${
+            succeeded.length === 1 ? "" : "s"
+          }, but saving them to Send history failed: ${
+            e instanceof Error ? e.message : "unknown error"
+          }`,
+          { duration: 12000 },
+        );
       }
     }
   }
