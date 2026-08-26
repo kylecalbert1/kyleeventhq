@@ -173,6 +173,12 @@ function EventDetail() {
         qc.invalidateQueries({ queryKey: ["speakerActivity"] });
       } catch (err) {
         console.error("Failed to log email send:", err);
+        toast.error(
+          `Email sent, but saving it to Send history failed: ${
+            err instanceof Error ? err.message : "unknown error"
+          }`,
+          { duration: 12000 },
+        );
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to send", { id: t });

@@ -27,11 +27,16 @@ const RecipientInput = z.object({
 
 const LogInput = z.object({
   event_id: z.string().uuid().nullable().optional(),
-  template_type: z.enum(TEMPLATE_TYPES),
+  // Free-form: legacy keys ("custom", "confirmation", ...) AND saved template
+  // slugs from the message/email template library. This used to be a strict
+  // z.enum(TEMPLATE_TYPES), which threw for every DB-template send and meant
+  // nothing got logged.
+  template_type: z.string().min(1).max(120).default("custom"),
   subject: z.string().min(1),
   body: z.string().min(1),
   recipients: z.array(RecipientInput).min(1),
 });
+
 
 export const logEmailSend = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -86,7 +91,7 @@ export const logEmailSend = createServerFn({ method: "POST" })
       .map((r) => ({
         speaker_id: r.speaker_id!,
         event_type: "email_sent",
-        note: `${TEMPLATE_LABELS[data.template_type]} - ${data.subject}`,
+        note: `${(TEMPLATE_LABELS as Record<string, string | undefined>)[data.template_type] ?? data.template_type} - ${data.subject}`,
       }));
     if (activityRows.length) {
       await context.supabase.from("speaker_activity_log").insert(activityRows);
