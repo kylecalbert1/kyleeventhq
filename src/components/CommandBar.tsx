@@ -33,6 +33,7 @@ function missingLabel(s: any): string | null {
 
 export function CommandBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
   const eventId = pathname.match(/^\/events\/([0-9a-f-]{36})/i)?.[1] ?? null;
 
   const [text, setText] = useState("");
@@ -49,12 +50,18 @@ export function CommandBar() {
       setError(null);
       setResult(r);
       setSuggestions(r?.intent === "scan_gmail_for_event" ? (r.suggestions ?? []) : []);
+      if (r?.intent === "navigate" && r.destination) {
+        setText("");
+        toast.success(`Going to ${r.destination_label ?? r.destination}`);
+        navigate({ to: r.destination as never });
+      }
     },
     onError: (e: any) => {
       setResult(null);
       setError(e?.message ?? "Something went wrong running that command.");
     },
   });
+
 
   const add = useMutation({
     mutationFn: (s: Suggestion) =>
