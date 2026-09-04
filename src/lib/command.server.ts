@@ -67,28 +67,35 @@ export async function classifyCommand(
     .map((e) => `- id=${e.id} | code=${e.code} | name=${e.name}`)
     .join("\n");
 
-  const prompt = `You interpret a short instruction typed by an event operations manager into a command bar. You may ONLY choose between three actions, or "unknown".
+  const routes = ROUTE_CATALOG.map((r) => `- ${r.path} — ${r.label}: ${r.about}`).join("\n");
+
+  const prompt = `You are the in-app assistant for an event operations manager (like Siri for this app). You interpret a short instruction typed into a command bar and pick ONE action.
 
 Return ONLY a compact JSON object matching this schema:
-{"intent":"search_speakers"|"scan_gmail_for_event"|"compose_message"|"unknown","event_match":{"event_id":string|null,"confidence":"high"|"medium"|"low"|"ambiguous"|"none"},"filters":{"status":string|null,"missing":"bio"|"headshot"|"email"|"banner"|null,"free_text":string|null},"gmail_keywords":[],"clarification":""}
+{"intent":"search_speakers"|"scan_gmail_for_event"|"compose_message"|"navigate"|"answer"|"unknown","event_match":{"event_id":string|null,"confidence":"high"|"medium"|"low"|"ambiguous"|"none"},"filters":{"status":string|null,"missing":"bio"|"headshot"|"email"|"banner"|null,"free_text":string|null},"gmail_keywords":[],"destination":string|null,"destination_label":string|null,"clarification":""}
 
 Intents:
-- "search_speakers": the user wants to look up / list speakers, optionally filtered by event, status, or missing bio/headshot/email/banner.
-- "scan_gmail_for_event": the user wants to scan Gmail for potential new speakers for a specific event.
-- "compose_message": the user wants to draft/write/generate a message to send to speakers and/or attendees (e.g. "write a welcome message to my attendees and speakers with a link to the dietary form", "draft a reminder about the hotel deadline").
-- "unknown": ANYTHING else, or anything you are not confident about.
+- "navigate": the user wants to GO somewhere in the app ("take me to the sales dashboard for AIAI London", "open sent messages", "show me the agenda page", "where do I change my signature"). Set destination to a real path from the route catalog, substituting a resolved event id for <event_id>. destination_label is a short human name for the page.
+- "search_speakers": look up / list speakers, optionally filtered by event, status, or missing bio/headshot/email/banner.
+- "scan_gmail_for_event": scan Gmail for potential new speakers for a specific event.
+- "compose_message": draft/write/generate a message to send to speakers and/or attendees.
+- "answer": the user is asking a question about their events/data or how to do something in the app, and no action above fits ("how many speakers are confirmed for AIAI London?", "what's left to do this week?", "how do I add a speaker?").
+- "unknown": only when the request is genuinely outside this app.
+
+Route catalog (destination MUST be one of these paths):
+${routes}
 
 Rules:
-- Default to "unknown" whenever uncertain. Never guess an action you are not confident about.
-- Match the named event against this list only:
+- Prefer "navigate" whenever the user says go/open/take me to/show me a page.
+- Match any named event against this list only:
 ${eventList || "(no events)"}
-- If the text names an event that does not clearly match one of those, set event_match.confidence to "ambiguous" or "none", keep intent "unknown", and write a clarification asking the user to name the event more precisely.
 - ${
     contextEventId
       ? `The user is currently on the page for event id ${contextEventId}. Use that event if the text does not name a different one (confidence "high").`
       : `There is no current page event context.`
   }
 - "scan_gmail_for_event" and "compose_message" each require a resolved event with confidence "high" or "medium"; otherwise return "unknown" with a clarification.
+- Event-specific destinations require a resolved event id; if the event is ambiguous, use "answer" or "unknown" with a clarification instead of guessing.
 - filters.free_text is any leftover person/company/title text to search on, else null.
 - gmail_keywords: a few extra search terms drawn from the instruction, else [].
 - clarification: only meaningful for "unknown"; otherwise "".
@@ -97,6 +104,7 @@ Instruction:
 """
 ${text.slice(0, 2000)}
 """`;
+
 
   const res = await fetch(`${AI_GATEWAY}/chat/completions`, {
     method: "POST",
