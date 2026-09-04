@@ -130,6 +130,19 @@ export function CommandBar() {
           </div>
         )}
 
+        {!run.isPending && result?.intent === "navigate" && (
+          <div className="mt-2 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
+            Taking you to {result.destination_label ?? result.destination}.
+          </div>
+        )}
+
+        {!run.isPending && result?.intent === "answer" && (
+          <div className="mt-2 whitespace-pre-wrap rounded-md border border-border px-3 py-2 text-xs text-foreground">
+            {result.answer}
+          </div>
+        )}
+
+
         {!run.isPending && result?.intent === "search_speakers" && (
           <div className="mt-2 rounded-md border border-border">
             {(result.speakers ?? []).length === 0 ? (
