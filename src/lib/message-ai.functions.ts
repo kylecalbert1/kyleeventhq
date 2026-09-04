@@ -59,7 +59,13 @@ Return strict JSON only, with exactly these keys:
 export const generateMessageDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({ prompt: z.string().min(3), event_id: z.string().uuid() }).parse(d),
+    z
+      .object({
+        prompt: z.string().min(3),
+        event_id: z.string().uuid(),
+        current_draft: DraftShape.nullish(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const key = process.env.LOVABLE_API_KEY;
