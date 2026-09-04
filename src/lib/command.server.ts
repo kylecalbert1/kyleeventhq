@@ -135,15 +135,27 @@ ${text.slice(0, 2000)}
     const parsed = JSON.parse(raw) as Partial<CommandPlan>;
     const known = new Set(events.map((e) => e.id));
     const eventId = parsed.event_match?.event_id ?? null;
+    const resolvedEventId = eventId && known.has(eventId) ? eventId : null;
+
+    let intent: CommandPlan["intent"] =
+      parsed.intent === "search_speakers" ||
+      parsed.intent === "scan_gmail_for_event" ||
+      parsed.intent === "compose_message" ||
+      parsed.intent === "navigate" ||
+      parsed.intent === "answer"
+        ? parsed.intent
+        : "unknown";
+
+    let destination = validateDestination(parsed.destination ?? null, resolvedEventId);
+    if (intent === "navigate" && !destination) {
+      intent = "answer";
+      destination = null;
+    }
+
     return {
-      intent:
-        parsed.intent === "search_speakers" ||
-        parsed.intent === "scan_gmail_for_event" ||
-        parsed.intent === "compose_message"
-          ? parsed.intent
-          : "unknown",
+      intent,
       event_match: {
-        event_id: eventId && known.has(eventId) ? eventId : null,
+        event_id: resolvedEventId,
         confidence: parsed.event_match?.confidence ?? "none",
       },
       filters: {
@@ -154,6 +166,11 @@ ${text.slice(0, 2000)}
       gmail_keywords: Array.isArray(parsed.gmail_keywords)
         ? parsed.gmail_keywords.filter((k): k is string => typeof k === "string").slice(0, 6)
         : [],
+      destination,
+      destination_label:
+        typeof parsed.destination_label === "string" && parsed.destination_label.trim()
+          ? parsed.destination_label.trim().slice(0, 60)
+          : null,
       clarification: parsed.clarification || FALLBACK.clarification,
     };
   } catch (e) {
@@ -161,6 +178,75 @@ ${text.slice(0, 2000)}
     return FALLBACK;
   }
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Only allow paths that exist in the catalog; substitute the resolved event id. */
+export function validateDestination(
+  raw: string | null,
+  eventId: string | null,
+): string | null {
+  if (!raw || typeof raw !== "string") return null;
+  let path = raw.trim();
+  if (!path.startsWith("/")) return null;
+  path = path.replace(/\/+$/, "") || "/";
+
+  const eventMatch = path.match(/^\/events\/([^/]+)(\/dashboard)?$/i);
+  if (eventMatch) {
+    const id = eventMatch[1] === "<event_id>" ? eventId : eventMatch[1];
+    if (!id || !UUID_RE.test(id)) return null;
+    return `/events/${id}${eventMatch[2] ?? ""}`;
+  }
+
+  return ROUTE_CATALOG.some((r) => r.path === path) ? path : null;
+}
+
+/** Free-form assistant answer, grounded in the user's app data. */
+export async function answerQuestion(
+  text: string,
+  contextSummary: string,
+  lovableKey: string,
+): Promise<string> {
+  const routes = ROUTE_CATALOG.map((r) => `- ${r.path} — ${r.label}: ${r.about}`).join("\n");
+  const prompt = `You are the built-in assistant for "Event Command Center", an app an event operations manager uses to run conferences (events, speakers, speaker boards, agendas, Tito ticket sales, outreach and email).
+
+Answer the user's question directly and briefly (max ~120 words, plain text, no markdown headings). Use only the data below; if the answer isn't in it, say what you do know and point them to the right page. When a page is relevant, name it (e.g. "Sent messages page").
+
+Pages:
+${routes}
+
+Live data:
+${contextSummary}
+
+Question:
+"""
+${text.slice(0, 2000)}
+"""`;
+
+  const res = await fetch(`${AI_GATEWAY}/chat/completions`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    const t = await res.text();
+    console.error(`Command answer failed [${res.status}]: ${t}`);
+    if (res.status === 429) return "The AI service is rate limited right now — try again shortly.";
+    if (res.status === 402) return "AI credits are exhausted — add credits to keep using the assistant.";
+    return "I couldn't answer that just now — try again.";
+  }
+
+  const body = (await res.json()) as any;
+  return (
+    body?.choices?.[0]?.message?.content?.trim() ||
+    "I couldn't answer that just now — try again."
+  );
+}
+
 
 /** lowercase, strip punctuation — mirrors normName in speaker-dedupe.server.ts */
 export function normalizeName(v: unknown): string {
