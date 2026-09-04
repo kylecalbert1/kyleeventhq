@@ -107,7 +107,11 @@ export const generateMessageDraft = createServerFn({ method: "POST" })
           { role: "system", content: systemPrompt() },
           {
             role: "user",
-            content: `Event context (for judgement only, always use the [[placeholder]] tokens in the copy itself):\n${known}\n\nWhat I want to send:\n${data.prompt}`,
+            content:
+              `Event context (for judgement only, always use the [[placeholder]] tokens in the copy itself):\n${known}\n\n` +
+              (data.current_draft
+                ? `Here is the current draft:\n${JSON.stringify({ name: data.current_draft.name, subject: data.current_draft.subject, body_markdown: data.current_draft.body_markdown, stream: data.current_draft.stream, event_format: data.current_draft.event_format, typical_weeks: data.current_draft.typical_weeks })}\n\nThe user wants this draft refined. Apply ONLY this change, keep everything else about the draft intact unless the change requires otherwise:\n${data.prompt}`
+                : `What I want to send:\n${data.prompt}`),
           },
         ],
         response_format: { type: "json_object" },
