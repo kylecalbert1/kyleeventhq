@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useRouterState } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+
 import { Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ function missingLabel(s: any): string | null {
 
 export function CommandBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
   const eventId = pathname.match(/^\/events\/([0-9a-f-]{36})/i)?.[1] ?? null;
 
   const [text, setText] = useState("");
@@ -48,12 +50,18 @@ export function CommandBar() {
       setError(null);
       setResult(r);
       setSuggestions(r?.intent === "scan_gmail_for_event" ? (r.suggestions ?? []) : []);
+      if (r?.intent === "navigate" && r.destination) {
+        setText("");
+        toast.success(`Going to ${r.destination_label ?? r.destination}`);
+        navigate({ to: r.destination as never });
+      }
     },
     onError: (e: any) => {
       setResult(null);
       setError(e?.message ?? "Something went wrong running that command.");
     },
   });
+
 
   const add = useMutation({
     mutationFn: (s: Suggestion) =>
@@ -86,7 +94,7 @@ export function CommandBar() {
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Ask or tell me to do something..."
+            placeholder="Ask me anything or tell me where to go…"
             className="h-9 text-sm"
             aria-label="Command bar"
           />
@@ -121,6 +129,19 @@ export function CommandBar() {
             {result.clarification}
           </div>
         )}
+
+        {!run.isPending && result?.intent === "navigate" && (
+          <div className="mt-2 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
+            Taking you to {result.destination_label ?? result.destination}.
+          </div>
+        )}
+
+        {!run.isPending && result?.intent === "answer" && (
+          <div className="mt-2 whitespace-pre-wrap rounded-md border border-border px-3 py-2 text-xs text-foreground">
+            {result.answer}
+          </div>
+        )}
+
 
         {!run.isPending && result?.intent === "search_speakers" && (
           <div className="mt-2 rounded-md border border-border">

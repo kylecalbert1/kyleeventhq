@@ -5,7 +5,13 @@
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1";
 
 export type CommandPlan = {
-  intent: "search_speakers" | "scan_gmail_for_event" | "compose_message" | "unknown";
+  intent:
+    | "search_speakers"
+    | "scan_gmail_for_event"
+    | "compose_message"
+    | "navigate"
+    | "answer"
+    | "unknown";
   event_match: {
     event_id: string | null;
     confidence: "high" | "medium" | "low" | "ambiguous" | "none";
@@ -16,6 +22,9 @@ export type CommandPlan = {
     free_text: string | null;
   };
   gmail_keywords: string[];
+  /** Route to navigate to, e.g. "/tito" or "/events/<uuid>/dashboard" */
+  destination: string | null;
+  destination_label: string | null;
   clarification: string;
 };
 
@@ -24,8 +33,29 @@ const FALLBACK: CommandPlan = {
   event_match: { event_id: null, confidence: "none" },
   filters: { status: null, missing: null, free_text: null },
   gmail_keywords: [],
+  destination: null,
+  destination_label: null,
   clarification: "I'm not sure how to do that yet — try rephrasing or naming the event.",
 };
+
+/** Every navigable page, described for the model. */
+export const ROUTE_CATALOG: Array<{ path: string; label: string; about: string }> = [
+  { path: "/", label: "Events", about: "home / all events list, the landing page" },
+  { path: "/tito", label: "All Tito events", about: "archive of Tito events and ticket sales" },
+  { path: "/speakers", label: "Find speakers", about: "cross-event speaker sourcing/prospecting and global people search" },
+  { path: "/boards", label: "Speaker boards", about: "per-event speaker boards / kanban" },
+  { path: "/agenda", label: "Agenda", about: "agenda builder and AV agenda exports" },
+  { path: "/outreach", label: "Outreach", about: "outreach hub, LinkedIn kits and bulk outreach" },
+  { path: "/message-templates", label: "Message templates", about: "message template library and AI message drafting" },
+  { path: "/sent-messages", label: "Sent messages", about: "history of every email sent" },
+  { path: "/sponsor-inbox", label: "Sponsor inbox", about: "sponsor enquiries" },
+  { path: "/banners", label: "Banners", about: "speaker banner production status" },
+  { path: "/settings", label: "Settings", about: "user settings, signature, excluded ticket types" },
+  { path: "/tools/logo-converter", label: "Logo converter", about: "convert logos between formats" },
+  { path: "/events/<event_id>", label: "Event page", about: "one event: speakers, targets, links, messages" },
+  { path: "/events/<event_id>/dashboard", label: "Event sales dashboard", about: "targets, revenue and ticket sales charts for one event" },
+];
+
 
 export async function classifyCommand(
   text: string,
@@ -37,28 +67,35 @@ export async function classifyCommand(
     .map((e) => `- id=${e.id} | code=${e.code} | name=${e.name}`)
     .join("\n");
 
-  const prompt = `You interpret a short instruction typed by an event operations manager into a command bar. You may ONLY choose between three actions, or "unknown".
+  const routes = ROUTE_CATALOG.map((r) => `- ${r.path} — ${r.label}: ${r.about}`).join("\n");
+
+  const prompt = `You are the in-app assistant for an event operations manager (like Siri for this app). You interpret a short instruction typed into a command bar and pick ONE action.
 
 Return ONLY a compact JSON object matching this schema:
-{"intent":"search_speakers"|"scan_gmail_for_event"|"compose_message"|"unknown","event_match":{"event_id":string|null,"confidence":"high"|"medium"|"low"|"ambiguous"|"none"},"filters":{"status":string|null,"missing":"bio"|"headshot"|"email"|"banner"|null,"free_text":string|null},"gmail_keywords":[],"clarification":""}
+{"intent":"search_speakers"|"scan_gmail_for_event"|"compose_message"|"navigate"|"answer"|"unknown","event_match":{"event_id":string|null,"confidence":"high"|"medium"|"low"|"ambiguous"|"none"},"filters":{"status":string|null,"missing":"bio"|"headshot"|"email"|"banner"|null,"free_text":string|null},"gmail_keywords":[],"destination":string|null,"destination_label":string|null,"clarification":""}
 
 Intents:
-- "search_speakers": the user wants to look up / list speakers, optionally filtered by event, status, or missing bio/headshot/email/banner.
-- "scan_gmail_for_event": the user wants to scan Gmail for potential new speakers for a specific event.
-- "compose_message": the user wants to draft/write/generate a message to send to speakers and/or attendees (e.g. "write a welcome message to my attendees and speakers with a link to the dietary form", "draft a reminder about the hotel deadline").
-- "unknown": ANYTHING else, or anything you are not confident about.
+- "navigate": the user wants to GO somewhere in the app ("take me to the sales dashboard for AIAI London", "open sent messages", "show me the agenda page", "where do I change my signature"). Set destination to a real path from the route catalog, substituting a resolved event id for <event_id>. destination_label is a short human name for the page.
+- "search_speakers": look up / list speakers, optionally filtered by event, status, or missing bio/headshot/email/banner.
+- "scan_gmail_for_event": scan Gmail for potential new speakers for a specific event.
+- "compose_message": draft/write/generate a message to send to speakers and/or attendees.
+- "answer": the user is asking a question about their events/data or how to do something in the app, and no action above fits ("how many speakers are confirmed for AIAI London?", "what's left to do this week?", "how do I add a speaker?").
+- "unknown": only when the request is genuinely outside this app.
+
+Route catalog (destination MUST be one of these paths):
+${routes}
 
 Rules:
-- Default to "unknown" whenever uncertain. Never guess an action you are not confident about.
-- Match the named event against this list only:
+- Prefer "navigate" whenever the user says go/open/take me to/show me a page.
+- Match any named event against this list only:
 ${eventList || "(no events)"}
-- If the text names an event that does not clearly match one of those, set event_match.confidence to "ambiguous" or "none", keep intent "unknown", and write a clarification asking the user to name the event more precisely.
 - ${
     contextEventId
       ? `The user is currently on the page for event id ${contextEventId}. Use that event if the text does not name a different one (confidence "high").`
       : `There is no current page event context.`
   }
 - "scan_gmail_for_event" and "compose_message" each require a resolved event with confidence "high" or "medium"; otherwise return "unknown" with a clarification.
+- Event-specific destinations require a resolved event id; if the event is ambiguous, use "answer" or "unknown" with a clarification instead of guessing.
 - filters.free_text is any leftover person/company/title text to search on, else null.
 - gmail_keywords: a few extra search terms drawn from the instruction, else [].
 - clarification: only meaningful for "unknown"; otherwise "".
@@ -67,6 +104,7 @@ Instruction:
 """
 ${text.slice(0, 2000)}
 """`;
+
 
   const res = await fetch(`${AI_GATEWAY}/chat/completions`, {
     method: "POST",
@@ -97,15 +135,27 @@ ${text.slice(0, 2000)}
     const parsed = JSON.parse(raw) as Partial<CommandPlan>;
     const known = new Set(events.map((e) => e.id));
     const eventId = parsed.event_match?.event_id ?? null;
+    const resolvedEventId = eventId && known.has(eventId) ? eventId : null;
+
+    let intent: CommandPlan["intent"] =
+      parsed.intent === "search_speakers" ||
+      parsed.intent === "scan_gmail_for_event" ||
+      parsed.intent === "compose_message" ||
+      parsed.intent === "navigate" ||
+      parsed.intent === "answer"
+        ? parsed.intent
+        : "unknown";
+
+    let destination = validateDestination(parsed.destination ?? null, resolvedEventId);
+    if (intent === "navigate" && !destination) {
+      intent = "answer";
+      destination = null;
+    }
+
     return {
-      intent:
-        parsed.intent === "search_speakers" ||
-        parsed.intent === "scan_gmail_for_event" ||
-        parsed.intent === "compose_message"
-          ? parsed.intent
-          : "unknown",
+      intent,
       event_match: {
-        event_id: eventId && known.has(eventId) ? eventId : null,
+        event_id: resolvedEventId,
         confidence: parsed.event_match?.confidence ?? "none",
       },
       filters: {
@@ -116,6 +166,11 @@ ${text.slice(0, 2000)}
       gmail_keywords: Array.isArray(parsed.gmail_keywords)
         ? parsed.gmail_keywords.filter((k): k is string => typeof k === "string").slice(0, 6)
         : [],
+      destination,
+      destination_label:
+        typeof parsed.destination_label === "string" && parsed.destination_label.trim()
+          ? parsed.destination_label.trim().slice(0, 60)
+          : null,
       clarification: parsed.clarification || FALLBACK.clarification,
     };
   } catch (e) {
@@ -123,6 +178,75 @@ ${text.slice(0, 2000)}
     return FALLBACK;
   }
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Only allow paths that exist in the catalog; substitute the resolved event id. */
+export function validateDestination(
+  raw: string | null,
+  eventId: string | null,
+): string | null {
+  if (!raw || typeof raw !== "string") return null;
+  let path = raw.trim();
+  if (!path.startsWith("/")) return null;
+  path = path.replace(/\/+$/, "") || "/";
+
+  const eventMatch = path.match(/^\/events\/([^/]+)(\/dashboard)?$/i);
+  if (eventMatch) {
+    const id = eventMatch[1] === "<event_id>" ? eventId : eventMatch[1];
+    if (!id || !UUID_RE.test(id)) return null;
+    return `/events/${id}${eventMatch[2] ?? ""}`;
+  }
+
+  return ROUTE_CATALOG.some((r) => r.path === path) ? path : null;
+}
+
+/** Free-form assistant answer, grounded in the user's app data. */
+export async function answerQuestion(
+  text: string,
+  contextSummary: string,
+  lovableKey: string,
+): Promise<string> {
+  const routes = ROUTE_CATALOG.map((r) => `- ${r.path} — ${r.label}: ${r.about}`).join("\n");
+  const prompt = `You are the built-in assistant for "Event Command Center", an app an event operations manager uses to run conferences (events, speakers, speaker boards, agendas, Tito ticket sales, outreach and email).
+
+Answer the user's question directly and briefly (max ~120 words, plain text, no markdown headings). Use only the data below; if the answer isn't in it, say what you do know and point them to the right page. When a page is relevant, name it (e.g. "Sent messages page").
+
+Pages:
+${routes}
+
+Live data:
+${contextSummary}
+
+Question:
+"""
+${text.slice(0, 2000)}
+"""`;
+
+  const res = await fetch(`${AI_GATEWAY}/chat/completions`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    const t = await res.text();
+    console.error(`Command answer failed [${res.status}]: ${t}`);
+    if (res.status === 429) return "The AI service is rate limited right now — try again shortly.";
+    if (res.status === 402) return "AI credits are exhausted — add credits to keep using the assistant.";
+    return "I couldn't answer that just now — try again.";
+  }
+
+  const body = (await res.json()) as any;
+  return (
+    body?.choices?.[0]?.message?.content?.trim() ||
+    "I couldn't answer that just now — try again."
+  );
+}
+
 
 /** lowercase, strip punctuation — mirrors normName in speaker-dedupe.server.ts */
 export function normalizeName(v: unknown): string {

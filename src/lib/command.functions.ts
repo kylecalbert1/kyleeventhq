@@ -15,7 +15,7 @@ export const runCommand = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { classifyCommand, normalizeName, buildGmailQuery } = await import(
+    const { classifyCommand, normalizeName, buildGmailQuery, answerQuestion } = await import(
       "@/lib/command.server"
     );
 
@@ -29,10 +29,16 @@ export const runCommand = createServerFn({ method: "POST" })
 
     const { data: events, error: evErr } = await context.supabase
       .from("events")
-      .select("id, name, code")
+      .select("id, name, code, event_date, event_end_date")
       .order("name");
     if (evErr) throw new Error(evErr.message);
-    const eventList = (events ?? []) as Array<{ id: string; name: string; code: string }>;
+    const eventList = (events ?? []) as Array<{
+      id: string;
+      name: string;
+      code: string;
+      event_date: string | null;
+      event_end_date: string | null;
+    }>;
 
     const plan = await classifyCommand(
       data.text,
@@ -40,6 +46,50 @@ export const runCommand = createServerFn({ method: "POST" })
       data.eventId ?? null,
       lovableKey,
     );
+
+    if (plan.intent === "navigate" && plan.destination) {
+      return {
+        intent: "navigate" as const,
+        destination: plan.destination,
+        destination_label: plan.destination_label,
+      };
+    }
+
+    if (plan.intent === "answer") {
+      const { data: speakers } = await context.supabase
+        .from("speakers")
+        .select("event_id, status, email, bio_received, headshot_received")
+        .limit(2000);
+
+      const byEvent = new Map<string, any[]>();
+      for (const s of speakers ?? []) {
+        const k = (s as any).event_id ?? "none";
+        if (!byEvent.has(k)) byEvent.set(k, []);
+        byEvent.get(k)!.push(s);
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const lines = eventList.map((e) => {
+        const rows = byEvent.get(e.id) ?? [];
+        const counts: Record<string, number> = {};
+        for (const r of rows) counts[r.status ?? "unknown"] = (counts[r.status ?? "unknown"] ?? 0) + 1;
+        const missingBio = rows.filter((r) => r.bio_received === false).length;
+        const missingHead = rows.filter((r) => r.headshot_received === false).length;
+        const missingEmail = rows.filter((r) => !r.email).length;
+        return `- ${e.name} (${e.code}) id=${e.id} | date=${e.event_date ?? "TBC"}${
+          e.event_end_date ? `..${e.event_end_date}` : ""
+        } | speakers=${rows.length} | by status: ${
+          Object.entries(counts)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(", ") || "none"
+        } | missing bio=${missingBio}, headshot=${missingHead}, email=${missingEmail}`;
+      });
+
+      const summary = `Today is ${today}.\nEvents:\n${lines.join("\n") || "(no events)"}`;
+      const answer = await answerQuestion(data.text, summary, lovableKey);
+      return { intent: "answer" as const, answer };
+    }
+
 
     if (plan.intent === "search_speakers") {
       let q = context.supabase
