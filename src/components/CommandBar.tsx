@@ -94,7 +94,7 @@ export function CommandBar() {
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Ask or tell me to do something..."
+            placeholder="Ask me anything or tell me where to go…"
             className="h-9 text-sm"
             aria-label="Command bar"
           />
