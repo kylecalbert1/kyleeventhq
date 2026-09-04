@@ -5,7 +5,13 @@
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1";
 
 export type CommandPlan = {
-  intent: "search_speakers" | "scan_gmail_for_event" | "compose_message" | "unknown";
+  intent:
+    | "search_speakers"
+    | "scan_gmail_for_event"
+    | "compose_message"
+    | "navigate"
+    | "answer"
+    | "unknown";
   event_match: {
     event_id: string | null;
     confidence: "high" | "medium" | "low" | "ambiguous" | "none";
@@ -16,6 +22,9 @@ export type CommandPlan = {
     free_text: string | null;
   };
   gmail_keywords: string[];
+  /** Route to navigate to, e.g. "/tito" or "/events/<uuid>/dashboard" */
+  destination: string | null;
+  destination_label: string | null;
   clarification: string;
 };
 
@@ -24,8 +33,29 @@ const FALLBACK: CommandPlan = {
   event_match: { event_id: null, confidence: "none" },
   filters: { status: null, missing: null, free_text: null },
   gmail_keywords: [],
+  destination: null,
+  destination_label: null,
   clarification: "I'm not sure how to do that yet — try rephrasing or naming the event.",
 };
+
+/** Every navigable page, described for the model. */
+export const ROUTE_CATALOG: Array<{ path: string; label: string; about: string }> = [
+  { path: "/", label: "Events", about: "home / all events list, the landing page" },
+  { path: "/tito", label: "All Tito events", about: "archive of Tito events and ticket sales" },
+  { path: "/speakers", label: "Find speakers", about: "cross-event speaker sourcing/prospecting and global people search" },
+  { path: "/boards", label: "Speaker boards", about: "per-event speaker boards / kanban" },
+  { path: "/agenda", label: "Agenda", about: "agenda builder and AV agenda exports" },
+  { path: "/outreach", label: "Outreach", about: "outreach hub, LinkedIn kits and bulk outreach" },
+  { path: "/message-templates", label: "Message templates", about: "message template library and AI message drafting" },
+  { path: "/sent-messages", label: "Sent messages", about: "history of every email sent" },
+  { path: "/sponsor-inbox", label: "Sponsor inbox", about: "sponsor enquiries" },
+  { path: "/banners", label: "Banners", about: "speaker banner production status" },
+  { path: "/settings", label: "Settings", about: "user settings, signature, excluded ticket types" },
+  { path: "/tools/logo-converter", label: "Logo converter", about: "convert logos between formats" },
+  { path: "/events/<event_id>", label: "Event page", about: "one event: speakers, targets, links, messages" },
+  { path: "/events/<event_id>/dashboard", label: "Event sales dashboard", about: "targets, revenue and ticket sales charts for one event" },
+];
+
 
 export async function classifyCommand(
   text: string,
