@@ -27,6 +27,11 @@ import {
 } from "@/lib/sync-health.functions";
 import { userSettingsQuery } from "@/lib/queries";
 import { updateUserSettings } from "@/lib/user-settings.functions";
+import {
+  listUnsubscribes,
+  addUnsubscribe,
+  removeUnsubscribe,
+} from "@/lib/unsubscribe.functions";
 import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -246,6 +251,7 @@ function SettingsPage() {
       </Card>
 
       <SignatureCard />
+      <UnsubscribesCard />
     </div>
   );
 }
@@ -456,6 +462,93 @@ function SignatureCard() {
         }}
         className="min-h-[140px] rounded-xl border-2 border-border bg-white px-4 py-3 text-[13px] leading-relaxed text-foreground outline-none [&_a]:text-primary [&_a]:underline whitespace-pre-wrap"
       />
+    </Card>
+  );
+}
+
+function UnsubscribesCard() {
+  const qc = useQueryClient();
+  const fetchList = useServerFn(listUnsubscribes);
+  const add = useServerFn(addUnsubscribe);
+  const remove = useServerFn(removeUnsubscribe);
+  const [email, setEmail] = useState("");
+
+  const listQ = useQuery({ queryKey: ["unsubscribes"], queryFn: () => fetchList() });
+  const rows = listQ.data ?? [];
+
+  const addMut = useMutation({
+    mutationFn: (e: string) => add({ data: { email: e } }),
+    onSuccess: () => {
+      setEmail("");
+      toast.success("Added to the do-not-email list");
+      qc.invalidateQueries({ queryKey: ["unsubscribes"] });
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Could not add that address"),
+  });
+
+  const removeMut = useMutation({
+    mutationFn: (id: string) => remove({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Removed — they can receive emails again");
+      qc.invalidateQueries({ queryKey: ["unsubscribes"] });
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Could not remove that address"),
+  });
+
+  return (
+    <Card className="p-5">
+      <h2 className="text-sm font-semibold mb-1">Unsubscribes</h2>
+      <p className="text-xs text-muted-foreground mb-3">
+        Every bulk email carries an unsubscribe link and a one-click opt-out button in
+        Gmail. Anyone who opts out lands here and is blocked from all future sends.
+      </p>
+      <form
+        className="flex flex-wrap items-center gap-2 mb-4"
+        onSubmit={(ev) => {
+          ev.preventDefault();
+          const v = email.trim();
+          if (v) addMut.mutate(v);
+        }}
+      >
+        <input
+          type="email"
+          value={email}
+          onChange={(ev) => setEmail(ev.target.value)}
+          placeholder="Add an address manually…"
+          className="h-9 flex-1 min-w-[240px] rounded-md border border-border bg-background px-3 text-sm"
+        />
+        <Button type="submit" size="sm" disabled={!email.trim() || addMut.isPending}>
+          Add
+        </Button>
+      </form>
+      {listQ.isLoading ? (
+        <p className="text-xs text-muted-foreground">Loading…</p>
+      ) : rows.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Nobody has unsubscribed yet.</p>
+      ) : (
+        <ul className="divide-y divide-border/60 max-h-72 overflow-y-auto">
+          {rows.map((u) => (
+            <li key={u.id} className="flex items-center gap-3 py-2">
+              <span className="flex-1 min-w-0 truncate text-sm">{u.email}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {u.source === "manual" ? "added by you" : "opted out"} ·{" "}
+                {new Date(u.created_at).toLocaleDateString("en-GB")}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                disabled={removeMut.isPending}
+                onClick={() => removeMut.mutate(u.id)}
+              >
+                Remove
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }
