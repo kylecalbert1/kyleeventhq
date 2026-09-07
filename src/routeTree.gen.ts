@@ -26,6 +26,7 @@ import { Route as AuthenticatedAsanaRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as AuthenticatedTitoIndexRouteImport } from './routes/_authenticated/tito.index'
 import { Route as AuthenticatedBoardsIndexRouteImport } from './routes/_authenticated/boards.index'
+import { Route as ApiPublicUnsubscribeRouteImport } from './routes/api/public/unsubscribe'
 import { Route as AuthenticatedToolsLogoConverterRouteImport } from './routes/_authenticated/tools.logo-converter'
 import { Route as AuthenticatedTitoSlugRouteImport } from './routes/_authenticated/tito.$slug'
 import { Route as AuthenticatedSpeakersSpeakerIdRouteImport } from './routes/_authenticated/speakers.$speakerId'
@@ -126,6 +127,11 @@ const AuthenticatedBoardsIndexRoute =
     path: '/boards/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicUnsubscribeRoute = ApiPublicUnsubscribeRouteImport.update({
+  id: '/api/public/unsubscribe',
+  path: '/api/public/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedToolsLogoConverterRoute =
   AuthenticatedToolsLogoConverterRouteImport.update({
     id: '/tools/logo-converter',
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/tito/$slug': typeof AuthenticatedTitoSlugRoute
   '/tools/logo-converter': typeof AuthenticatedToolsLogoConverterRoute
+  '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/boards/': typeof AuthenticatedBoardsIndexRoute
   '/tito/': typeof AuthenticatedTitoIndexRoute
   '/events/$eventId/dashboard': typeof AuthenticatedEventsEventIdDashboardRoute
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/tito/$slug': typeof AuthenticatedTitoSlugRoute
   '/tools/logo-converter': typeof AuthenticatedToolsLogoConverterRoute
+  '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/boards': typeof AuthenticatedBoardsIndexRoute
   '/tito': typeof AuthenticatedTitoIndexRoute
   '/events/$eventId/dashboard': typeof AuthenticatedEventsEventIdDashboardRoute
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/_authenticated/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/_authenticated/tito/$slug': typeof AuthenticatedTitoSlugRoute
   '/_authenticated/tools/logo-converter': typeof AuthenticatedToolsLogoConverterRoute
+  '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/_authenticated/boards/': typeof AuthenticatedBoardsIndexRoute
   '/_authenticated/tito/': typeof AuthenticatedTitoIndexRoute
   '/_authenticated/events/$eventId_/dashboard': typeof AuthenticatedEventsEventIdDashboardRoute
@@ -285,6 +294,7 @@ export interface FileRouteTypes {
     | '/speakers/$speakerId'
     | '/tito/$slug'
     | '/tools/logo-converter'
+    | '/api/public/unsubscribe'
     | '/boards/'
     | '/tito/'
     | '/events/$eventId/dashboard'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/speakers/$speakerId'
     | '/tito/$slug'
     | '/tools/logo-converter'
+    | '/api/public/unsubscribe'
     | '/boards'
     | '/tito'
     | '/events/$eventId/dashboard'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/_authenticated/speakers/$speakerId'
     | '/_authenticated/tito/$slug'
     | '/_authenticated/tools/logo-converter'
+    | '/api/public/unsubscribe'
     | '/_authenticated/boards/'
     | '/_authenticated/tito/'
     | '/_authenticated/events/$eventId_/dashboard'
@@ -351,6 +363,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicUnsubscribeRoute: typeof ApiPublicUnsubscribeRoute
   ApiPublicHooksAsanaNightlyRoute: typeof ApiPublicHooksAsanaNightlyRoute
   ApiPublicHooksTitoNightlyRoute: typeof ApiPublicHooksTitoNightlyRoute
   ApiPublicHooksTitoWebhookRoute: typeof ApiPublicHooksTitoWebhookRoute
@@ -476,6 +489,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/boards/'
       preLoaderRoute: typeof AuthenticatedBoardsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/unsubscribe': {
+      id: '/api/public/unsubscribe'
+      path: '/api/public/unsubscribe'
+      fullPath: '/api/public/unsubscribe'
+      preLoaderRoute: typeof ApiPublicUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/tools/logo-converter': {
       id: '/_authenticated/tools/logo-converter'
@@ -609,6 +629,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicUnsubscribeRoute: ApiPublicUnsubscribeRoute,
   ApiPublicHooksAsanaNightlyRoute: ApiPublicHooksAsanaNightlyRoute,
   ApiPublicHooksTitoNightlyRoute: ApiPublicHooksTitoNightlyRoute,
   ApiPublicHooksTitoWebhookRoute: ApiPublicHooksTitoWebhookRoute,

@@ -32,7 +32,13 @@ function chunk76(b64: string) {
   return (b64.match(/.{1,76}/g) ?? []).join("\r\n");
 }
 
-function buildRawEmail(opts: { to: string; subject: string; body: string; isHtml?: boolean }) {
+function buildRawEmail(opts: {
+  to: string;
+  subject: string;
+  body: string;
+  isHtml?: boolean;
+  listUnsubscribeUrl?: string;
+}) {
   const contentType = opts.isHtml
     ? 'text/html; charset="UTF-8"'
     : 'text/plain; charset="UTF-8"';
@@ -46,6 +52,12 @@ function buildRawEmail(opts: { to: string; subject: string; body: string; isHtml
     `To: ${opts.to}`,
     `Subject: =?UTF-8?B?${Buffer.from(opts.subject, "utf-8").toString("base64")}?=`,
     "MIME-Version: 1.0",
+    ...(opts.listUnsubscribeUrl
+      ? [
+          `List-Unsubscribe: <${opts.listUnsubscribeUrl}>`,
+          "List-Unsubscribe-Post: List-Unsubscribe=One-Click",
+        ]
+      : []),
     `Content-Type: ${contentType}`,
     "Content-Transfer-Encoding: base64",
     "",
@@ -72,6 +84,8 @@ export const sendGmailEmail = createServerFn({ method: "POST" })
         subject: z.string().min(1),
         body: z.string().min(1),
         isHtml: z.boolean().optional(),
+        /** Bulk/marketing send: append an unsubscribe footer + one-click header. */
+        allowUnsubscribe: z.boolean().optional(),
       })
       .parse(d),
   )
@@ -88,9 +102,35 @@ export const sendGmailEmail = createServerFn({ method: "POST" })
     // text/html, otherwise the recipient sees literal <br>/<div> tags. Callers
     // that forget `isHtml` are auto-detected here rather than silently
     // shipping raw markup as plain text.
+    const { unsubscribeFooterHtml, unsubscribeUrl, normalizeEmail } = await import(
+      "@/lib/unsubscribe.server"
+    );
+    const to = normalizeEmail(data.to);
+
+    // Hard suppression: never send to an address that opted out, whatever the
+    // caller asked for.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sup } = await supabaseAdmin
+      .from("email_unsubscribes")
+      .select("email")
+      .eq("email", to)
+      .maybeSingle();
+    if (sup) {
+      throw new Error(`${to} has unsubscribed from your emails.`);
+    }
+
     const isHtml = data.isHtml ?? looksLikeHtmlBody(data.body);
-    const body = isHtml ? toEmailHtml(data.body) : data.body;
-    const raw = buildRawEmail({ to: data.to, subject: data.subject, body, isHtml });
+    let body = isHtml ? toEmailHtml(data.body) : data.body;
+    if (data.allowUnsubscribe && isHtml) {
+      body = `${body}${unsubscribeFooterHtml(to)}`;
+    }
+    const raw = buildRawEmail({
+      to: data.to,
+      subject: data.subject,
+      body,
+      isHtml,
+      listUnsubscribeUrl: data.allowUnsubscribe ? unsubscribeUrl(to) : undefined,
+    });
     const res = await fetch(`${GATEWAY_URL}/users/me/messages/send`, {
       method: "POST",
       headers: {
