@@ -27,6 +27,7 @@ import { BulkConfirmSendDialog } from "@/components/BulkConfirmSendDialog";
 import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
 import { toEmailHtml } from "@/lib/email-format";
 import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
+import { listUnsubscribes } from "@/lib/unsubscribe.functions";
 import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery, eventQuery } from "@/lib/queries";
 import { EmailTemplateManagerDialog } from "@/components/EmailTemplateManagerDialog";
 import { toast } from "sonner";
@@ -134,11 +135,15 @@ export function BulkEmailDialog({
       const next: Record<string, boolean> = {};
       for (const s of speakers) {
         if (!s.email) continue;
+        if (unsubscribed.has(s.email.trim().toLowerCase())) {
+          next[s.id] = false;
+          continue;
+        }
         next[s.id] = prev[s.id] ?? true;
       }
       return next;
     });
-  }, [open, speakers]);
+  }, [open, speakers, unsubscribed]);
 
 
   function applyTemplate(id: string) {
@@ -164,6 +169,21 @@ export function BulkEmailDialog({
   })();
 
   const send = useServerFn(sendGmailEmail);
+
+  // Anyone who clicked "Unsubscribe" in a previous email is locked out of the
+  // recipient list (the server also refuses these addresses).
+  const fetchUnsubs = useServerFn(listUnsubscribes);
+  const unsubQ = useQuery({
+    queryKey: ["unsubscribes"],
+    queryFn: () => fetchUnsubs(),
+    enabled: open,
+  });
+  const unsubscribed = useMemo(
+    () => new Set((unsubQ.data ?? []).map((u) => u.email.toLowerCase())),
+    [unsubQ.data],
+  );
+  const isUnsubscribed = (email?: string | null) =>
+    !!email && unsubscribed.has(email.trim().toLowerCase());
   const checkConn = useServerFn(checkGmailConnected);
   const connQuery = useQuery({
     queryKey: ["gmail-connected"],
@@ -229,7 +249,8 @@ export function BulkEmailDialog({
   }, [speakers, subject, body, perRecipientDrafts, speakerPassLink, guestPassLink, eventName, eventDate, venue, salesContactName, salesContactEmail, salesContactBookingLink]);
 
   const missingEmail = rows.filter((r) => !r.email).length;
-  const sendable = rows.filter((r) => r.email);
+  const unsubscribedCount = rows.filter((r) => isUnsubscribed(r.email)).length;
+  const sendable = rows.filter((r) => r.email && !isUnsubscribed(r.email));
   const activeRecipients = sendable.filter((r) => optedIn[r.id]);
   const optedOutCount = sendable.length - activeRecipients.length;
 
@@ -269,6 +290,7 @@ export function BulkEmailDialog({
           subject: finalSubject,
           body: withSig,
           isHtml: true,
+          allowUnsubscribe: true,
         },
       });
       setStatus((s) => ({ ...s, [r.id]: "sent" }));
@@ -520,6 +542,12 @@ export function BulkEmailDialog({
                   · {optedOutCount} unticked
                 </span>
               )}
+              {unsubscribedCount > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {" "}
+                  · {unsubscribedCount} unsubscribed
+                </span>
+              )}
               {missingEmail > 0 && (
                 <span className="text-amber-800">
                   {" "}
@@ -541,7 +569,8 @@ export function BulkEmailDialog({
             <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
               {rows.map((r) => {
                 const st = status[r.id] ?? "idle";
-                const isOptedIn = !!r.email && !!optedIn[r.id];
+                const optedOut = isUnsubscribed(r.email);
+                const isOptedIn = !!r.email && !optedOut && !!optedIn[r.id];
                 const borderCls =
                   st === "sent"
                     ? "border-emerald-300 bg-emerald-50/50"
@@ -561,7 +590,7 @@ export function BulkEmailDialog({
                       <div className="pt-0.5 shrink-0">
                         <Checkbox
                           checked={isOptedIn}
-                          disabled={!r.email || st === "sending"}
+                          disabled={!r.email || optedOut || st === "sending"}
                           onCheckedChange={(v) =>
                             setOptedIn((prev) => ({ ...prev, [r.id]: !!v }))
                           }
@@ -574,7 +603,12 @@ export function BulkEmailDialog({
                           {r.email ?? (
                             <span className="text-amber-700">No email on file</span>
                           )}
-                          {r.email && !isOptedIn && (
+                          {optedOut && (
+                            <span className="ml-2 text-[10px] uppercase tracking-wider font-semibold text-amber-700">
+                              Unsubscribed
+                            </span>
+                          )}
+                          {r.email && !optedOut && !isOptedIn && (
                             <span className="ml-2 text-[10px] uppercase tracking-wider font-semibold text-slate-500">
                               Excluded
                             </span>
