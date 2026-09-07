@@ -107,6 +107,20 @@ export function BulkEmailDialog({
   const [sendingAll, setSendingAll] = useState(false);
   const [templateManagerOpen, setTemplateManagerOpen] = useState(false);
   const logSend = useServerFn(logEmailSend);
+  // Anyone who clicked "Unsubscribe" in a previous email is locked out of the
+  // recipient list (the server also refuses these addresses).
+  const fetchUnsubs = useServerFn(listUnsubscribes);
+  const unsubQ = useQuery({
+    queryKey: ["unsubscribes"],
+    queryFn: () => fetchUnsubs(),
+    enabled: open,
+  });
+  const unsubscribed = useMemo(
+    () => new Set((unsubQ.data ?? []).map((u) => u.email.toLowerCase())),
+    [unsubQ.data],
+  );
+  const isUnsubscribed = (email?: string | null) =>
+    !!email && unsubscribed.has(email.trim().toLowerCase());
   const qcInvalidate = useQueryClient();
 
   // Seed subject/body when the dialog opens or the templates list arrives.
@@ -170,20 +184,6 @@ export function BulkEmailDialog({
 
   const send = useServerFn(sendGmailEmail);
 
-  // Anyone who clicked "Unsubscribe" in a previous email is locked out of the
-  // recipient list (the server also refuses these addresses).
-  const fetchUnsubs = useServerFn(listUnsubscribes);
-  const unsubQ = useQuery({
-    queryKey: ["unsubscribes"],
-    queryFn: () => fetchUnsubs(),
-    enabled: open,
-  });
-  const unsubscribed = useMemo(
-    () => new Set((unsubQ.data ?? []).map((u) => u.email.toLowerCase())),
-    [unsubQ.data],
-  );
-  const isUnsubscribed = (email?: string | null) =>
-    !!email && unsubscribed.has(email.trim().toLowerCase());
   const checkConn = useServerFn(checkGmailConnected);
   const connQuery = useQuery({
     queryKey: ["gmail-connected"],
