@@ -2,11 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { toEmailHtml, looksLikeHtmlBody } from "@/lib/email-format";
-import {
-  unsubscribeFooterHtml,
-  unsubscribeUrl,
-  normalizeEmail,
-} from "@/lib/unsubscribe.server";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
@@ -107,6 +102,9 @@ export const sendGmailEmail = createServerFn({ method: "POST" })
     // text/html, otherwise the recipient sees literal <br>/<div> tags. Callers
     // that forget `isHtml` are auto-detected here rather than silently
     // shipping raw markup as plain text.
+    const { unsubscribeFooterHtml, unsubscribeUrl, normalizeEmail } = await import(
+      "@/lib/unsubscribe.server"
+    );
     const to = normalizeEmail(data.to);
 
     // Hard suppression: never send to an address that opted out, whatever the
