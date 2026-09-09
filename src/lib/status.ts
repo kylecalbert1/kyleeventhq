@@ -10,7 +10,7 @@ export type SpeakerStatus = (typeof SPEAKER_STATUSES)[number];
 export const BANNER_STATUSES = ["not_started", "created", "sent", "confirmed_live"] as const;
 export type BannerStatusVal = (typeof BANNER_STATUSES)[number];
 
-export const SESSION_FORMATS = ["keynote", "panel", "workshop", "fireside"] as const;
+export const SESSION_FORMATS = ["keynote", "panel", "workshop", "fireside", "roundtable"] as const;
 export type SessionFormatVal = (typeof SESSION_FORMATS)[number];
 
 export const WEBSITE_TASK_TYPES = [
@@ -75,6 +75,7 @@ export const labels = {
     panel: "Panel",
     workshop: "Workshop",
     fireside: "Fireside",
+    roundtable: "Roundtable",
   } satisfies Record<SessionFormatVal, string>,
   websiteTaskType: {
     proof_1: "1st Proof",

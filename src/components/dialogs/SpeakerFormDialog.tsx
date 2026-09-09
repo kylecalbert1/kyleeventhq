@@ -26,13 +26,14 @@ type Speaker = {
   call_scheduled?: boolean;
   call_scheduled_at?: string | null;
   session_title: string | null;
-  session_format: "keynote" | "panel" | "workshop" | "fireside" | null;
+  session_format: "keynote" | "panel" | "workshop" | "fireside" | "roundtable" | null;
   banner_status: "not_started" | "created" | "sent" | "confirmed_live";
   bio_received: boolean;
   headshot_received: boolean;
   bio_and_headshot_received?: boolean;
   linkedin_url: string | null;
   notes: string | null;
+  profile_notes?: string | null;
   dropbox_link: string | null;
   linkedin_post_confirmed: boolean;
   outreach_channel?: "linkedin_connect" | "group_message" | "old_attendee_list" | "warm_intro" | "cold_email" | null;
@@ -69,6 +70,7 @@ export function SpeakerFormDialog({
     bio_and_headshot_received: false,
     linkedin_url: "",
     notes: "",
+    profile_notes: "",
     dropbox_link: "",
     linkedin_post_confirmed: false,
     outreach_channel: "" as "" | NonNullable<Speaker["outreach_channel"]>,
@@ -91,12 +93,13 @@ export function SpeakerFormDialog({
           !!(speaker.bio_received && speaker.headshot_received),
         linkedin_url: speaker.linkedin_url ?? "",
         notes: speaker.notes ?? "",
+        profile_notes: speaker.profile_notes ?? "",
         dropbox_link: speaker.dropbox_link ?? "",
         linkedin_post_confirmed: speaker.linkedin_post_confirmed,
         outreach_channel: speaker.outreach_channel ?? "",
       });
     } else {
-      setForm((f) => ({ ...f, event_id: defaultEventId ?? f.event_id, name: "", company: "", title: "", email: "", session_title: "", notes: "", linkedin_url: "", dropbox_link: "" }));
+      setForm((f) => ({ ...f, event_id: defaultEventId ?? f.event_id, name: "", company: "", title: "", email: "", session_title: "", notes: "", profile_notes: "", linkedin_url: "", dropbox_link: "" }));
     }
   }, [speaker, open, defaultEventId]);
 
@@ -117,6 +120,7 @@ export function SpeakerFormDialog({
         headshot_received: form.bio_and_headshot_received,
         linkedin_url: form.linkedin_url || null,
         notes: form.notes || null,
+        profile_notes: form.profile_notes || null,
         dropbox_link: form.dropbox_link || null,
         linkedin_post_confirmed: form.linkedin_post_confirmed,
         outreach_channel: (form.outreach_channel || null) as Speaker["outreach_channel"],
@@ -208,7 +212,16 @@ export function SpeakerFormDialog({
             <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.bio_and_headshot_received} onCheckedChange={(v) => setForm({ ...form, bio_and_headshot_received: !!v })} />Bio &amp; headshot received</label>
             <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.linkedin_post_confirmed} onCheckedChange={(v) => setForm({ ...form, linkedin_post_confirmed: !!v })} />LinkedIn post confirmed</label>
           </div>
-          <F label="Notes" full><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></F>
+          <F label="Profile notes / bio" full>
+            <Textarea
+              rows={6}
+              placeholder="Paste their LinkedIn About section, work history and recent posts here. This is what the topic ideas are generated from."
+              value={form.profile_notes}
+              onChange={(e) => setForm({ ...form, profile_notes: e.target.value })}
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">Raw profile text. Keep internal comments in Notes below.</p>
+          </F>
+          <F label="Notes (internal)" full><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></F>
           <DialogFooter className="col-span-2 sm:justify-between">
             <div>
               {speaker && (
