@@ -12,7 +12,7 @@ const SpeakerInput = z.object({
   call_scheduled: z.boolean().optional(),
   call_scheduled_at: z.string().nullable().optional(),
   session_title: z.string().nullable().optional(),
-  session_format: z.enum(["keynote", "panel", "workshop", "fireside"]).nullable().optional(),
+  session_format: z.enum(["keynote", "panel", "workshop", "fireside", "roundtable"]).nullable().optional(),
   banner_status: z.enum(["not_started", "created", "sent", "confirmed_live"]),
   bio_received: z.boolean().optional(),
   bio_text: z.string().nullable().optional(),
@@ -20,6 +20,7 @@ const SpeakerInput = z.object({
   bio_and_headshot_received: z.boolean().optional(),
   linkedin_url: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  profile_notes: z.string().nullable().optional(),
   dropbox_link: z.string().nullable().optional(),
   linkedin_post_confirmed: z.boolean(),
   outreach_channel: z.enum(["linkedin_connect","group_message","old_attendee_list","warm_intro","cold_email"]).nullable().optional(),
@@ -149,7 +150,7 @@ export const copySpeakerToEvent = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: src, error: srcErr } = await context.supabase
       .from("speakers")
-      .select("name, email, company, title, linkedin_url, notes, session_format")
+      .select("name, email, company, title, linkedin_url, notes, profile_notes, session_format")
       .eq("id", data.source_speaker_id)
       .maybeSingle();
     if (srcErr) throw new Error(srcErr.message);
@@ -164,6 +165,7 @@ export const copySpeakerToEvent = createServerFn({ method: "POST" })
       title: src.title,
       linkedin_url: src.linkedin_url,
       notes: src.notes ? `Copied from past speaker.\n\n${src.notes}` : "Copied from past speaker.",
+      profile_notes: src.profile_notes,
       session_format: src.session_format,
       status: "new",
       banner_status: "not_started",

@@ -1158,12 +1158,15 @@ export type Database = {
           outreach_channel:
             | Database["public"]["Enums"]["outreach_channel"]
             | null
+          profile_notes: string | null
           session_format: Database["public"]["Enums"]["session_format"] | null
           session_title: string | null
           source: string | null
           source_ticket_id: string | null
           status: Database["public"]["Enums"]["speaker_status"]
           title: string | null
+          topic_ideas: Json | null
+          topic_ideas_generated_at: string | null
           updated_at: string
         }
         Insert: {
@@ -1193,12 +1196,15 @@ export type Database = {
           outreach_channel?:
             | Database["public"]["Enums"]["outreach_channel"]
             | null
+          profile_notes?: string | null
           session_format?: Database["public"]["Enums"]["session_format"] | null
           session_title?: string | null
           source?: string | null
           source_ticket_id?: string | null
           status?: Database["public"]["Enums"]["speaker_status"]
           title?: string | null
+          topic_ideas?: Json | null
+          topic_ideas_generated_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -1228,12 +1234,15 @@ export type Database = {
           outreach_channel?:
             | Database["public"]["Enums"]["outreach_channel"]
             | null
+          profile_notes?: string | null
           session_format?: Database["public"]["Enums"]["session_format"] | null
           session_title?: string | null
           source?: string | null
           source_ticket_id?: string | null
           status?: Database["public"]["Enums"]["speaker_status"]
           title?: string | null
+          topic_ideas?: Json | null
+          topic_ideas_generated_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1836,7 +1845,12 @@ export type Database = {
         | "warm_intro"
         | "cold_email"
       self_status: "on_track" | "needs_attention" | "off_track"
-      session_format: "keynote" | "panel" | "workshop" | "fireside"
+      session_format:
+        | "keynote"
+        | "panel"
+        | "workshop"
+        | "fireside"
+        | "roundtable"
       speaker_status:
         | "new"
         | "contacted"
@@ -2000,7 +2014,13 @@ export const Constants = {
         "cold_email",
       ],
       self_status: ["on_track", "needs_attention", "off_track"],
-      session_format: ["keynote", "panel", "workshop", "fireside"],
+      session_format: [
+        "keynote",
+        "panel",
+        "workshop",
+        "fireside",
+        "roundtable",
+      ],
       speaker_status: [
         "new",
         "contacted",

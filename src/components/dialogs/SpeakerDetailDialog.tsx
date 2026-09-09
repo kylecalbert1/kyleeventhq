@@ -43,6 +43,7 @@ import { buildSpeakerTimeline, type TimelineKind } from "@/lib/speaker-timeline"
 import { initialsOf } from "@/lib/gmail";
 import { linkedinSearchUrl } from "@/lib/linkedin-search";
 import { FindEmailButton } from "@/components/speakers/FindEmailButton";
+import { TopicIdeasCard } from "@/components/speakers/TopicIdeasCard";
 
 
 function bhDone(s: any): boolean {
@@ -291,9 +292,18 @@ export function SpeakerDetailDialog({
               </>
             )}
 
+            {speaker.profile_notes && (
+              <>
+                <SectionTitle>Profile notes / bio</SectionTitle>
+                <p className="text-sm whitespace-pre-line text-foreground/90 leading-relaxed max-h-48 overflow-y-auto">
+                  {speaker.profile_notes}
+                </p>
+              </>
+            )}
+
             {speaker.notes && (
               <>
-                <SectionTitle>Notes</SectionTitle>
+                <SectionTitle>Notes (internal)</SectionTitle>
                 <p className="text-sm whitespace-pre-line text-foreground/90 leading-relaxed">
                   {speaker.notes}
                 </p>
@@ -335,6 +345,10 @@ export function SpeakerDetailDialog({
               <div className="text-xs text-muted-foreground pl-4">Loading activity…</div>
             )}
           </section>
+
+          <div className="md:col-span-2">
+            <TopicIdeasCard speaker={speaker} />
+          </div>
 
         </div>
 
