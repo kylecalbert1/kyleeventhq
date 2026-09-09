@@ -1,43 +1,29 @@
-# Generate Topic Ideas for speakers
+# Standalone Topic Ideas tool
 
-Add an AI action on a speaker that turns their pasted LinkedIn profile text into 3 ranked session topic ideas, tailored to the event and slot format, saved on the speaker so it only regenerates on demand.
+Turn topic ideas into a scratchpad tool Kyle can use before anyone is added as a speaker, while keeping the existing per-speaker card working.
 
 ## What changes for Kyle
 
-- Each speaker gets a new **Profile notes / bio** box (paste the LinkedIn About section, work history, recent posts). The existing **Notes** box stays for internal operational notes, so the two never get mixed up.
-- **Roundtable** joins Keynote, Panel, Workshop and Fireside everywhere a session format is picked or shown.
-- The speaker detail popup gets a **Topic ideas** card with a **Generate topic ideas** button. Once generated the three ideas stay on the card, with when they were generated and a **Regenerate** button.
-- Each idea shows a rank pill, a title and a one or two sentence description. If another speaker on the same event is already being pitched something similar, a warning line says so. If the person's background doesn't fit the event at all, the card says that plainly instead of inventing topics.
-- The button is disabled with a hint when there's no profile text or no session format chosen yet.
+- New **Topic ideas** page in the main nav, usable with nothing tracked yet.
+- On it: a big box to paste LinkedIn profile text, a summit series picker, an event picker (choose a tracked event or just type a name), a slot format picker, and an optional box for topics already being pitched to others.
+- **Generate** returns the same three ranked ideas plus fit and overlap notes as the speaker card.
+- Nothing is saved unless he clicks **Save as speaker**, which creates a real speaker record carrying the profile text, event, format and generated topics.
+- The wording of the ideas now adapts to the summit series chosen, instead of always assuming a senior customer-success executive room.
 
-## Database
+## Summit series calibration
 
-One migration:
-- `ALTER TYPE session_format ADD VALUE 'roundtable';`
-- On `speakers`: `profile_notes text`, `topic_ideas jsonb`, `topic_ideas_generated_at timestamptz`.
-- Existing table grants and RLS policies already cover these columns; no new policy needed.
-- Regenerate `src/integrations/supabase/types.ts`.
+Added to the system prompt per selection:
+- CCO Summit: senior executive peers, never career-journey topics.
+- Customer Success Summit: mixed-seniority practitioners, career development is fine.
+- AI for Customer Support Summit: narrow support-ops functional audience.
+- Generative AI Summit / Agentic AI Summit: technical engineers and AI execs; a CS/CX leadership background is only relevant with a real technical angle.
 
-## Server function
+## Technical notes
 
-New `src/lib/topic-ideas.functions.ts`, same shape as `message-ai.functions.ts`: `createServerFn({method:"POST"})` + `requireSupabaseAuth`, zod-validated `{ speaker_id }`, Lovable AI Gateway chat call with `response_format: json_object`, same 429/402/!ok error handling, zod-parsed result.
-
-It loads the speaker, their event (name, code, business line, format), and sibling speakers on the same `event_id` that have a `session_title`, then persists the result to `topic_ideas` / `topic_ideas_generated_at` and returns it.
-
-Result shape:
-```json
-{ "fit": "good" | "poor", "fit_note": string|null,
-  "overlap_note": string|null,
-  "topics": [{ "rank": 1, "title": string, "description": string }] }
-```
-When `fit` is `poor`, `topics` may be empty and `fit_note` explains why.
-
-System prompt encodes, verbatim as rules: use only verified specific facts from the profile (quotes, numbers, named projects), prefer recent original posts over About-section marketing copy; calibrate seniority (no "how I became a X" for peer-level executive audiences); reject tagline topics with no mechanism or debate; don't force one industry's detail on a mixed-industry room; flag overlap with the listed sibling topics explicitly; titles must sell the session to an attendee choosing a room, not restate a job title; no confessional "what I got wrong" framing by default; match structure to format (keynote/fireside = one narrative, panel = debatable topic, workshop = hands-on, roundtable = a discussion prompt, not a lecture); say plainly when the background doesn't fit rather than inventing topics.
-
-## Frontend
-
-- `src/lib/status.ts`: add `roundtable` to `SESSION_FORMATS` and `labels.sessionFormat`.
-- `src/lib/speakers.functions.ts`: add `roundtable` to the session-format enum and `profile_notes` to `SpeakerInput`.
-- `src/components/dialogs/SpeakerFormDialog.tsx`: add the Profile notes / bio textarea (larger, with helper text) above Notes; roundtable comes through the shared format list.
-- `src/components/speakers/TopicIdeasCard.tsx` (new): card matching the existing dialog sections, uses `useServerFn` + `useServerFn`-driven mutation, `StatusPill` for rank and the overlap flag, toast on error, invalidates speaker queries.
-- `src/components/dialogs/SpeakerDetailDialog.tsx`: render the card in the right column under Contact/Session, plus the Profile notes text when present.
+- `src/lib/topic-ideas.functions.ts`: extract `runTopicIdeas(input)` core taking `{ profile, event_name, event_context, series, session_format, other_topics }` and returning the existing result shape. `generateTopicIdeas` (speaker-linked) keeps its signature and calls the core with speaker/event data loaded as today.
+- New `generateTopicIdeasAdhoc` server fn: `requireSupabaseAuth`, zod input of the plain fields, optional `event_id` used only to look up event context and sibling session titles; returns the result without persisting.
+- New `SUMMIT_SERIES` list + labels in `src/lib/status.ts`.
+- New route `src/routes/_authenticated/topic-ideas.tsx` plus `src/components/speakers/TopicIdeasResult.tsx` extracted from `TopicIdeasCard.tsx` so both surfaces render results identically (pills, cards, amber overlap banner).
+- Save as speaker calls existing `createSpeaker` with `profile_notes`, `session_format`, `event_id`, `status: "new"`, then writes `topic_ideas` via `updateSpeaker`. Disabled unless a tracked event is selected, since speakers require an event.
+- Nav entry added to `NAV_PRIMARY` in `AppShell.tsx` (Lightbulb icon).
+- No database migration needed.
