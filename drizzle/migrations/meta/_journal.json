@@ -8,6 +8,13 @@
       "when": 1788783918499,
       "tag": "0000_create_email_unsubscribes",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788986600212,
+      "tag": "0001_speaker_topic_ideas",
+      "breakpoints": true
     }
   ]
 }
