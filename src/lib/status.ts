@@ -13,6 +13,15 @@ export type BannerStatusVal = (typeof BANNER_STATUSES)[number];
 export const SESSION_FORMATS = ["keynote", "panel", "workshop", "fireside", "roundtable"] as const;
 export type SessionFormatVal = (typeof SESSION_FORMATS)[number];
 
+export const SUMMIT_SERIES = [
+  "cco_summit",
+  "customer_success_summit",
+  "ai_customer_support_summit",
+  "generative_ai_summit",
+  "agentic_ai_summit",
+] as const;
+export type SummitSeries = (typeof SUMMIT_SERIES)[number];
+
 export const WEBSITE_TASK_TYPES = [
   "proof_1",
   "proof_2",
