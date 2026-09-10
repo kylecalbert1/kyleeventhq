@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedWebsiteRouteImport } from './routes/_authenticated/website'
+import { Route as AuthenticatedTopicIdeasRouteImport } from './routes/_authenticated/topic-ideas'
 import { Route as AuthenticatedSponsorInboxRouteImport } from './routes/_authenticated/sponsor-inbox'
 import { Route as AuthenticatedSpeakersRouteImport } from './routes/_authenticated/speakers'
 import { Route as AuthenticatedSpeakerSourcingRouteImport } from './routes/_authenticated/speaker-sourcing'
@@ -54,6 +55,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedWebsiteRoute = AuthenticatedWebsiteRouteImport.update({
   id: '/website',
   path: '/website',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTopicIdeasRoute = AuthenticatedTopicIdeasRouteImport.update({
+  id: '/topic-ideas',
+  path: '/topic-ideas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSponsorInboxRoute =
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/speaker-sourcing': typeof AuthenticatedSpeakerSourcingRoute
   '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
+  '/topic-ideas': typeof AuthenticatedTopicIdeasRoute
   '/website': typeof AuthenticatedWebsiteRoute
   '/boards/$boardId': typeof AuthenticatedBoardsBoardIdRoute
   '/events/$eventId': typeof AuthenticatedEventsEventIdRoute
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/speaker-sourcing': typeof AuthenticatedSpeakerSourcingRoute
   '/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
+  '/topic-ideas': typeof AuthenticatedTopicIdeasRoute
   '/website': typeof AuthenticatedWebsiteRoute
   '/': typeof AuthenticatedIndexRoute
   '/boards/$boardId': typeof AuthenticatedBoardsBoardIdRoute
@@ -257,6 +265,7 @@ export interface FileRoutesById {
   '/_authenticated/speaker-sourcing': typeof AuthenticatedSpeakerSourcingRoute
   '/_authenticated/speakers': typeof AuthenticatedSpeakersRouteWithChildren
   '/_authenticated/sponsor-inbox': typeof AuthenticatedSponsorInboxRoute
+  '/_authenticated/topic-ideas': typeof AuthenticatedTopicIdeasRoute
   '/_authenticated/website': typeof AuthenticatedWebsiteRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/boards/$boardId': typeof AuthenticatedBoardsBoardIdRoute
@@ -288,6 +297,7 @@ export interface FileRouteTypes {
     | '/speaker-sourcing'
     | '/speakers'
     | '/sponsor-inbox'
+    | '/topic-ideas'
     | '/website'
     | '/boards/$boardId'
     | '/events/$eventId'
@@ -315,6 +325,7 @@ export interface FileRouteTypes {
     | '/speaker-sourcing'
     | '/speakers'
     | '/sponsor-inbox'
+    | '/topic-ideas'
     | '/website'
     | '/'
     | '/boards/$boardId'
@@ -344,6 +355,7 @@ export interface FileRouteTypes {
     | '/_authenticated/speaker-sourcing'
     | '/_authenticated/speakers'
     | '/_authenticated/sponsor-inbox'
+    | '/_authenticated/topic-ideas'
     | '/_authenticated/website'
     | '/_authenticated/'
     | '/_authenticated/boards/$boardId'
@@ -397,6 +409,13 @@ declare module '@tanstack/react-router' {
       path: '/website'
       fullPath: '/website'
       preLoaderRoute: typeof AuthenticatedWebsiteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/topic-ideas': {
+      id: '/_authenticated/topic-ideas'
+      path: '/topic-ideas'
+      fullPath: '/topic-ideas'
+      preLoaderRoute: typeof AuthenticatedTopicIdeasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sponsor-inbox': {
@@ -588,6 +607,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSpeakerSourcingRoute: typeof AuthenticatedSpeakerSourcingRoute
   AuthenticatedSpeakersRoute: typeof AuthenticatedSpeakersRouteWithChildren
   AuthenticatedSponsorInboxRoute: typeof AuthenticatedSponsorInboxRoute
+  AuthenticatedTopicIdeasRoute: typeof AuthenticatedTopicIdeasRoute
   AuthenticatedWebsiteRoute: typeof AuthenticatedWebsiteRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedBoardsBoardIdRoute: typeof AuthenticatedBoardsBoardIdRoute
@@ -611,6 +631,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSpeakerSourcingRoute: AuthenticatedSpeakerSourcingRoute,
   AuthenticatedSpeakersRoute: AuthenticatedSpeakersRouteWithChildren,
   AuthenticatedSponsorInboxRoute: AuthenticatedSponsorInboxRoute,
+  AuthenticatedTopicIdeasRoute: AuthenticatedTopicIdeasRoute,
   AuthenticatedWebsiteRoute: AuthenticatedWebsiteRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedBoardsBoardIdRoute: AuthenticatedBoardsBoardIdRoute,
