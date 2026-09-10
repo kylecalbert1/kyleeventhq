@@ -79,6 +79,13 @@ export const labels = {
     sent: "Sent",
     confirmed_live: "Confirmed Live",
   } satisfies Record<BannerStatusVal, string>,
+  summitSeries: {
+    cco_summit: "CCO Summit",
+    customer_success_summit: "Customer Success Summit",
+    ai_customer_support_summit: "AI for Customer Support Summit",
+    generative_ai_summit: "Generative AI Summit",
+    agentic_ai_summit: "Agentic AI Summit",
+  } satisfies Record<SummitSeries, string>,
   sessionFormat: {
     keynote: "Keynote",
     panel: "Panel",

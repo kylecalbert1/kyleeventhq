@@ -29,7 +29,7 @@ const ResultShape = z.object({
 
 const SERIES_GUIDANCE: Record<SummitSeries, string> = {
   cco_summit:
-    "CCO Summit. The room is senior customer/chief customer officers and their direct peers. They are already at the top of the function, so never suggest a career-journey or "how I became a CCO" topic. Pitch peer-level strategic problems, board-facing arguments, operating-model decisions and numbers they can benchmark against.",
+    "CCO Summit. The room is senior customer/chief customer officers and their direct peers. They are already at the top of the function, so never suggest a career-journey or how-I-became-a-CCO topic. Pitch peer-level strategic problems, board-facing arguments, operating-model decisions and numbers they can benchmark against.",
   customer_success_summit:
     "Customer Success Summit. Mixed-seniority customer success practitioners, from ICs and team leads to VPs. Career development, craft and playbook topics are all fair game. Keep it practical and transferable rather than boardroom-only.",
   ai_customer_support_summit:
