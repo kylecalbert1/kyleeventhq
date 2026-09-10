@@ -13,6 +13,15 @@ export type BannerStatusVal = (typeof BANNER_STATUSES)[number];
 export const SESSION_FORMATS = ["keynote", "panel", "workshop", "fireside", "roundtable"] as const;
 export type SessionFormatVal = (typeof SESSION_FORMATS)[number];
 
+export const SUMMIT_SERIES = [
+  "cco_summit",
+  "customer_success_summit",
+  "ai_customer_support_summit",
+  "generative_ai_summit",
+  "agentic_ai_summit",
+] as const;
+export type SummitSeries = (typeof SUMMIT_SERIES)[number];
+
 export const WEBSITE_TASK_TYPES = [
   "proof_1",
   "proof_2",
@@ -70,6 +79,13 @@ export const labels = {
     sent: "Sent",
     confirmed_live: "Confirmed Live",
   } satisfies Record<BannerStatusVal, string>,
+  summitSeries: {
+    cco_summit: "CCO Summit",
+    customer_success_summit: "Customer Success Summit",
+    ai_customer_support_summit: "AI for Customer Support Summit",
+    generative_ai_summit: "Generative AI Summit",
+    agentic_ai_summit: "Agentic AI Summit",
+  } satisfies Record<SummitSeries, string>,
   sessionFormat: {
     keynote: "Keynote",
     panel: "Panel",

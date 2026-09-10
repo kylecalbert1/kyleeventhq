@@ -2,16 +2,10 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Lightbulb, RefreshCw, AlertTriangle } from "lucide-react";
+import { Lightbulb, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { StatusPill } from "@/components/StatusPill";
+import { TopicIdeasResultView } from "@/components/speakers/TopicIdeasResult";
 import { generateTopicIdeas, type TopicIdeasResult } from "@/lib/topic-ideas.functions";
-
-function fmt(iso?: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return `${d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} · ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-}
 
 export function TopicIdeasCard({ speaker }: { speaker: any }) {
   const qc = useQueryClient();
@@ -70,44 +64,7 @@ export function TopicIdeasCard({ speaker }: { speaker: any }) {
       )}
 
       {stored && (
-        <div className="space-y-3">
-          {stored.overlap_note && (
-            <div className="flex gap-2 rounded-lg bg-amber-50 p-2.5 text-xs text-amber-800 ring-1 ring-inset ring-amber-200">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span>{stored.overlap_note}</span>
-            </div>
-          )}
-          {stored.fit === "poor" && (
-            <div className="rounded-lg bg-rose-50 p-2.5 text-xs text-rose-800 ring-1 ring-inset ring-rose-200">
-              {stored.fit_note ?? "This background doesn't fit the event's subject matter."}
-            </div>
-          )}
-          {stored.fit === "good" && stored.fit_note && (
-            <div className="text-xs text-muted-foreground">{stored.fit_note}</div>
-          )}
-          <ol className="space-y-2">
-            {stored.topics.map((t, i) => (
-              <li key={i} className="rounded-lg border bg-background p-3">
-                <div className="flex items-start gap-2">
-                  <StatusPill className="bg-primary/10 text-primary ring-primary/20">
-                    #{t.rank || i + 1}
-                  </StatusPill>
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium leading-snug">{t.title}</div>
-                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                      {t.description}
-                    </p>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ol>
-          {(stored.generated_at ?? speaker.topic_ideas_generated_at) && (
-            <div className="text-[11px] text-muted-foreground">
-              Generated {fmt(stored.generated_at ?? speaker.topic_ideas_generated_at)}
-            </div>
-          )}
-        </div>
+        <TopicIdeasResultView result={stored} generatedAt={speaker.topic_ideas_generated_at} />
       )}
     </section>
   );
