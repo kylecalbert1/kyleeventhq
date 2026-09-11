@@ -21,6 +21,8 @@ const SpeakerInput = z.object({
   linkedin_url: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   profile_notes: z.string().nullable().optional(),
+  topic_ideas: z.any().optional(),
+  topic_ideas_generated_at: z.string().nullable().optional(),
   dropbox_link: z.string().nullable().optional(),
   linkedin_post_confirmed: z.boolean(),
   outreach_channel: z.enum(["linkedin_connect","group_message","old_attendee_list","warm_intro","cold_email"]).nullable().optional(),
