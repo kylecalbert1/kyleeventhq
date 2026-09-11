@@ -15,7 +15,7 @@ import {
   Columns3,
   Wand2,
   MessageSquareText,
-
+  Lightbulb,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CommandBar } from "@/components/CommandBar";
@@ -29,6 +29,7 @@ const NAV_PRIMARY: NavItem[] = [
   // cross-event sourcing/re-recruitment view only.
   { to: "/speakers", label: "Find speakers", icon: Users },
 
+  { to: "/topic-ideas", label: "Topic ideas", icon: Lightbulb },
   { to: "/boards", label: "Speaker boards", icon: Columns3 },
   { to: "/agenda", label: "Agenda", icon: ListChecks },
   { to: "/outreach", label: "Outreach", icon: Megaphone },

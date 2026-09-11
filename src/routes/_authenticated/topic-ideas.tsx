@@ -119,16 +119,12 @@ function TopicIdeasPage() {
         await update({
           data: {
             id: row.id,
-            patch: {},
+            patch: {
+              topic_ideas: result,
+              topic_ideas_generated_at: result.generated_at ?? new Date().toISOString(),
+            },
           },
         });
-        // persist topic ideas alongside the new record
-        await update({
-          data: {
-            id: row.id,
-            patch: { notes: null } as never,
-          },
-        }).catch(() => undefined);
       }
       qc.invalidateQueries({ queryKey: ["speakers"] });
       toast.success("Saved as a speaker");
