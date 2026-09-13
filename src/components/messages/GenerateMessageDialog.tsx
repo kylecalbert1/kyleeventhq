@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, Check, AlertTriangle, Pencil, Filter, Save, CheckCircle2 } from "lucide-react";
+import { Copy, Check, AlertTriangle, Pencil, Filter, Save, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,7 @@ import {
   markMessageSent,
   type MessageTemplate,
 } from "@/lib/message-templates.functions";
+import { generateMessageDraft } from "@/lib/message-ai.functions";
 
 /**
  * Either a saved template row, or an unsaved AI draft (id === null).
@@ -78,10 +79,12 @@ export function GenerateMessageDialog({
   const [body, setBody] = useState("");
   const [recipients, setRecipients] = useState("");
   const [warnLost, setWarnLost] = useState<string[] | null>(null);
+  const [refinement, setRefinement] = useState("");
 
   const update = useServerFn(updateMessageTemplate);
   const createTemplate = useServerFn(createMessageTemplate);
   const logSend = useServerFn(markMessageSent);
+  const generate = useServerFn(generateMessageDraft);
 
   const rendered = useMemo(() => {
     if (!template) return null;
@@ -94,12 +97,37 @@ export function GenerateMessageDialog({
     setSubject(rendered.subject);
     setBody(rendered.body);
     setRecipients("");
+    setRefinement("");
   }, [template?.id, rendered?.subject, rendered?.body]);
 
   const isDraft = Boolean(template) && template!.id === null;
   const edited =
     Boolean(rendered) && (subject !== rendered!.subject || body !== rendered!.body);
   const blocked = (rendered?.missing.length ?? 0) > 0;
+
+  const refine = useMutation({
+    mutationFn: () =>
+      generate({
+        data: {
+          prompt: refinement.trim(),
+          event_id: event.id,
+          current_draft: {
+            name: template?.name ?? "AI draft",
+            subject,
+            body_markdown: body,
+            stream: template?.stream ?? "attendees",
+            event_format: template?.event_format ?? null,
+            typical_weeks: template?.typical_weeks ?? null,
+          },
+        },
+      }),
+    onSuccess: (draft) => {
+      setSubject(draft.subject);
+      setBody(draft.body_markdown);
+      setRefinement("");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not refine the draft"),
+  });
 
   const saveAsTemplate = useMutation({
     mutationFn: async () => {
@@ -309,6 +337,21 @@ export function GenerateMessageDialog({
                 </p>
               </section>
             </div>
+            <section className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Refine this draft</Label>
+              <div className="flex gap-2">
+                <Textarea
+                  rows={2}
+                  value={refinement}
+                  onChange={(e) => setRefinement(e.target.value)}
+                  placeholder="Make it shorter, more urgent, or change the tone"
+                />
+                <Button variant="outline" disabled={refinement.trim().length < 3 || refine.isPending} onClick={() => refine.mutate()}>
+                  {refine.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1.5 h-4 w-4" />}
+                  Refine
+                </Button>
+              </div>
+            </section>
           </div>
 
           <DialogFooter className="flex-wrap gap-2 sm:justify-between">

@@ -79,6 +79,7 @@ export const generateEmailDraft = createServerFn({ method: "POST" })
           "past_speakers",
           "confirmed_not_registered",
         ]),
+        current_draft: DraftShape.nullish(),
       })
       .parse(d),
   )
@@ -138,7 +139,11 @@ export const generateEmailDraft = createServerFn({ method: "POST" })
           { role: "system", content: systemPrompt(data.group, fieldNotes) },
           {
             role: "user",
-            content: `Event context (for judgement only, always use the {{tokens}} in the copy itself):\n${eventContext}\n\nWhat I want to send:\n${data.prompt}`,
+            content:
+              `Event context (for judgement only, always use the {{tokens}} in the copy itself):\n${eventContext}\n\n` +
+              (data.current_draft
+                ? `Here is the current draft:\n${JSON.stringify(data.current_draft)}\n\nThe user wants this draft refined. Apply only this change and keep everything else intact unless the change requires otherwise:\n${data.prompt}`
+                : `What I want to send:\n${data.prompt}`),
           },
         ],
         response_format: { type: "json_object" },
