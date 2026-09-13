@@ -40,6 +40,7 @@ import {
   milestonesQuery,
   emailSendsQuery,
   eventReconciliationQuery,
+  eventTitoLinksQuery,
 } from "@/lib/queries";
 import { labels, pillClass } from "@/lib/status";
 import { getAsanaProofingDueDates } from "@/lib/asana.functions";
@@ -63,6 +64,7 @@ import { firstNameOf } from "@/lib/gmail";
 import { SyncDialog } from "@/components/SyncDialog";
 import { EventTargetsSummaryCard } from "@/components/events/EventTargetsSummaryCard";
 import { EventLinksCard } from "@/components/events/EventLinksCard";
+import { TitoPassLinksCard } from "@/components/events/TitoPassLinksCard";
 import { EventBoardLink } from "@/components/boards/EventBoardLink";
 import { EventSpeakerBoardCard } from "@/components/boards/EventSpeakerBoardCard";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
@@ -73,6 +75,7 @@ import { toast } from "sonner";
 import { fuzzyFilter } from "@/lib/fuzzy-search";
 import { EventMessagesPanel } from "@/components/messages/EventMessagesPanel";
 import { weeksOutLabel } from "@/lib/message-render";
+import { isProspectiveSpeaker, isRespondedSpeaker, isSpeakerInConversation, speakerStageChipActiveTones, speakerStageChipTones } from "@/lib/speaker-stage";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
   loader: ({ params, context }) =>
@@ -83,6 +86,7 @@ export const Route = createFileRoute("/_authenticated/events/$eventId")({
       context.queryClient.ensureQueryData(websiteTasksQuery(params.eventId)),
       context.queryClient.ensureQueryData(milestonesQuery(params.eventId)),
       context.queryClient.ensureQueryData(emailSendsQuery(params.eventId)),
+      context.queryClient.ensureQueryData(eventTitoLinksQuery(params.eventId)),
     ]),
   component: EventDetail,
 });
@@ -217,12 +221,9 @@ function EventDetail() {
   }, [recon.data]);
 
   const allSpeakers = (speakers.data ?? []) as any[];
-  const isProspective = (s: any) =>
-    (s.status === "new" || s.status === "contacted") && !s.call_scheduled;
-  const isInConversation = (s: any) =>
-    s.status === "in_conversation" ||
-    (s.call_scheduled && s.status !== "confirmed" && s.status !== "declined");
-  const isResponded = (s: any) => s.status === "responded";
+  const isProspective = isProspectiveSpeaker;
+  const isInConversation = isSpeakerInConversation;
+  const isResponded = isRespondedSpeaker;
   const isMissingAssets = (s: any) => {
     if (typeof s.bio_and_headshot_received === "boolean") return !s.bio_and_headshot_received;
     return !(s.bio_received && s.headshot_received);
@@ -473,6 +474,8 @@ function EventDetail() {
       </Card>
 
       <EventSpeakerBoardCard eventId={eventId} speakerTarget={speakerTarget} />
+
+      <TitoPassLinksCard eventId={eventId} hasTitoEvent={Boolean((e as any).tito_slug)} />
 
       <EventMessagesPanel event={e as never} onEditEvent={() => setEditingEvent(true)} />
 
@@ -989,20 +992,6 @@ function SectionHeader({ title, onAdd }: { title: string; onAdd?: () => void }) 
   );
 }
 
-const chipTones = {
-  emerald: "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100",
-  sky: "bg-sky-50 text-sky-800 border-sky-200 hover:bg-sky-100",
-  violet: "bg-violet-50 text-violet-800 border-violet-200 hover:bg-violet-100",
-  amber: "bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100",
-} as const;
-
-const chipToneActive = {
-  emerald: "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-600",
-  sky: "bg-sky-600 text-white border-sky-600 hover:bg-sky-600",
-  violet: "bg-violet-600 text-white border-violet-600 hover:bg-violet-600",
-  amber: "bg-amber-600 text-white border-amber-600 hover:bg-amber-600",
-} as const;
-
 function FilterChip({
   label,
   count,
@@ -1014,14 +1003,14 @@ function FilterChip({
   count: number;
   active: boolean;
   onClick: () => void;
-  tone: keyof typeof chipTones;
+  tone: keyof typeof speakerStageChipTones;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-        active ? chipToneActive[tone] : chipTones[tone]
+        active ? speakerStageChipActiveTones[tone] : speakerStageChipTones[tone]
       }`}
     >
       {label}

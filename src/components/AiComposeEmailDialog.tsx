@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Sparkles, Save } from "lucide-react";
+import { Loader2, Sparkles, Save, RotateCcw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +39,7 @@ export function AiComposeEmailDialog({
 }) {
   const [prompt, setPrompt] = useState("");
   const [draft, setDraft] = useState<AiEmailDraft | null>(null);
+  const [refinement, setRefinement] = useState("");
   const [templateName, setTemplateName] = useState("");
   const generate = useServerFn(generateEmailDraft);
   const saveTemplate = useServerFn(createEmailTemplate);
@@ -49,15 +50,25 @@ export function AiComposeEmailDialog({
       setPrompt("");
       setDraft(null);
       setTemplateName("");
+      setRefinement("");
     }
   }, [open]);
 
   const run = useMutation({
-    mutationFn: () => generate({ data: { prompt: prompt.trim(), event_id: eventId, group } }),
+    mutationFn: (input: { text: string; refine: boolean }) =>
+      generate({
+        data: {
+          prompt: input.text,
+          event_id: eventId,
+          group,
+          ...(input.refine && draft ? { current_draft: draft } : {}),
+        },
+      }),
     onSuccess: (d) => {
       const draftValue = d as AiEmailDraft;
       setDraft(draftValue);
       setTemplateName(draftValue.subject.slice(0, 60));
+      setRefinement("");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not generate a draft"),
   });
@@ -94,13 +105,15 @@ export function AiComposeEmailDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Textarea
-          rows={6}
-          autoFocus
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Ask speakers who confirmed but haven't registered yet to register, deadline is coming up soon"
-        />
+        {!draft && (
+          <Textarea
+            rows={6}
+            autoFocus
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Ask speakers who confirmed but haven't registered yet to register, deadline is coming up soon"
+          />
+        )}
 
         {draft && (
           <div className="space-y-3 rounded-xl border-2 border-border bg-muted/30 p-4">
@@ -108,15 +121,28 @@ export function AiComposeEmailDialog({
               <Label className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                 Subject
               </Label>
-              <p className="text-[13px] font-semibold text-foreground">{draft.subject}</p>
+              <Input value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} />
             </div>
             <div>
               <Label className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                 Body
               </Label>
-              <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
-                {draft.body}
-              </p>
+              <div className="grid gap-3 md:grid-cols-2">
+                <Textarea rows={11} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
+                <div className="min-h-[180px] rounded-lg border border-border bg-card px-4 py-3 text-[13px] leading-relaxed">
+                  <p className="mb-3">Hi {"{{first_name}}"},</p>
+                  <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: draft.body.replace(/\*\*([^*\n]+?)\*\*/g, "<strong>$1</strong>") }} />
+                </div>
+              </div>
+            </div>
+            <div>
+              <Label className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Refine this draft</Label>
+              <Textarea
+                rows={3}
+                value={refinement}
+                onChange={(e) => setRefinement(e.target.value)}
+                placeholder="Make it shorter, more urgent, or change the tone"
+              />
             </div>
             <div className="flex items-end gap-2 border-t border-border pt-3">
               <div className="flex-1">
@@ -146,18 +172,25 @@ export function AiComposeEmailDialog({
         )}
 
         <DialogFooter className="gap-2">
-          <Button
-            variant={draft ? "outline" : "default"}
+          {!draft ? <Button
             disabled={prompt.trim().length < 3 || run.isPending}
-            onClick={() => run.mutate()}
+            onClick={() => run.mutate({ text: prompt.trim(), refine: false })}
           >
             {run.isPending ? (
               <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
             ) : (
               <Sparkles className="mr-1.5 h-4 w-4" />
             )}
-            {run.isPending ? "Generating" : draft ? "Regenerate" : "Generate"}
-          </Button>
+            {run.isPending ? "Generating" : "Generate"}
+          </Button> : <>
+            <Button variant="ghost" disabled={busy} onClick={() => { setDraft(null); setRefinement(""); }}>
+              <RotateCcw className="mr-1.5 h-4 w-4" /> Start over
+            </Button>
+            <Button variant="outline" disabled={refinement.trim().length < 3 || busy} onClick={() => run.mutate({ text: refinement.trim(), refine: true })}>
+              {run.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1.5 h-4 w-4" />}
+              {run.isPending ? "Refining" : "Refine"}
+            </Button>
+          </>}
           {draft && (
             <Button
               onClick={() => {
