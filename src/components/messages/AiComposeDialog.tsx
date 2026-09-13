@@ -11,9 +11,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { generateMessageDraft, type AiMessageDraft } from "@/lib/message-ai.functions";
+import { markdownToHtml } from "@/lib/message-render";
 
 export function AiComposeDialog({
   open,
@@ -83,14 +85,33 @@ export function AiComposeDialog({
 
         {draft && (
           <div className="space-y-3">
-            <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {draft.name} · {draft.stream.replace("_", " ")}
               </div>
-              <div className="mt-1 text-sm font-semibold text-foreground">{draft.subject}</div>
-              <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
-                {draft.body_markdown}
-              </p>
+              <Input
+                value={draft.subject}
+                onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
+                aria-label="Message subject"
+              />
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Message (markdown)</div>
+                  <Textarea
+                    rows={12}
+                    className="font-mono text-[12.5px]"
+                    value={draft.body_markdown}
+                    onChange={(e) => setDraft({ ...draft, body_markdown: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Preview</div>
+                  <div
+                    className="min-h-[200px] rounded-lg border border-border bg-card px-4 py-3 text-sm leading-relaxed [&_a]:text-primary [&_a]:underline [&_p]:my-2"
+                    dangerouslySetInnerHTML={{ __html: markdownToHtml(draft.body_markdown) }}
+                  />
+                </div>
+              </div>
             </div>
 
             <div>
