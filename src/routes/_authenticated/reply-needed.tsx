@@ -428,6 +428,8 @@ function RowCard({
   const Icon = meta.icon;
   const display = r.person_name ?? r.person_email ?? "Unknown";
   const isThreadFake = r.gmail_thread_id.startsWith("seed:");
+  const [expanded, setExpanded] = useState(false);
+  const stage = speaker ? stagePill[normalizeSpeakerStatus(speaker.status)] : null;
   return (
     <Card className="p-4">
       <div className="flex items-start gap-4">
