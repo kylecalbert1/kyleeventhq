@@ -49,7 +49,6 @@ export const ROUTE_CATALOG: Array<{ path: string; label: string; about: string }
   { path: "/message-templates", label: "Message templates", about: "message template library and AI message drafting" },
   { path: "/sent-messages", label: "Sent messages", about: "history of every email sent" },
   { path: "/sponsor-inbox", label: "Sponsor inbox", about: "sponsor enquiries" },
-  { path: "/banners", label: "Banners", about: "speaker banner production status" },
   { path: "/settings", label: "Settings", about: "user settings, signature, excluded ticket types" },
   { path: "/tools/logo-converter", label: "Logo converter", about: "convert logos between formats" },
   { path: "/events/<event_id>", label: "Event page", about: "one event: speakers, targets, links, messages" },

@@ -33,9 +33,9 @@ const NAV_PRIMARY: NavItem[] = [
   { to: "/boards", label: "Speaker boards", icon: Columns3 },
   { to: "/agenda", label: "Agenda", icon: ListChecks },
   { to: "/outreach", label: "Outreach", icon: Megaphone },
+  { to: "/reply-needed", label: "Reply needed", icon: Reply },
   // ARCHIVED (re-add to restore):
   // { to: "/website", label: "Website", icon: Globe },
-  // { to: "/reply-needed", label: "Reply needed", icon: Reply },
   { to: "/message-templates", label: "Message templates", icon: MessageSquareText },
   { to: "/sent-messages", label: "Sent messages", icon: Mail },
 ];
