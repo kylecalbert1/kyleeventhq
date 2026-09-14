@@ -23,6 +23,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { SpeakerDetailDialog } from "@/components/dialogs/SpeakerDetailDialog";
 import { eventsQuery, speakersQuery } from "@/lib/queries";
 import { listReplyQueue, ackReplyQueueRow, scanReplyQueue } from "@/lib/reply-queue.functions";
+import { scanSpeakerContacts } from "@/lib/gmail-contact-sweep.functions";
 import { initialsOf, openGmailThread, gmailThreadUrl } from "@/lib/gmail";
 import { cn } from "@/lib/utils";
 import { isPastEvent } from "@/lib/event-lifecycle";
@@ -115,6 +116,7 @@ function ReplyNeededPage() {
 
   const ackFn = useServerFn(ackReplyQueueRow);
   const scanFn = useServerFn(scanReplyQueue);
+  const sweepFn = useServerFn(scanSpeakerContacts);
 
   const ackMutation = useMutation({
     mutationFn: (id: string) => ackFn({ data: { id } }),
@@ -142,14 +144,20 @@ function ReplyNeededPage() {
   });
 
   const scanMutation = useMutation({
-    mutationFn: () => scanFn({ data: { lookback_days: 14 } }),
+    mutationFn: async () => {
+      const r = await scanFn({ data: { lookback_days: 14 } });
+      // Also sweep every speaker's whole mail history (both directions), so a
+      // direct email from Gmail with no reply yet still shows as contact.
+      const sweep = await sweepFn({ data: { lookback_days: 180 } });
+      return { ...r, sweep };
+    },
     onSuccess: (r) => {
       if (!r.connected) {
         toast.error("Gmail is not connected");
         return;
       }
       toast.success(
-        `Scanned ${r.scanned} · queued ${r.queued} · auto-cleared ${r.auto_acked} · skipped ${r.skipped_auto} auto-replies`,
+        `Scanned ${r.scanned} · queued ${r.queued} · auto-cleared ${r.auto_acked} · ${r.sweep.contacts_logged} contacts logged`,
       );
       qc.invalidateQueries({ queryKey: ["replyQueue"] });
       qc.invalidateQueries({ queryKey: ["speakers"] });
