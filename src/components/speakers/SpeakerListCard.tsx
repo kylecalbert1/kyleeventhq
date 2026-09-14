@@ -170,6 +170,13 @@ export function SpeakerListCard({
   agendaOptions,
   assignedAgendaItemId,
   onAssignAgendaItem,
+  health,
+  autoFlags,
+  manualFlags,
+  onDismissAutoFlag,
+  onRemoveFlag,
+  onAddFlag,
+  onOverrideChange,
 }: {
   s: any;
   ev: any;
@@ -185,7 +192,16 @@ export function SpeakerListCard({
   agendaOptions?: Array<{ id: string; title: string }>;
   assignedAgendaItemId?: string | null;
   onAssignAgendaItem?: (id: string | null) => void;
+  /** Health + flags are optional: only the event Speakers list passes them. */
+  health?: SpeakerHealth;
+  autoFlags?: AutoFlag[];
+  manualFlags?: Array<{ id: string; note: string | null }>;
+  onDismissAutoFlag?: (code: string) => void;
+  onRemoveFlag?: (id: string) => void;
+  onAddFlag?: (note: string) => void;
+  onOverrideChange?: (v: "ok" | "follow_up" | "at_risk" | null) => void;
 }) {
+  const [flagDraft, setFlagDraft] = useState<string | null>(null);
   const colKey = columnFor(s);
   const stage = stagePill[colKey];
   const alert = outreachAlert(s);
