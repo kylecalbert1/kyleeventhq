@@ -132,6 +132,7 @@ export function SpeakerDetailDialog({
   const del = useServerFn(deleteSpeaker);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   async function handleDelete() {
     if (!speaker) return;
