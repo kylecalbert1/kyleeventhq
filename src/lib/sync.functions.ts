@@ -420,6 +420,9 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       subject: string;
       snippet: string;
       from: string;
+      external_name: string | null;
+      external_email: string | null;
+      suggested_event_id: string | null;
       speaker_email: string | null;
       matched_speaker: { id: string; name: string; email: string; previous_status: string } | null;
       suggested_status: "confirmed" | "declined" | "needs_approval" | "unclear";
@@ -428,6 +431,7 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       needs: { bio: boolean; headshot: boolean; banner: boolean };
       received_at: string;
     };
+
 
     const results: EmailSuggestion[] = [];
 
