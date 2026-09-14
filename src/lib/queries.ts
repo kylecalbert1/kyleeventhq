@@ -30,6 +30,7 @@ import {
 
 } from "@/lib/message-templates.functions";
 import { listMessageGenerationHistory } from "@/lib/message-history.functions";
+import { listSpeakerFlags } from "@/lib/speaker-flags.functions";
 
 export const userSettingsQuery = queryOptions({
   queryKey: ["userSettings"],
@@ -223,4 +224,12 @@ export const cardTargetsQuery = queryOptions({
   queryKey: ["cardTargets"] as const,
   queryFn: () => listCardTargets(),
 });
+
+/* ---------------- speaker health ---------------- */
+export const speakerFlagsQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: ["speakerFlags", eventId] as const,
+    queryFn: () => listSpeakerFlags({ data: { event_id: eventId } }),
+  });
+
 

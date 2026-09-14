@@ -1193,6 +1193,54 @@ export type Database = {
           },
         ]
       }
+      speaker_flags: {
+        Row: {
+          code: string
+          created_at: string
+          dismissed_at: string | null
+          event_id: string | null
+          id: string
+          note: string | null
+          speaker_id: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string
+          created_at?: string
+          dismissed_at?: string | null
+          event_id?: string | null
+          id?: string
+          note?: string | null
+          speaker_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          dismissed_at?: string | null
+          event_id?: string | null
+          id?: string
+          note?: string | null
+          speaker_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_flags_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_flags_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       speakers: {
         Row: {
           banner_status: Database["public"]["Enums"]["banner_status"]
@@ -1210,6 +1258,7 @@ export type Database = {
           event_id: string
           gmail_thread_id: string | null
           headshot_received: boolean
+          health_override: string | null
           id: string
           last_inbound_at: string | null
           last_message_at: string | null
@@ -1249,6 +1298,7 @@ export type Database = {
           event_id: string
           gmail_thread_id?: string | null
           headshot_received?: boolean
+          health_override?: string | null
           id?: string
           last_inbound_at?: string | null
           last_message_at?: string | null
@@ -1288,6 +1338,7 @@ export type Database = {
           event_id?: string
           gmail_thread_id?: string | null
           headshot_received?: boolean
+          health_override?: string | null
           id?: string
           last_inbound_at?: string | null
           last_message_at?: string | null
