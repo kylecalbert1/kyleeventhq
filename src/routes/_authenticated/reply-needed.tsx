@@ -309,9 +309,9 @@ function ReplyNeededPage() {
           </Card>
         ) : (
           <div className="space-y-8">
-            <Section title="Reply needed" rows={grouped.speakerReply} onAck={ackMutation.mutate} ackPending={ackMutation.isPending} speakerById={speakerById} eventById={eventById} onView={setDetailSpeaker} />
-            <Section title="You're mentioned" rows={grouped.mention} onAck={ackMutation.mutate} ackPending={ackMutation.isPending} speakerById={speakerById} eventById={eventById} onView={setDetailSpeaker} />
-            <Section title="Follow up (no reply 3+ days)" rows={grouped.followUp} onAck={ackMutation.mutate} ackPending={ackMutation.isPending} speakerById={speakerById} eventById={eventById} onView={setDetailSpeaker} followUp />
+            <Section title="Reply needed" rows={grouped.speakerReply} onAck={ackMutation.mutate} ackPending={ackMutation.isPending} speakerById={speakerById} eventById={eventById} onView={setDetailSpeaker} onStatusChange={(id, status) => statusMutation.mutate({ id, status })} />
+            <Section title="You're mentioned" rows={grouped.mention} onAck={ackMutation.mutate} ackPending={ackMutation.isPending} speakerById={speakerById} eventById={eventById} onView={setDetailSpeaker} onStatusChange={(id, status) => statusMutation.mutate({ id, status })} />
+            <Section title="Follow up (no reply 3+ days)" rows={grouped.followUp} onAck={ackMutation.mutate} ackPending={ackMutation.isPending} speakerById={speakerById} eventById={eventById} onView={setDetailSpeaker} onStatusChange={(id, status) => statusMutation.mutate({ id, status })} followUp />
           </div>
         )}
 
