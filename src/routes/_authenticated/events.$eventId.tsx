@@ -41,7 +41,6 @@ import {
   eventTitoLinksQuery,
 } from "@/lib/queries";
 import { labels, pillClass, normalizeSpeakerStatus } from "@/lib/status";
-import { getAsanaProofingDueDates } from "@/lib/asana.functions";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { SpeakerDetailDialog } from "@/components/dialogs/SpeakerDetailDialog";
@@ -97,15 +96,6 @@ function EventDetail() {
   );
   const { lookup: lookupHistory } = useContactHistory(speakerEmails);
   const milestones = useQuery(milestonesQuery(eventId));
-  const fetchAsana = useServerFn(getAsanaProofingDueDates);
-  const asanaQuery = useQuery({
-    queryKey: ["asanaProofingDues", eventId],
-    queryFn: () => fetchAsana({ data: { event_id: eventId } }),
-    staleTime: 0,
-    refetchOnMount: "always",
-    retry: false,
-  });
-  const asanaDues = asanaQuery.data?.dues;
 
 
   const [editingEvent, setEditingEvent] = useState(false);
