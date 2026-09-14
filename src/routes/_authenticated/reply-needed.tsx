@@ -367,6 +367,7 @@ function Section({
   speakerById,
   eventById,
   onView,
+  onStatusChange,
   followUp,
 }: {
   title: string;
@@ -376,6 +377,7 @@ function Section({
   speakerById: Record<string, any>;
   eventById: Record<string, any>;
   onView: (s: any) => void;
+  onStatusChange: (speakerId: string, status: SpeakerStatus) => void;
   followUp?: boolean;
 }) {
   if (rows.length === 0) return null;
@@ -394,6 +396,7 @@ function Section({
             speaker={r.speaker_id ? speakerById[r.speaker_id] : null}
             event={r.event_id ? eventById[r.event_id] : null}
             onView={onView}
+            onStatusChange={onStatusChange}
             followUp={followUp}
           />
         ))}
@@ -409,6 +412,7 @@ function RowCard({
   speaker,
   event,
   onView,
+  onStatusChange,
   followUp,
 }: {
   r: Row;
@@ -417,6 +421,7 @@ function RowCard({
   speaker: any;
   event: any;
   onView: (s: any) => void;
+  onStatusChange: (speakerId: string, status: SpeakerStatus) => void;
   followUp?: boolean;
 }) {
   const meta = REASON_META[r.reason];
