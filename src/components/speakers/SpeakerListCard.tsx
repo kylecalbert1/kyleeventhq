@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Link2,
   Linkedin,
@@ -9,7 +10,19 @@ import {
   CalendarCheck,
   Search as SearchIcon,
   Mic,
+  Flag,
+  Plus,
+  X,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { AutoFlag, SpeakerHealth } from "@/lib/speaker-health";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusPill } from "@/components/StatusPill";
