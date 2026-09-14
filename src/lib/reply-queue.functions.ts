@@ -656,4 +656,5 @@ export async function runReplyQueueScan(
       auto_acked: autoAcked,
       skipped_auto: skippedAuto,
     };
-  });
+  }
+}
