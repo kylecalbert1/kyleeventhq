@@ -47,6 +47,10 @@ export function EventMessagesPanel({
   const [generating, setGenerating] = useState<DraftTemplate | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [picking, setPicking] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  // The event the compose dialog is rendering against; normally this event,
+  // but a history entry can be reused against a different one.
+  const [composeEvent, setComposeEvent] = useState<MessageEvent>(event);
   const [showAllSends, setShowAllSends] = useState(false);
 
   const unmark = useServerFn(deleteMessageSend);
@@ -101,6 +105,10 @@ export function EventMessagesPanel({
               <Settings2 className="mr-1.5 h-4 w-4" />
               Edit templates
             </Link>
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)}>
+            <History className="mr-1.5 h-4 w-4" />
+            History
           </Button>
           <Button size="sm" variant="outline" onClick={() => setAiOpen(true)}>
             <Sparkles className="mr-1.5 h-4 w-4" />
