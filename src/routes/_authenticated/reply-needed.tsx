@@ -20,11 +20,20 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { queryOptions } from "@tanstack/react-query";
 import { StatusPill } from "@/components/StatusPill";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SpeakerDetailDialog } from "@/components/dialogs/SpeakerDetailDialog";
 import { eventsQuery, speakersQuery } from "@/lib/queries";
 import { listReplyQueue, ackReplyQueueRow, scanReplyQueue } from "@/lib/reply-queue.functions";
 import { scanSpeakerContacts } from "@/lib/gmail-contact-sweep.functions";
+import { updateSpeaker } from "@/lib/speakers.functions";
 import { initialsOf, openGmailThread, gmailThreadUrl } from "@/lib/gmail";
+import { normalizeSpeakerStatus, SPEAKER_STATUSES, type SpeakerStatus } from "@/lib/status";
+import { stagePill } from "@/components/speakers/SpeakerListCard";
 import { cn } from "@/lib/utils";
 import { isPastEvent } from "@/lib/event-lifecycle";
 
