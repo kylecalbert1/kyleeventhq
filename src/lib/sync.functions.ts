@@ -15,6 +15,14 @@ function domainOf(email: string | null | undefined) {
   return m?.[1] ?? "";
 }
 
+/** "Liz Salmoun <elizabeth@otter.ai>" -> "Liz Salmoun" */
+function parseDisplayName(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const m = raw.match(/^(.*?)\s*<[^>]+>$/);
+  const name = (m?.[1] ?? "").replace(/^"|"$/g, "").trim();
+  return name || null;
+}
+
 export const checkCalendarConnected = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => ({
