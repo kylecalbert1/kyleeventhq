@@ -247,6 +247,8 @@ type UpsertInput = {
   last_message_at: string;
   reason: "speaker_reply" | "mention" | "follow_up";
   summary: string | null;
+  snippet?: string | null;
+  last_message_from?: "speaker" | "you" | null;
   subject: string | null;
   person_email: string;
   person_name: string | null;
@@ -282,6 +284,8 @@ async function upsertQueueRow(input: UpsertInput) {
     reason: input.reason,
     subject: input.subject,
   };
+  if (input.snippet !== undefined) patch.snippet = input.snippet;
+  if (input.last_message_from !== undefined) patch.last_message_from = input.last_message_from;
 
   if (!row) {
     // NEW row
@@ -564,6 +568,8 @@ export async function runReplyQueueScan(
           subject,
           person_email: personEmail,
           person_name: matchedSpeaker?.name ?? displayName,
+          snippet: bodyText ? bodyText.replace(/\s+/g, " ").trim().slice(0, 600) : null,
+          last_message_from: ownerIsNewest ? "you" : "speaker",
           speaker_id: matchedSpeaker?.id ?? null,
           event_id: matchedSpeaker?.event_id ?? null,
           autoAck: ownerIsNewest,
