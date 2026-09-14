@@ -60,6 +60,7 @@ export function AiComposeDialog({
         },
       }),
     onSuccess: (d) => {
+      qc.invalidateQueries({ queryKey: ["messageGenerationHistory", eventId] });
       setDraft(d as AiMessageDraft);
       setRefinement("");
     },
