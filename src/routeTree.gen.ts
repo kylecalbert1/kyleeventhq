@@ -35,6 +35,7 @@ import { Route as AuthenticatedEventsEventIdRouteImport } from './routes/_authen
 import { Route as AuthenticatedBoardsBoardIdRouteImport } from './routes/_authenticated/boards.$boardId'
 import { Route as ApiPublicHooksTitoWebhookRouteImport } from './routes/api/public/hooks/tito-webhook'
 import { Route as ApiPublicHooksTitoNightlyRouteImport } from './routes/api/public/hooks/tito-nightly'
+import { Route as ApiPublicHooksGmailNightlyRouteImport } from './routes/api/public/hooks/gmail-nightly'
 import { Route as ApiPublicHooksAsanaNightlyRouteImport } from './routes/api/public/hooks/asana-nightly'
 import { Route as AuthenticatedEventsEventIdHealthRouteImport } from './routes/_authenticated/events.$eventId_.health'
 import { Route as AuthenticatedEventsEventIdDashboardRouteImport } from './routes/_authenticated/events.$eventId_.dashboard'
@@ -180,6 +181,12 @@ const ApiPublicHooksTitoNightlyRoute =
     path: '/api/public/hooks/tito-nightly',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksGmailNightlyRoute =
+  ApiPublicHooksGmailNightlyRouteImport.update({
+    id: '/api/public/hooks/gmail-nightly',
+    path: '/api/public/hooks/gmail-nightly',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksAsanaNightlyRoute =
   ApiPublicHooksAsanaNightlyRouteImport.update({
     id: '/api/public/hooks/asana-nightly',
@@ -226,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/events/$eventId/dashboard': typeof AuthenticatedEventsEventIdDashboardRoute
   '/events/$eventId/health': typeof AuthenticatedEventsEventIdHealthRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
+  '/api/public/hooks/gmail-nightly': typeof ApiPublicHooksGmailNightlyRoute
   '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
   '/api/public/hooks/tito-webhook': typeof ApiPublicHooksTitoWebhookRoute
 }
@@ -256,6 +264,7 @@ export interface FileRoutesByTo {
   '/events/$eventId/dashboard': typeof AuthenticatedEventsEventIdDashboardRoute
   '/events/$eventId/health': typeof AuthenticatedEventsEventIdHealthRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
+  '/api/public/hooks/gmail-nightly': typeof ApiPublicHooksGmailNightlyRoute
   '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
   '/api/public/hooks/tito-webhook': typeof ApiPublicHooksTitoWebhookRoute
 }
@@ -288,6 +297,7 @@ export interface FileRoutesById {
   '/_authenticated/events/$eventId_/dashboard': typeof AuthenticatedEventsEventIdDashboardRoute
   '/_authenticated/events/$eventId_/health': typeof AuthenticatedEventsEventIdHealthRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
+  '/api/public/hooks/gmail-nightly': typeof ApiPublicHooksGmailNightlyRoute
   '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
   '/api/public/hooks/tito-webhook': typeof ApiPublicHooksTitoWebhookRoute
 }
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/events/$eventId/dashboard'
     | '/events/$eventId/health'
     | '/api/public/hooks/asana-nightly'
+    | '/api/public/hooks/gmail-nightly'
     | '/api/public/hooks/tito-nightly'
     | '/api/public/hooks/tito-webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/events/$eventId/dashboard'
     | '/events/$eventId/health'
     | '/api/public/hooks/asana-nightly'
+    | '/api/public/hooks/gmail-nightly'
     | '/api/public/hooks/tito-nightly'
     | '/api/public/hooks/tito-webhook'
   id:
@@ -381,6 +393,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$eventId_/dashboard'
     | '/_authenticated/events/$eventId_/health'
     | '/api/public/hooks/asana-nightly'
+    | '/api/public/hooks/gmail-nightly'
     | '/api/public/hooks/tito-nightly'
     | '/api/public/hooks/tito-webhook'
   fileRoutesById: FileRoutesById
@@ -390,6 +403,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ApiPublicUnsubscribeRoute: typeof ApiPublicUnsubscribeRoute
   ApiPublicHooksAsanaNightlyRoute: typeof ApiPublicHooksAsanaNightlyRoute
+  ApiPublicHooksGmailNightlyRoute: typeof ApiPublicHooksGmailNightlyRoute
   ApiPublicHooksTitoNightlyRoute: typeof ApiPublicHooksTitoNightlyRoute
   ApiPublicHooksTitoWebhookRoute: typeof ApiPublicHooksTitoWebhookRoute
 }
@@ -578,6 +592,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksTitoNightlyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/gmail-nightly': {
+      id: '/api/public/hooks/gmail-nightly'
+      path: '/api/public/hooks/gmail-nightly'
+      fullPath: '/api/public/hooks/gmail-nightly'
+      preLoaderRoute: typeof ApiPublicHooksGmailNightlyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/asana-nightly': {
       id: '/api/public/hooks/asana-nightly'
       path: '/api/public/hooks/asana-nightly'
@@ -674,6 +695,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ApiPublicUnsubscribeRoute: ApiPublicUnsubscribeRoute,
   ApiPublicHooksAsanaNightlyRoute: ApiPublicHooksAsanaNightlyRoute,
+  ApiPublicHooksGmailNightlyRoute: ApiPublicHooksGmailNightlyRoute,
   ApiPublicHooksTitoNightlyRoute: ApiPublicHooksTitoNightlyRoute,
   ApiPublicHooksTitoWebhookRoute: ApiPublicHooksTitoWebhookRoute,
 }
