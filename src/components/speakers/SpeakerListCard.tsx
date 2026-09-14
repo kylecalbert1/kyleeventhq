@@ -393,6 +393,121 @@ export function SpeakerListCard({
             )}
           </div>
 
+          {/* Health flags + manual override (event Speakers list only) */}
+          {(health || (autoFlags?.length ?? 0) > 0 || (manualFlags?.length ?? 0) > 0) && (
+            <div className="space-y-2 rounded-xl bg-slate-50/80 px-3 py-2.5">
+              {health && <div className="text-[12px] text-slate-600">{health.line}</div>}
+
+              {((autoFlags?.length ?? 0) > 0 || (manualFlags?.length ?? 0) > 0) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {(autoFlags ?? []).map((f) => (
+                    <span
+                      key={f.code}
+                      title={f.detail}
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-900"
+                    >
+                      <Flag className="h-3 w-3" />
+                      {f.label}
+                      {onDismissAutoFlag && (
+                        <button
+                          type="button"
+                          className="opacity-60 hover:opacity-100"
+                          onClick={() => onDismissAutoFlag(f.code)}
+                          aria-label={`Dismiss ${f.label}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                  {(manualFlags ?? []).map((f) => (
+                    <span
+                      key={f.id}
+                      className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] text-violet-900"
+                    >
+                      <Flag className="h-3 w-3" />
+                      {f.note}
+                      {onRemoveFlag && (
+                        <button
+                          type="button"
+                          className="opacity-60 hover:opacity-100"
+                          onClick={() => onRemoveFlag(f.id)}
+                          aria-label="Remove flag"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2">
+                {onOverrideChange && (
+                  <Select
+                    value={s.health_override ?? "auto"}
+                    onValueChange={(v) =>
+                      onOverrideChange(v === "auto" ? null : (v as "ok" | "follow_up" | "at_risk"))
+                    }
+                  >
+                    <SelectTrigger className="h-7 w-[150px] text-xs bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Automatic</SelectItem>
+                      <SelectItem value="ok">Mark as fine</SelectItem>
+                      <SelectItem value="follow_up">Mark: follow up</SelectItem>
+                      <SelectItem value="at_risk">Mark: at risk</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {onAddFlag &&
+                  (flagDraft === null ? (
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
+                      onClick={() => setFlagDraft("")}
+                    >
+                      <Plus className="h-3 w-3" /> Add a flag
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        autoFocus
+                        value={flagDraft}
+                        onChange={(e) => setFlagDraft(e.target.value)}
+                        placeholder="What should you notice about this person?"
+                        className="h-8 text-sm w-64 bg-white"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && flagDraft.trim()) {
+                            onAddFlag(flagDraft.trim());
+                            setFlagDraft(null);
+                          }
+                          if (e.key === "Escape") setFlagDraft(null);
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        className="h-8"
+                        disabled={!flagDraft.trim()}
+                        onClick={() => {
+                          onAddFlag(flagDraft.trim());
+                          setFlagDraft(null);
+                        }}
+                      >
+                        Add
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8" onClick={() => setFlagDraft(null)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+
           {/* One consolidated secondary line instead of a stack of chips */}
           {secondary.length > 0 && (
             <div className="flex items-center gap-1.5 text-[12px] leading-relaxed text-slate-500">
