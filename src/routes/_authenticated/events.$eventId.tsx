@@ -35,8 +35,6 @@ import { StatusPill } from "@/components/StatusPill";
 import {
   eventQuery,
   speakersQuery,
-  sponsorsQuery,
-  websiteTasksQuery,
   milestonesQuery,
   emailSendsQuery,
   eventReconciliationQuery,
@@ -47,8 +45,6 @@ import { getAsanaProofingDueDates } from "@/lib/asana.functions";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { SpeakerDetailDialog } from "@/components/dialogs/SpeakerDetailDialog";
-import { SponsorFormDialog } from "@/components/dialogs/SponsorFormDialog";
-import { WebsiteTaskFormDialog } from "@/components/dialogs/WebsiteTaskFormDialog";
 import { MilestoneFormDialog } from "@/components/dialogs/MilestoneFormDialog";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
@@ -83,8 +79,6 @@ export const Route = createFileRoute("/_authenticated/events/$eventId")({
     Promise.all([
       context.queryClient.ensureQueryData(eventQuery(params.eventId)),
       context.queryClient.ensureQueryData(speakersQuery(params.eventId)),
-      context.queryClient.ensureQueryData(sponsorsQuery(params.eventId)),
-      context.queryClient.ensureQueryData(websiteTasksQuery(params.eventId)),
       context.queryClient.ensureQueryData(milestonesQuery(params.eventId)),
       context.queryClient.ensureQueryData(emailSendsQuery(params.eventId)),
       context.queryClient.ensureQueryData(eventTitoLinksQuery(params.eventId)),
@@ -97,13 +91,11 @@ function EventDetail() {
   const qc = useQueryClient();
   const event = useQuery(eventQuery(eventId));
   const speakers = useQuery(speakersQuery(eventId));
-  const sponsors = useQuery(sponsorsQuery(eventId));
   const speakerEmails = useMemo(
     () => (speakers.data ?? []).map((s: any) => s.email as string | null),
     [speakers.data],
   );
   const { lookup: lookupHistory } = useContactHistory(speakerEmails);
-  const tasks = useQuery(websiteTasksQuery(eventId));
   const milestones = useQuery(milestonesQuery(eventId));
   const fetchAsana = useServerFn(getAsanaProofingDueDates);
   const asanaQuery = useQuery({
@@ -119,8 +111,6 @@ function EventDetail() {
   const [editingEvent, setEditingEvent] = useState(false);
   const [speakerEdit, setSpeakerEdit] = useState<null | { open: boolean; speaker?: any }>(null);
   const [detailSpeaker, setDetailSpeaker] = useState<any | null>(null);
-  const [sponsorEdit, setSponsorEdit] = useState<null | { open: boolean; sponsor?: any }>(null);
-  const [taskEdit, setTaskEdit] = useState<null | { open: boolean; task?: any }>(null);
   const [milestoneEdit, setMilestoneEdit] = useState<null | {
     open: boolean;
     milestone?: any;
@@ -761,22 +751,6 @@ function EventDetail() {
         draft={confirmEmail}
         onConfirm={performSendConfirmed}
       />
-      {sponsorEdit && (
-        <SponsorFormDialog
-          open={sponsorEdit.open}
-          onOpenChange={(o) => setSponsorEdit(o ? sponsorEdit : null)}
-          sponsor={sponsorEdit.sponsor}
-          eventId={eventId}
-        />
-      )}
-      {taskEdit && (
-        <WebsiteTaskFormDialog
-          open={taskEdit.open}
-          onOpenChange={(o) => setTaskEdit(o ? taskEdit : null)}
-          task={taskEdit.task}
-          defaultEventId={eventId}
-        />
-      )}
       {milestoneEdit && (
         <MilestoneFormDialog
           open={milestoneEdit.open}
