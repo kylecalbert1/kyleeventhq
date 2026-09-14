@@ -64,6 +64,7 @@ export const generateMessageDraft = createServerFn({ method: "POST" })
         prompt: z.string().min(3),
         event_id: z.string().uuid(),
         current_draft: DraftShape.nullish(),
+        template_id: z.string().uuid().nullish(),
       })
       .parse(d),
   )
