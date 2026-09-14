@@ -555,14 +555,34 @@ export const scanReplyQueue = createServerFn({ method: "POST" })
 
         // Keep speakers.last_message_* in sync (does NOT drive visibility).
         if (matchedSpeaker) {
-          await context.supabase
-            .from("speakers")
-            .update({
-              last_message_at: lastMessageAt,
-              last_message_direction: ownerIsNewest ? "outbound" : "inbound",
-              gmail_thread_id: tid,
-            })
-            .eq("id", matchedSpeaker.id);
+          const patch: Record<string, unknown> = {
+            last_message_at: lastMessageAt,
+            last_message_direction: ownerIsNewest ? "outbound" : "inbound",
+            gmail_thread_id: tid,
+          };
+
+          if (!ownerIsNewest) {
+            // Dedicated inbound timestamp: only ever moves forward, and is
+            // never clobbered when we later send an outbound follow-up.
+            const prevInbound = (matchedSpeaker as { last_inbound_at?: string | null })
+              .last_inbound_at;
+            const isNewer =
+              !prevInbound || new Date(lastMessageAt).getTime() > new Date(prevInbound).getTime();
+            if (isNewer) {
+              patch.last_inbound_at = lastMessageAt;
+
+              // One "Reply received" timeline entry per Gmail message, so
+              // re-running the scan never spams the log.
+              await context.supabase.from("speaker_activity_log").insert({
+                speaker_id: matchedSpeaker.id,
+                event_type: "reply_received",
+                note: subject,
+                dedupe_key: `reply:${newestReal.id}`,
+              } as never);
+            }
+          }
+
+          await context.supabase.from("speakers").update(patch as never).eq("id", matchedSpeaker.id);
         }
       } catch (e) {
         console.error(`Reply-queue thread ${tid} failed:`, e);
