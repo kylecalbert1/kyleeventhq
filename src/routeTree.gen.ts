@@ -22,7 +22,6 @@ import { Route as AuthenticatedSentMessagesRouteImport } from './routes/_authent
 import { Route as AuthenticatedReplyNeededRouteImport } from './routes/_authenticated/reply-needed'
 import { Route as AuthenticatedOutreachRouteImport } from './routes/_authenticated/outreach'
 import { Route as AuthenticatedMessageTemplatesRouteImport } from './routes/_authenticated/message-templates'
-import { Route as AuthenticatedBannersRouteImport } from './routes/_authenticated/banners'
 import { Route as AuthenticatedAsanaRouteImport } from './routes/_authenticated/asana'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as AuthenticatedTitoIndexRouteImport } from './routes/_authenticated/tito.index'
@@ -108,11 +107,6 @@ const AuthenticatedMessageTemplatesRoute =
     path: '/message-templates',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedBannersRoute = AuthenticatedBannersRouteImport.update({
-  id: '/banners',
-  path: '/banners',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedAsanaRoute = AuthenticatedAsanaRouteImport.update({
   id: '/asana',
   path: '/asana',
@@ -204,7 +198,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/agenda': typeof AuthenticatedAgendaRoute
   '/asana': typeof AuthenticatedAsanaRoute
-  '/banners': typeof AuthenticatedBannersRoute
   '/message-templates': typeof AuthenticatedMessageTemplatesRoute
   '/outreach': typeof AuthenticatedOutreachRoute
   '/reply-needed': typeof AuthenticatedReplyNeededRoute
@@ -233,7 +226,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/agenda': typeof AuthenticatedAgendaRoute
   '/asana': typeof AuthenticatedAsanaRoute
-  '/banners': typeof AuthenticatedBannersRoute
   '/message-templates': typeof AuthenticatedMessageTemplatesRoute
   '/outreach': typeof AuthenticatedOutreachRoute
   '/reply-needed': typeof AuthenticatedReplyNeededRoute
@@ -265,7 +257,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/asana': typeof AuthenticatedAsanaRoute
-  '/_authenticated/banners': typeof AuthenticatedBannersRoute
   '/_authenticated/message-templates': typeof AuthenticatedMessageTemplatesRoute
   '/_authenticated/outreach': typeof AuthenticatedOutreachRoute
   '/_authenticated/reply-needed': typeof AuthenticatedReplyNeededRoute
@@ -298,7 +289,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/agenda'
     | '/asana'
-    | '/banners'
     | '/message-templates'
     | '/outreach'
     | '/reply-needed'
@@ -327,7 +317,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/agenda'
     | '/asana'
-    | '/banners'
     | '/message-templates'
     | '/outreach'
     | '/reply-needed'
@@ -358,7 +347,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/agenda'
     | '/_authenticated/asana'
-    | '/_authenticated/banners'
     | '/_authenticated/message-templates'
     | '/_authenticated/outreach'
     | '/_authenticated/reply-needed'
@@ -488,13 +476,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMessageTemplatesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/banners': {
-      id: '/_authenticated/banners'
-      path: '/banners'
-      fullPath: '/banners'
-      preLoaderRoute: typeof AuthenticatedBannersRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/asana': {
       id: '/_authenticated/asana'
       path: '/asana'
@@ -619,7 +600,6 @@ const AuthenticatedSpeakersRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedAsanaRoute: typeof AuthenticatedAsanaRoute
-  AuthenticatedBannersRoute: typeof AuthenticatedBannersRoute
   AuthenticatedMessageTemplatesRoute: typeof AuthenticatedMessageTemplatesRoute
   AuthenticatedOutreachRoute: typeof AuthenticatedOutreachRoute
   AuthenticatedReplyNeededRoute: typeof AuthenticatedReplyNeededRoute
@@ -643,7 +623,6 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedAsanaRoute: AuthenticatedAsanaRoute,
-  AuthenticatedBannersRoute: AuthenticatedBannersRoute,
   AuthenticatedMessageTemplatesRoute: AuthenticatedMessageTemplatesRoute,
   AuthenticatedOutreachRoute: AuthenticatedOutreachRoute,
   AuthenticatedReplyNeededRoute: AuthenticatedReplyNeededRoute,

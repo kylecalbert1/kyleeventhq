@@ -3,11 +3,10 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const DEFAULT_COLUMNS: Array<{ name: string; position: number; kind: string }> = [
-  { name: "Interest", position: 0, kind: "interest" },
-  { name: "In conversation", position: 1, kind: "in_conversation" },
-  { name: "Confirmed", position: 2, kind: "confirmed" },
-  { name: "Registered", position: 3, kind: "registered" },
-  { name: "Declined", position: 4, kind: "declined" },
+  { name: "Prospective", position: 0, kind: "interest" },
+  { name: "Confirmed", position: 1, kind: "confirmed" },
+  { name: "Registered", position: 2, kind: "registered" },
+  { name: "Declined", position: 3, kind: "declined" },
 ];
 
 import { statusForKind, inferColumnKind, effectiveColumnKind } from "@/lib/board-status";
@@ -443,7 +442,7 @@ export const createBoardSpeaker = createServerFn({ method: "POST" })
     if (cErr) throw new Error(cErr.message);
     if (!col) throw new Error("Column not found");
 
-    const status = statusForKind(effectiveColumnKind(col.kind, (col as any).name)) ?? "new";
+    const status = statusForKind(effectiveColumnKind(col.kind, (col as any).name)) ?? "prospective";
     const { row } = await findOrMergeSpeaker(context.supabase, {
       event_id: board.event_id,
       name: data.name.trim(),

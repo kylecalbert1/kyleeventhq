@@ -638,8 +638,8 @@ export const listTitoEventsWithStats = createServerFn({ method: "GET" })
       tagged.set(slug, (tagged.get(slug) ?? 0) + 1);
       const bucket =
         s.status === "confirmed" ? confirmed :
-        s.status === "responded" ? responded :
-        s.status === "declined" ? declined : null;
+        s.status === "declined" ? declined :
+        responded;
       if (bucket) bucket.set(slug, (bucket.get(slug) ?? 0) + 1);
     }
 
@@ -667,14 +667,14 @@ export const speakerSourcingStats = createServerFn({ method: "GET" })
     const speakers = sp.data ?? [];
     const byStatus = (s: string) => speakers.filter((r) => r.status === s).length;
     const newProfiles = speakers.filter(
-      (r) => r.source === "tito_candidate" && (r.status === "new" || r.status === "contacted"),
+      (r) => r.source === "tito_candidate" && r.status !== "confirmed" && r.status !== "declined",
     ).length;
     return {
       unified_events: ev.count ?? 0,
       synced_attendees: tk.count ?? 0,
       new_profiles: newProfiles,
       confirmed_speakers: byStatus("confirmed"),
-      waitlisted_speakers: byStatus("responded"),
+      waitlisted_speakers: speakers.filter((r) => r.status !== "confirmed" && r.status !== "declined").length,
       declined_profiles: byStatus("declined"),
     };
   });
@@ -1242,7 +1242,7 @@ export const tagAsSpeakerCandidates = createServerFn({ method: "POST" })
         company: t.company_name,
         title: t.job_title,
         email: t.email,
-        status: "new" as const,
+        status: "prospective" as const,
         banner_status: "not_started" as const,
         linkedin_post_confirmed: false,
         source: "tito_candidate",

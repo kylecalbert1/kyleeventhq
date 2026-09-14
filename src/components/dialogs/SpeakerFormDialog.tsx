@@ -22,7 +22,7 @@ type Speaker = {
   company: string | null;
   title: string | null;
   email: string | null;
-  status: "new" | "contacted" | "in_conversation" | "responded" | "confirmed" | "declined";
+  status: "prospective" | "confirmed" | "declined" | "new" | "contacted" | "in_conversation" | "responded";
   call_scheduled?: boolean;
   call_scheduled_at?: string | null;
   session_title: string | null;
@@ -63,7 +63,7 @@ export function SpeakerFormDialog({
     company: "",
     title: "",
     email: "",
-    status: "contacted" as Speaker["status"],
+    status: "prospective" as Speaker["status"],
     session_title: "",
     session_format: "" as "" | Speaker["session_format"],
     banner_status: "not_started" as Speaker["banner_status"],

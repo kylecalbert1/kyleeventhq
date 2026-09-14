@@ -487,7 +487,7 @@ export const setSpeakerStatus = createServerFn({ method: "POST" })
     z
       .object({
         speaker_id: z.string().uuid(),
-        status: z.enum(["new", "contacted", "in_conversation", "responded", "confirmed", "declined"]),
+        status: z.enum(["prospective", "confirmed", "declined"]),
       })
       .parse(d),
   )
@@ -516,11 +516,11 @@ export const applyEmailSuggestion = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     // Map "needs_approval" and "unclear" to existing enum values
-    const statusMap: Record<string, "confirmed" | "declined" | "responded"> = {
+    const statusMap: Record<string, "confirmed" | "declined" | "prospective"> = {
       confirmed: "confirmed",
       declined: "declined",
-      needs_approval: "responded",
-      unclear: "responded",
+      needs_approval: "prospective",
+      unclear: "prospective",
     };
     const status = statusMap[data.suggested_status];
     const { data: row, error } = await context.supabase

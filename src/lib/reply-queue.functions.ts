@@ -247,6 +247,8 @@ type UpsertInput = {
   last_message_at: string;
   reason: "speaker_reply" | "mention" | "follow_up";
   summary: string | null;
+  snippet?: string | null;
+  last_message_from?: "speaker" | "you" | null;
   subject: string | null;
   person_email: string;
   person_name: string | null;
@@ -282,6 +284,8 @@ async function upsertQueueRow(input: UpsertInput) {
     reason: input.reason,
     subject: input.subject,
   };
+  if (input.snippet !== undefined) patch.snippet = input.snippet;
+  if (input.last_message_from !== undefined) patch.last_message_from = input.last_message_from;
 
   if (!row) {
     // NEW row
@@ -564,6 +568,8 @@ export async function runReplyQueueScan(
           subject,
           person_email: personEmail,
           person_name: matchedSpeaker?.name ?? displayName,
+          snippet: bodyText ? bodyText.replace(/\s+/g, " ").trim().slice(0, 600) : null,
+          last_message_from: ownerIsNewest ? "you" : "speaker",
           speaker_id: matchedSpeaker?.id ?? null,
           event_id: matchedSpeaker?.event_id ?? null,
           autoAck: ownerIsNewest,
@@ -617,7 +623,7 @@ export async function runReplyQueueScan(
       if (s.last_message_direction !== "outbound") continue;
       if (!s.last_message_at) continue;
       if (new Date(s.last_message_at).getTime() > threeDaysAgo) continue;
-      if (!["contacted", "responded"].includes(s.status)) continue;
+      if (["confirmed", "declined"].includes(s.status)) continue;
 
       const { data: existing } = await context.supabase
         .from("reply_queue")
@@ -658,3 +664,24 @@ export async function runReplyQueueScan(
     };
   }
 }
+
+/** Last-message previews for an event's speakers (card display). */
+export const listSpeakerMessagePreviews = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ event_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("reply_queue")
+      .select("speaker_id, snippet, last_message_from, last_message_at")
+      .eq("event_id", data.event_id)
+      .not("speaker_id", "is", null)
+      .order("last_message_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const map: Record<string, { text: string | null; from: "speaker" | "you" | null }> = {};
+    for (const r of (rows ?? []) as any[]) {
+      if (r.speaker_id && !map[r.speaker_id]) {
+        map[r.speaker_id] = { text: r.snippet ?? null, from: r.last_message_from ?? null };
+      }
+    }
+    return map;
+  });

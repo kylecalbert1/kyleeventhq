@@ -31,6 +31,7 @@ import {
   labels,
   daysBetween,
   type OutreachChannel,
+  normalizeSpeakerStatus,
 } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import { openGmailThread, gmailThreadUrl } from "@/lib/gmail";
@@ -44,13 +45,10 @@ import {
 import { FindEmailButton } from "@/components/speakers/FindEmailButton";
 
 
-export type SpeakerStatus = "new" | "contacted" | "in_conversation" | "responded" | "confirmed" | "declined";
+export type SpeakerStatus = "prospective" | "confirmed" | "declined";
 
 const STATUS_OPTIONS: Array<{ value: SpeakerStatus; label: string }> = [
-  { value: "new", label: "New" },
-  { value: "contacted", label: "Contacted" },
-  { value: "in_conversation", label: "In conversation" },
-  { value: "responded", label: "Responded" },
+  { value: "prospective", label: "Prospective" },
   { value: "confirmed", label: "Confirmed" },
   { value: "declined", label: "Declined" },
 ];
@@ -63,12 +61,7 @@ export const softCard =
 
 export const eventChipCls = "bg-indigo-50 text-indigo-700 ring-indigo-200";
 
-export type ColKey =
-  | "new"
-  | "contacted"
-  | "responded"
-  | "confirmed"
-  | "banner_sent";
+export type ColKey = SpeakerStatus;
 
 /**
  * Asset-completion flag. Deliberately NOT a pipeline stage — it's shown as a
@@ -80,30 +73,36 @@ export function bioHeadshotDone(s: any): boolean {
 }
 
 export function columnFor(s: any): ColKey {
-  if (s.banner_status === "sent" || s.banner_status === "confirmed_live")
-    return "banner_sent";
-  if (s.status === "confirmed") return "confirmed";
-  if (s.status === "responded") return "responded";
-  if (s.status === "new") return "new";
-  return "contacted";
+  return normalizeSpeakerStatus(s?.status);
 }
 
 /** Bold, solid status pills — the single primary visual anchor on a card. */
 export const stagePill: Record<ColKey, { label: string; cls: string }> = {
-  new: { label: "New", cls: "bg-slate-600 text-white ring-slate-600" },
-  contacted: { label: "Contacted", cls: "bg-sky-600 text-white ring-sky-600" },
-  responded: { label: "Responded", cls: "bg-violet-600 text-white ring-violet-600" },
+  prospective: { label: "Prospective", cls: "bg-sky-600 text-white ring-sky-600" },
   confirmed: { label: "Confirmed", cls: "bg-emerald-600 text-white ring-emerald-600" },
-  banner_sent: { label: "Banner Sent", cls: "bg-amber-500 text-white ring-amber-500" },
+  declined: { label: "Declined", cls: "bg-rose-600 text-white ring-rose-600" },
 };
 
 export const avatarGradient: Record<ColKey, string> = {
-  new: "from-slate-400 to-slate-500",
-  contacted: "from-sky-500 to-sky-600",
-  responded: "from-violet-500 to-violet-600",
+  prospective: "from-sky-500 to-sky-600",
   confirmed: "from-emerald-500 to-emerald-600",
-  banner_sent: "from-amber-500 to-amber-600",
+  declined: "from-rose-500 to-rose-600",
 };
+
+/** Small non-stage indicators shown under the name. */
+export function derivedBadges(
+  s: any,
+  registeredInTito?: boolean | null,
+): Array<{ key: string; label: string; cls: string }> {
+  const out: Array<{ key: string; label: string; cls: string }> = [];
+  if (s.banner_status === "sent" || s.banner_status === "confirmed_live")
+    out.push({ key: "banner", label: "Banner sent", cls: "bg-amber-50 text-amber-800 ring-amber-200" });
+  if (!bioHeadshotDone(s))
+    out.push({ key: "assets", label: "Missing bio/headshot", cls: "bg-slate-100 text-slate-600 ring-slate-200" });
+  if (registeredInTito === false)
+    out.push({ key: "tito", label: "Not registered in Tito", cls: "bg-orange-50 text-orange-800 ring-orange-200" });
+  return out;
+}
 
 
 type OutreachAlertT =
@@ -114,7 +113,7 @@ type OutreachAlertT =
 
 export function outreachAlert(s: any): OutreachAlertT {
   const status = s.status as string;
-  if (status !== "contacted" && status !== "responded") return null;
+  if (status === "declined") return null;
   const lastAt: string | null = s.last_message_at ?? null;
   const direction: string | null = s.last_message_direction ?? null;
   if (!lastAt) {
@@ -177,6 +176,8 @@ export function SpeakerListCard({
   onRemoveFlag,
   onAddFlag,
   onOverrideChange,
+  registeredInTito,
+  lastMessagePreview,
 }: {
   s: any;
   ev: any;
@@ -200,6 +201,9 @@ export function SpeakerListCard({
   onRemoveFlag?: (id: string) => void;
   onAddFlag?: (note: string) => void;
   onOverrideChange?: (v: "ok" | "follow_up" | "at_risk" | null) => void;
+  /** Tito registration is a derived indicator, not a pipeline stage. */
+  registeredInTito?: boolean | null;
+  lastMessagePreview?: { text: string | null; from: "speaker" | "you" | null } | null;
 }) {
   const [flagDraft, setFlagDraft] = useState<string | null>(null);
   const colKey = columnFor(s);
@@ -314,6 +318,11 @@ export function SpeakerListCard({
                     {alert.label}
                   </StatusPill>
                 )}
+                {derivedBadges(s, registeredInTito).map((b) => (
+                  <StatusPill key={b.key} className={cn(b.cls, "text-[11px]")}>
+                    {b.label}
+                  </StatusPill>
+                ))}
                 {health && (
                   <span title={health.line}>
                     <StatusPill className={cn(health.cls, "text-[11px] font-semibold")}>
@@ -525,6 +534,21 @@ export function SpeakerListCard({
             </div>
           )}
 
+
+          {lastMessagePreview?.text && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                {lastMessagePreview.from === "speaker"
+                  ? `Last message from ${String(s.name).split(" ")[0]}`
+                  : lastMessagePreview.from === "you"
+                    ? "Last message from Kyle"
+                    : "Last message"}
+              </div>
+              <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-slate-700 line-clamp-6">
+                {lastMessagePreview.text}
+              </p>
+            </div>
+          )}
 
           {(addedShort || lastShort) && (
             <div className="flex items-center justify-between text-xs text-slate-400">

@@ -215,7 +215,7 @@ export async function importAsanaProjectToBoard(
       continue;
     }
 
-    const status = statusForKind(effectiveColumnKind(col.kind, col.name)) ?? "new";
+    const status = statusForKind(effectiveColumnKind(col.kind, col.name)) ?? "prospective";
     const { row } = await findOrMergeSpeaker(supabase, {
       event_id: board.event_id,
       name: parsed.name,

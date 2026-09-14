@@ -268,7 +268,7 @@ export const addSpeakerFromSuggestion = createServerFn({ method: "POST" })
       event_id: data.eventId,
       name: data.name.trim(),
       email: data.email.trim().toLowerCase(),
-      status: "new",
+      status: "prospective",
       source: "gmail_scan",
     });
     return { id: res.row?.id as string, merged: res.merged };

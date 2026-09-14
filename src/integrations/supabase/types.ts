@@ -1019,10 +1019,12 @@ export type Database = {
           gmail_thread_id: string
           id: string
           last_message_at: string
+          last_message_from: string | null
           last_message_id: string
           person_email: string
           person_name: string | null
           reason: string
+          snippet: string | null
           speaker_id: string | null
           subject: string | null
           summary: string | null
@@ -1036,10 +1038,12 @@ export type Database = {
           gmail_thread_id: string
           id?: string
           last_message_at: string
+          last_message_from?: string | null
           last_message_id: string
           person_email: string
           person_name?: string | null
           reason: string
+          snippet?: string | null
           speaker_id?: string | null
           subject?: string | null
           summary?: string | null
@@ -1053,10 +1057,12 @@ export type Database = {
           gmail_thread_id?: string
           id?: string
           last_message_at?: string
+          last_message_from?: string | null
           last_message_id?: string
           person_email?: string
           person_name?: string | null
           reason?: string
+          snippet?: string | null
           speaker_id?: string | null
           subject?: string | null
           summary?: string | null
@@ -1975,6 +1981,7 @@ export type Database = {
         | "responded"
         | "confirmed"
         | "declined"
+        | "prospective"
       website_stage:
         | "draft"
         | "proof_1"
@@ -2145,6 +2152,7 @@ export const Constants = {
         "responded",
         "confirmed",
         "declined",
+        "prospective",
       ],
       website_stage: [
         "draft",

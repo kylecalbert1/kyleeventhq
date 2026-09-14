@@ -18,7 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
 import { SyncDialog } from "@/components/SyncDialog";
-import { eventSummariesQuery, speakersQuery, overdueWebsiteAsanaQuery, cardTargetsQuery } from "@/lib/queries";
+import { eventSummariesQuery, speakersQuery, cardTargetsQuery } from "@/lib/queries";
+import { normalizeSpeakerStatus } from "@/lib/status";
 import { daysBetween } from "@/lib/status";
 import { isPastEvent } from "@/lib/event-lifecycle";
 import { getSyncHealth } from "@/lib/sync-health.functions";
@@ -62,21 +63,6 @@ function SyncStalenessBanner() {
         Open settings →
       </Link>
     </div>
-  );
-}
-
-function AsanaOverdueChip() {
-  const { data } = useQuery(overdueWebsiteAsanaQuery);
-  if (!data || data === 0) return null;
-  return (
-    <Link
-      to="/asana"
-      search={{ event: undefined, website: true, hideDone: true }}
-      className="inline-flex items-center gap-2 rounded-full bg-rose-100 text-rose-800 ring-1 ring-rose-200 px-3 py-1.5 text-xs font-semibold hover:bg-rose-200 transition-colors"
-    >
-      <AlertTriangle className="h-3.5 w-3.5" />
-      {data} website Asana task{data === 1 ? "" : "s"} overdue
-    </Link>
   );
 }
 
@@ -141,17 +127,16 @@ function EventsGrid() {
 
   // Per-event speaker status breakdown
   const perEvent = useMemo(() => {
-    const map = new Map<string, { contacted: number; responded: number; confirmed: number; declined: number; total: number }>();
+    const map = new Map<string, { prospective: number; confirmed: number; declined: number; total: number }>();
     for (const s of allSpeakers) {
       const key = (s as any).event_id as string | null;
       if (!key) continue;
-      const cur = map.get(key) ?? { contacted: 0, responded: 0, confirmed: 0, declined: 0, total: 0 };
+      const cur = map.get(key) ?? { prospective: 0, confirmed: 0, declined: 0, total: 0 };
       cur.total++;
-      const st = (s as any).status as string;
-      if (st === "contacted") cur.contacted++;
-      else if (st === "responded") cur.responded++;
-      else if (st === "confirmed") cur.confirmed++;
+      const st = normalizeSpeakerStatus((s as any).status);
+      if (st === "confirmed") cur.confirmed++;
       else if (st === "declined") cur.declined++;
+      else cur.prospective++;
       map.set(key, cur);
     }
     return map;
@@ -192,7 +177,6 @@ function EventsGrid() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-6 py-8 md:py-10 space-y-6">
         <SyncStalenessBanner />
-        <AsanaOverdueChip />
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -318,7 +302,7 @@ function EventCard({
   cardTargetsByEvent,
 }: {
   s: any;
-  perEvent: Map<string, { contacted: number; responded: number; confirmed: number; declined: number; total: number }>;
+  perEvent: Map<string, { prospective: number; confirmed: number; declined: number; total: number }>;
   past?: boolean;
   cardTargetsByEvent?: Record<string, CardTarget[]>;
 }) {
@@ -329,7 +313,7 @@ function EventCard({
   const isVirtual = ev.format === "virtual";
   const weeksLabel = weeksOutLabel(ev.event_date);
   const weeksTone = weeksOutTone(ev.event_date);
-  const counts = perEvent.get(ev.id) ?? { contacted: 0, responded: 0, confirmed: 0, declined: 0, total: 0 };
+  const counts = perEvent.get(ev.id) ?? { prospective: 0, confirmed: 0, declined: 0, total: 0 };
   const cardTargets = cardTargetsByEvent?.[ev.id] ?? [];
   let awayPill: { label: string; tone: "neutral" | "amber" | "green" | "red" } | null = null;
   if (days !== null) {
@@ -383,6 +367,7 @@ function EventCard({
 
         <div className="mt-4 flex items-center gap-2 flex-wrap">
           {counts.confirmed > 0 && <Pill tone="green">{counts.confirmed} confirmed speakers</Pill>}
+          {counts.prospective > 0 && <Pill tone="blue">{counts.prospective} prospective</Pill>}
           {counts.declined > 0 && <Pill tone="red">{counts.declined} declined</Pill>}
           {s.bannersSent > 0 && <Pill tone="blue">{s.bannersSent} speakers/sponsors</Pill>}
         </div>

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { ALL_SPEAKER_STATUS_VALUES } from "@/lib/status";
 
 const SpeakerInput = z.object({
   event_id: z.string().uuid(),
@@ -8,7 +9,7 @@ const SpeakerInput = z.object({
   company: z.string().nullable().optional(),
   title: z.string().nullable().optional(),
   email: z.string().nullable().optional(),
-  status: z.enum(["new", "contacted", "in_conversation", "responded", "confirmed", "declined"]),
+  status: z.enum(ALL_SPEAKER_STATUS_VALUES),
   call_scheduled: z.boolean().optional(),
   call_scheduled_at: z.string().nullable().optional(),
   session_title: z.string().nullable().optional(),
@@ -170,7 +171,7 @@ export const copySpeakerToEvent = createServerFn({ method: "POST" })
       notes: src.notes ? `Copied from past speaker.\n\n${src.notes}` : "Copied from past speaker.",
       profile_notes: src.profile_notes,
       session_format: src.session_format,
-      status: "new",
+      status: "prospective",
       banner_status: "not_started",
       linkedin_post_confirmed: false,
       copied_from_speaker_id: data.source_speaker_id,

@@ -35,20 +35,17 @@ import { StatusPill } from "@/components/StatusPill";
 import {
   eventQuery,
   speakersQuery,
-  sponsorsQuery,
-  websiteTasksQuery,
   milestonesQuery,
+  eventTargetsQuery,
   emailSendsQuery,
   eventReconciliationQuery,
   eventTitoLinksQuery,
+  speakerMessagePreviewsQuery,
 } from "@/lib/queries";
-import { labels, pillClass } from "@/lib/status";
-import { getAsanaProofingDueDates } from "@/lib/asana.functions";
+import { labels, pillClass, normalizeSpeakerStatus } from "@/lib/status";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
 import { SpeakerDetailDialog } from "@/components/dialogs/SpeakerDetailDialog";
-import { SponsorFormDialog } from "@/components/dialogs/SponsorFormDialog";
-import { WebsiteTaskFormDialog } from "@/components/dialogs/WebsiteTaskFormDialog";
 import { MilestoneFormDialog } from "@/components/dialogs/MilestoneFormDialog";
 import { BulkEmailDialog } from "@/components/BulkEmailDialog";
 import { ConfirmSendEmailDialog, type ConfirmDraft } from "@/components/ConfirmSendEmailDialog";
@@ -76,15 +73,13 @@ import { fuzzyFilter } from "@/lib/fuzzy-search";
 import { EventMessagesPanel } from "@/components/messages/EventMessagesPanel";
 import { weeksOutLabel } from "@/lib/message-render";
 import { SpeakerHealthTiles, useSpeakerHealth } from "@/components/speakers/useSpeakerHealth";
-import { isProspectiveSpeaker, isRespondedSpeaker, isSpeakerInConversation, speakerStageChipActiveTones, speakerStageChipTones } from "@/lib/speaker-stage";
+import { isProspectiveSpeaker, speakerStageChipActiveTones, speakerStageChipTones } from "@/lib/speaker-stage";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
   loader: ({ params, context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(eventQuery(params.eventId)),
       context.queryClient.ensureQueryData(speakersQuery(params.eventId)),
-      context.queryClient.ensureQueryData(sponsorsQuery(params.eventId)),
-      context.queryClient.ensureQueryData(websiteTasksQuery(params.eventId)),
       context.queryClient.ensureQueryData(milestonesQuery(params.eventId)),
       context.queryClient.ensureQueryData(emailSendsQuery(params.eventId)),
       context.queryClient.ensureQueryData(eventTitoLinksQuery(params.eventId)),
@@ -97,30 +92,19 @@ function EventDetail() {
   const qc = useQueryClient();
   const event = useQuery(eventQuery(eventId));
   const speakers = useQuery(speakersQuery(eventId));
-  const sponsors = useQuery(sponsorsQuery(eventId));
   const speakerEmails = useMemo(
     () => (speakers.data ?? []).map((s: any) => s.email as string | null),
     [speakers.data],
   );
   const { lookup: lookupHistory } = useContactHistory(speakerEmails);
-  const tasks = useQuery(websiteTasksQuery(eventId));
   const milestones = useQuery(milestonesQuery(eventId));
-  const fetchAsana = useServerFn(getAsanaProofingDueDates);
-  const asanaQuery = useQuery({
-    queryKey: ["asanaProofingDues", eventId],
-    queryFn: () => fetchAsana({ data: { event_id: eventId } }),
-    staleTime: 0,
-    refetchOnMount: "always",
-    retry: false,
-  });
-  const asanaDues = asanaQuery.data?.dues;
+  const targets = useQuery(eventTargetsQuery(eventId));
+  const messagePreviews = useQuery(speakerMessagePreviewsQuery(eventId));
 
 
   const [editingEvent, setEditingEvent] = useState(false);
   const [speakerEdit, setSpeakerEdit] = useState<null | { open: boolean; speaker?: any }>(null);
   const [detailSpeaker, setDetailSpeaker] = useState<any | null>(null);
-  const [sponsorEdit, setSponsorEdit] = useState<null | { open: boolean; sponsor?: any }>(null);
-  const [taskEdit, setTaskEdit] = useState<null | { open: boolean; task?: any }>(null);
   const [milestoneEdit, setMilestoneEdit] = useState<null | {
     open: boolean;
     milestone?: any;
@@ -192,18 +176,9 @@ function EventDetail() {
 
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
-  const [filterKey, setFilterKey] = useState<
-    | "all"
-    | "confirmed"
-    | "prospective"
-    | "in_conversation"
-    | "responded"
-    | "needs_chasing"
-    | "missing_assets"
-    | "not_registered"
-    | "registered"
-    | "declined"
-  >("confirmed");
+  const [filterKey, setFilterKey] = useState<"all" | "confirmed" | "prospective" | "declined">(
+    "confirmed",
+  );
 
 
 
@@ -223,14 +198,12 @@ function EventDetail() {
 
   const allSpeakers = (speakers.data ?? []) as any[];
   const isProspective = isProspectiveSpeaker;
-  const isInConversation = isSpeakerInConversation;
-  const isResponded = isRespondedSpeaker;
   const isMissingAssets = (s: any) => {
     if (typeof s.bio_and_headshot_received === "boolean") return !s.bio_and_headshot_received;
     return !(s.bio_received && s.headshot_received);
   };
   const needsChasing = (s: any) => {
-    if (s.status !== "contacted" && s.status !== "in_conversation" && s.status !== "responded") return false;
+    if (normalizeSpeakerStatus(s.status) !== "prospective") return false;
     if (s.last_message_direction !== "outbound") return false;
     if (!s.last_message_at) return true;
     const days = (Date.now() - new Date(s.last_message_at).getTime()) / 86400000;
@@ -245,8 +218,6 @@ function EventDetail() {
     all: allSpeakers.length,
     confirmed: allSpeakers.filter((s) => s.status === "confirmed").length,
     prospective: allSpeakers.filter(isProspective).length,
-    inConversation: allSpeakers.filter(isInConversation).length,
-    responded: allSpeakers.filter(isResponded).length,
     needsChasing: allSpeakers.filter(needsChasing).length,
     missingAssets: allSpeakers.filter(isMissingAssets).length,
     notRegistered: allSpeakers.filter(notRegisteredInTito).length,
@@ -254,28 +225,12 @@ function EventDetail() {
     registeredTito: allSpeakers.filter(registeredInTito).length,
   };
 
-  type FilterKey =
-    | "all"
-    | "confirmed"
-    | "prospective"
-    | "in_conversation"
-    | "responded"
-    | "needs_chasing"
-    | "missing_assets"
-    | "not_registered"
-    | "registered"
-    | "declined";
+  type FilterKey = "all" | "confirmed" | "prospective" | "declined";
 
   function applyFilter(list: any[]): any[] {
     switch (filterKey) {
       case "confirmed": return list.filter((s) => s.status === "confirmed");
       case "prospective": return list.filter(isProspective);
-      case "in_conversation": return list.filter(isInConversation);
-      case "responded": return list.filter(isResponded);
-      case "needs_chasing": return list.filter(needsChasing);
-      case "missing_assets": return list.filter(isMissingAssets);
-      case "not_registered": return list.filter(notRegisteredInTito);
-      case "registered": return list.filter(registeredInTito);
       case "declined": return list.filter((s) => s.status === "declined");
       default: return list;
     }
@@ -322,6 +277,25 @@ function EventDetail() {
   const speakerTarget = (e as any).speaker_target ?? 0;
 
   const eventEnded = isPastEvent(e as any);
+
+  const shortDate = (v: string | null | undefined) =>
+    v
+      ? new Date(v).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+      : "Not set";
+  const milestoneDate = (type: "kickoff" | "washup") =>
+    (milestones.data ?? []).find((m: any) => m.type === type)?.scheduled_date ?? null;
+  const targetValue = (match: RegExp) => {
+    const t = (targets.data ?? []).find((row: any) => match.test(String(row.label ?? "")));
+    return t ? String(t.target_value) : "Not set";
+  };
+  const keyInfo = [
+    { label: "Event date", value: shortDate(e.event_date) },
+    { label: "Kick off", value: shortDate((e as any).kickoff_date ?? milestoneDate("kickoff")) },
+    { label: "Washup", value: shortDate((e as any).washup_date ?? milestoneDate("washup")) },
+    { label: "Sponsorship target", value: targetValue(/sponsor/i) },
+    { label: "Delegate target", value: targetValue(/delegate|attendee|registration/i) },
+  ];
+
 
   return (
     <div className="p-6 md:p-8 space-y-6">
@@ -425,6 +399,21 @@ function EventDetail() {
           </div>
         </div>
 
+        {/* Key info at a glance — pulled from data already stored lower down */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {keyInfo.map((k) => (
+            <div
+              key={k.label}
+              className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-1.5"
+            >
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                {k.label}
+              </div>
+              <div className="text-sm font-semibold text-slate-800">{k.value}</div>
+            </div>
+          ))}
+        </div>
+
         {/* Status chips as filters — reconciliation hides for ended events */}
         {!eventEnded && (
           <div className="mt-4 flex flex-wrap gap-2">
@@ -443,37 +432,12 @@ function EventDetail() {
               count={counts.prospective}
             />
             <FilterChip
-              active={filterKey === "in_conversation"}
-              onClick={() => setFilterKey(filterKey === "in_conversation" ? "all" : "in_conversation")}
-              tone="amber"
-              label="In conversation"
-              count={counts.inConversation}
+              active={filterKey === "declined"}
+              onClick={() => setFilterKey(filterKey === "declined" ? "all" : "declined")}
+              tone="rose"
+              label="Declined"
+              count={counts.declined}
             />
-            <FilterChip
-              active={filterKey === "responded"}
-              onClick={() => setFilterKey(filterKey === "responded" ? "all" : "responded")}
-              tone="violet"
-              label="Responded"
-              count={counts.responded}
-            />
-            {(e as any).tito_slug && (
-              <>
-                <FilterChip
-                  active={filterKey === "registered"}
-                  onClick={() => setFilterKey(filterKey === "registered" ? "all" : "registered")}
-                  tone="violet"
-                  label="Registered in Tito"
-                  count={counts.registeredTito}
-                />
-                <FilterChip
-                  active={filterKey === "not_registered"}
-                  onClick={() => setFilterKey(filterKey === "not_registered" ? "all" : "not_registered")}
-                  tone="amber"
-                  label="Not yet registered"
-                  count={counts.notRegistered}
-                />
-              </>
-            )}
           </div>
         )}
       </Card>
@@ -521,17 +485,6 @@ function EventDetail() {
               <SelectItem value="all">All ({counts.all})</SelectItem>
               <SelectItem value="confirmed">Confirmed ({counts.confirmed})</SelectItem>
               <SelectItem value="prospective">Prospective ({counts.prospective})</SelectItem>
-              <SelectItem value="in_conversation">In conversation ({counts.inConversation})</SelectItem>
-              <SelectItem value="responded">Responded ({counts.responded})</SelectItem>
-              <SelectItem value="needs_chasing">Needs chasing ({counts.needsChasing})</SelectItem>
-              <SelectItem value="missing_assets">
-                Missing bio or headshot ({counts.missingAssets})
-              </SelectItem>
-              {(e as any).tito_slug && (
-                <SelectItem value="not_registered">
-                  Not registered in Tito ({counts.notRegistered})
-                </SelectItem>
-              )}
               <SelectItem value="declined">Declined ({counts.declined})</SelectItem>
             </SelectContent>
           </Select>
@@ -618,6 +571,7 @@ function EventDetail() {
                       s={s}
                       ev={e}
                       showEventChip={false}
+                      lastMessagePreview={(messagePreviews.data as any)?.[s.id] ?? null}
                       selected={!!selected[s.id]}
                       onToggleSelect={(v) => setSelected({ ...selected, [s.id]: v })}
                       onOpenDetail={() => setDetailSpeaker(s)}
@@ -703,139 +657,6 @@ function EventDetail() {
           </div>
         </div>
         <SendHistoryPanel eventId={eventId} defaultOpen title="Send history (this event)" />
-      </section>
-
-      {/* ─── Sponsors ─── */}
-      <section className="space-y-6">
-        <div className="accent-bar mb-2" />
-        <div>
-          <SectionHeader title="Sponsors" onAdd={() => setSponsorEdit({ open: true })} />
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sponsor</TableHead>
-                  <TableHead>Tier</TableHead>
-                  <TableHead>Session</TableHead>
-                  <TableHead>Banner</TableHead>
-                  <TableHead>LinkedIn post</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(sponsors.data ?? []).map((s: any) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="font-medium">{s.name}</TableCell>
-                    <TableCell>{s.spend_tier}</TableCell>
-                    <TableCell>{s.session_type}</TableCell>
-                    <TableCell>
-                      <StatusPill className={pillClass.banner[s.banner_status as never]}>
-                        {labels.banner[s.banner_status as never]}
-                      </StatusPill>
-                    </TableCell>
-                    <TableCell>{s.linkedin_post_confirmed ? "✓" : "-"}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSponsorEdit({ open: true, sponsor: s })}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(sponsors.data ?? []).length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
-                      No sponsors yet.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Card>
-        </div>
-      </section>
-
-      {/* ─── Website tasks ─── */}
-      <section className="space-y-3">
-        <div className="accent-bar mb-2" />
-        <SectionHeader title="Website tasks" onAdd={() => setTaskEdit({ open: true })} />
-        {(tasks.data ?? []).length === 0 ? (
-          <Card className="p-8 text-center text-sm text-muted-foreground">
-            No website tasks yet.
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {(tasks.data ?? []).map((t: any) => {
-              const stages = [
-                { key: "buddy_proof" as const, label: "1st proof (buddy)", done: t.buddy_proof_done, date: t.buddy_proof_date },
-                { key: "marketer_proof" as const, label: "2nd proof (marketing)", done: t.marketer_proof_done, date: t.marketer_proof_date },
-                { key: "amendments_actioned" as const, label: "Amendments actioned", done: t.amendments_actioned_done, date: t.amendments_actioned_date },
-                { key: "final_signoff" as const, label: "Final sign-off", done: t.final_signoff_done, date: t.final_signoff_date },
-              ];
-              return (
-                <Card
-                  key={t.id}
-                  className="p-4 hover:shadow-sm transition-shadow cursor-pointer bg-card rounded-2xl border-slate-200/70"
-                  onClick={() => setTaskEdit({ open: true, task: t })}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {t.protected && <Lock className="h-3.5 w-3.5 text-amber-600" />}
-                        <div className="font-semibold text-sm truncate">
-                          {t.title || "Website task"}
-                        </div>
-                        <StatusPill className={pillClass.website[t.status as never]}>
-                          {labels.website[t.status as never]}
-                        </StatusPill>
-                        {t.due_date && (
-                          <span className="text-[11px] text-muted-foreground">
-                            Due {new Date(t.due_date).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        {stages.map((st) => {
-                          const asanaDue = asanaDues?.[st.key] ?? null;
-                          return (
-                            <span
-                              key={st.label}
-                              className={
-                                "text-[11px] px-2 py-0.5 rounded-full ring-1 " +
-                                (st.done
-                                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                                  : "bg-slate-50 text-slate-500 ring-slate-200")
-                              }
-                            >
-                              {st.done ? "✓ " : "○ "}
-                              {st.label}
-                              {st.done && st.date ? ` · ${new Date(st.date).toLocaleDateString()}` : ""}
-                              {asanaDue ? ` · Asana ${new Date(asanaDue).toLocaleDateString()}` : ""}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    {t.markup_url && (
-                      <a
-                        href={t.markup_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(evt) => evt.stopPropagation()}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-sky-50 text-sky-700 ring-1 ring-sky-200 hover:bg-sky-100"
-                      >
-                        Markup <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
       </section>
 
       {/* ─── Kickoff & Washup ─── */}
@@ -959,22 +780,6 @@ function EventDetail() {
         draft={confirmEmail}
         onConfirm={performSendConfirmed}
       />
-      {sponsorEdit && (
-        <SponsorFormDialog
-          open={sponsorEdit.open}
-          onOpenChange={(o) => setSponsorEdit(o ? sponsorEdit : null)}
-          sponsor={sponsorEdit.sponsor}
-          eventId={eventId}
-        />
-      )}
-      {taskEdit && (
-        <WebsiteTaskFormDialog
-          open={taskEdit.open}
-          onOpenChange={(o) => setTaskEdit(o ? taskEdit : null)}
-          task={taskEdit.task}
-          defaultEventId={eventId}
-        />
-      )}
       {milestoneEdit && (
         <MilestoneFormDialog
           open={milestoneEdit.open}

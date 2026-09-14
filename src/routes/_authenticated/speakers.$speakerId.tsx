@@ -48,13 +48,10 @@ function stageOf(s: any): { label: string; cls: string } {
     return { label: "Banner Sent", cls: "bg-amber-500 text-white ring-amber-500" };
   if (s.status === "confirmed")
     return { label: "Confirmed", cls: "bg-emerald-600 text-white ring-emerald-600" };
-  if (s.status === "responded")
-    return {
-      label: "Responded",
-      cls: "border border-violet-400 text-violet-700 bg-violet-50/60",
-    };
+  if (s.status === "declined")
+    return { label: "Declined", cls: "bg-rose-600 text-white ring-rose-600" };
   return {
-    label: "Contacted",
+    label: "Prospective",
     cls: "border border-sky-400 text-sky-700 bg-sky-50/60",
   };
 }

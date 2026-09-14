@@ -115,28 +115,15 @@ function SpeakersPage() {
 
 
 const COLUMNS = [
-  { key: "new", title: "New", accent: "border-t-slate-400", dot: "bg-slate-400" },
-  { key: "contacted", title: "Contacted", accent: "border-t-sky-400", dot: "bg-sky-400" },
-  { key: "responded", title: "Responded", accent: "border-t-violet-400", dot: "bg-violet-400" },
+  { key: "prospective", title: "Prospective", accent: "border-t-sky-400", dot: "bg-sky-400" },
   { key: "confirmed", title: "Confirmed", accent: "border-t-emerald-500", dot: "bg-emerald-500" },
-  { key: "banner_sent", title: "Banner Sent", accent: "border-t-amber-500", dot: "bg-amber-500" },
+  { key: "declined", title: "Declined", accent: "border-t-rose-500", dot: "bg-rose-500" },
 ] as const;
 
 type StageFilter = "all" | ColKey;
 
 function patchForColumn(target: ColKey): Record<string, any> {
-  switch (target) {
-    case "new":
-      return { status: "new" };
-    case "contacted":
-      return { status: "contacted" };
-    case "responded":
-      return { status: "responded" };
-    case "confirmed":
-      return { status: "confirmed" };
-    case "banner_sent":
-      return { status: "confirmed", banner_status: "sent" };
-  }
+  return { status: target };
 }
 
 
@@ -209,7 +196,7 @@ function SpeakerBoard() {
   // Stage counts (pre-stage-filter, so the dropdown shows real totals).
   const stageCounts = useMemo(() => {
     const c: Record<ColKey, number> = {
-      new: 0, contacted: 0, responded: 0, confirmed: 0, banner_sent: 0,
+      prospective: 0, confirmed: 0, declined: 0,
     };
     preStageFiltered.forEach((s: any) => { c[columnFor(s)]++; });
     return c;
@@ -243,7 +230,7 @@ function SpeakerBoard() {
   // Partition: freshly-tagged Tito candidates (source='tito_candidate', status='contacted', no messages yet)
   // land in a separate "Potential speakers" section grouped by event; everything else stays in the main pipeline.
   const isPotentialCandidate = (s: any) =>
-    s.source === "tito_candidate" && (s.status === "new" || s.status === "contacted") && !s.last_message_at;
+    s.source === "tito_candidate" && s.status !== "confirmed" && s.status !== "declined" && !s.last_message_at;
 
   const pipelineSorted = useMemo(() => sorted.filter((s: any) => !isPotentialCandidate(s)), [sorted]);
   const candidatesSorted = useMemo(() => sorted.filter((s: any) => isPotentialCandidate(s)), [sorted]);
@@ -267,7 +254,7 @@ function SpeakerBoard() {
   }, [candidatesSorted, eventById]);
 
   const grouped: Record<ColKey, any[]> = {
-    new: [], contacted: [], responded: [], confirmed: [], banner_sent: [],
+    prospective: [], confirmed: [], declined: [],
   };
   pipelineSorted.forEach((s: any) => grouped[columnFor(s)].push(s));
 

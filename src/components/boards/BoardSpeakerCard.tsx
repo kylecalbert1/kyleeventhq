@@ -1,13 +1,11 @@
 import { Check, Copy, X } from "lucide-react";
 import { StatusPill } from "@/components/StatusPill";
 import { cn } from "@/lib/utils";
+import { normalizeSpeakerStatus } from "@/lib/status";
 import { softCard, outreachAlert } from "@/components/speakers/SpeakerListCard";
 
 const STATUS_CHIP: Record<string, { label: string; cls: string }> = {
-  new: { label: "Interest", cls: "bg-slate-600 text-white ring-slate-600" },
-  contacted: { label: "Contacted", cls: "bg-sky-600 text-white ring-sky-600" },
-  in_conversation: { label: "In conversation", cls: "bg-indigo-600 text-white ring-indigo-600" },
-  responded: { label: "Responded", cls: "bg-violet-600 text-white ring-violet-600" },
+  prospective: { label: "Prospective", cls: "bg-sky-600 text-white ring-sky-600" },
   confirmed: { label: "Confirmed", cls: "bg-emerald-600 text-white ring-emerald-600" },
   declined: { label: "Declined", cls: "bg-rose-600 text-white ring-rose-600" },
 };
@@ -37,7 +35,7 @@ export function BoardSpeakerCard({
   onDragStart?: (e: React.DragEvent) => void;
   onRemove?: () => void;
 }) {
-  const chip = STATUS_CHIP[s.status as string] ?? STATUS_CHIP.new;
+  const chip = STATUS_CHIP[normalizeSpeakerStatus(s.status)];
   const alert = outreachAlert(s);
   const showAlert = alert && (alert.type === "reply" || alert.type === "follow_up") ? alert : null;
   const AlertIcon = showAlert?.icon ?? null;
