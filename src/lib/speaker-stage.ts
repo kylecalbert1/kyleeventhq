@@ -160,6 +160,7 @@ export const speakerStageChipTones = {
   sky: "bg-sky-50 text-sky-800 border-sky-200 hover:bg-sky-100",
   violet: "bg-violet-50 text-violet-800 border-violet-200 hover:bg-violet-100",
   amber: "bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100",
+  rose: "bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100",
 } as const;
 
 export const speakerStageChipActiveTones = {
@@ -167,6 +168,7 @@ export const speakerStageChipActiveTones = {
   sky: "bg-sky-600 text-white border-sky-600 hover:bg-sky-600",
   violet: "bg-violet-600 text-white border-violet-600 hover:bg-violet-600",
   amber: "bg-amber-600 text-white border-amber-600 hover:bg-amber-600",
+  rose: "bg-rose-600 text-white border-rose-600 hover:bg-rose-600",
 } as const;
 
 export type SpeakerStageTone = keyof typeof speakerStageChipTones;
