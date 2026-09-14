@@ -134,5 +134,20 @@ export const generateMessageDraft = createServerFn({ method: "POST" })
     }
     const parsed = DraftShape.parse(raw);
     if (!parsed.body_markdown.trim()) throw new Error("The model returned an empty message.");
+
+    // Keep a durable record of every generation so it survives closing the dialog.
+    await context.supabase.from("message_generation_history").insert({
+      event_id: data.event_id,
+      template_id: data.template_id ?? null,
+      prompt: data.prompt,
+      source: data.current_draft ? "refine" : "compose",
+      name: parsed.name,
+      subject: parsed.subject,
+      body_markdown: parsed.body_markdown,
+      stream: parsed.stream,
+      event_format: parsed.event_format,
+      typical_weeks: parsed.typical_weeks,
+    });
+
     return parsed as AiMessageDraft;
   });
