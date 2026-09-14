@@ -212,6 +212,7 @@ export function EventMessagesPanel({
         templates={applicable}
         onPick={(t) => {
           setPicking(false);
+          setComposeEvent(event);
           setGenerating(t);
         }}
       />
@@ -221,7 +222,8 @@ export function EventMessagesPanel({
         onOpenChange={setAiOpen}
         event={event}
         userFirstName={firstName}
-        onDraft={(d) =>
+        onDraft={(d) => {
+          setComposeEvent(event);
           setGenerating({
             id: null,
             name: d.name,
@@ -230,15 +232,34 @@ export function EventMessagesPanel({
             event_format: d.event_format,
             subject: d.subject,
             body_markdown: d.body_markdown,
-          })
-        }
+          });
+        }}
+      />
+
+      <MessageHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        event={event}
+        onUse={(h, target) => {
+          setHistoryOpen(false);
+          setComposeEvent(target);
+          setGenerating({
+            id: null,
+            name: h.name,
+            stream: h.stream,
+            typical_weeks: h.typical_weeks,
+            event_format: h.event_format,
+            subject: h.subject,
+            body_markdown: h.body_markdown,
+          });
+        }}
       />
 
       <GenerateMessageDialog
         open={Boolean(generating)}
         onOpenChange={(v) => !v && setGenerating(null)}
         template={generating}
-        event={event}
+        event={composeEvent}
         userFirstName={firstName}
         onEditEvent={onEditEvent}
       />
