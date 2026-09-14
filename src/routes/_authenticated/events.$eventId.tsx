@@ -36,6 +36,7 @@ import {
   eventQuery,
   speakersQuery,
   milestonesQuery,
+  eventTargetsQuery,
   emailSendsQuery,
   eventReconciliationQuery,
   eventTitoLinksQuery,
@@ -96,6 +97,7 @@ function EventDetail() {
   );
   const { lookup: lookupHistory } = useContactHistory(speakerEmails);
   const milestones = useQuery(milestonesQuery(eventId));
+  const targets = useQuery(eventTargetsQuery(eventId));
 
 
   const [editingEvent, setEditingEvent] = useState(false);
@@ -374,6 +376,21 @@ function EventDetail() {
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* Key info at a glance — pulled from data already stored lower down */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {keyInfo.map((k) => (
+            <div
+              key={k.label}
+              className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-1.5"
+            >
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                {k.label}
+              </div>
+              <div className="text-sm font-semibold text-slate-800">{k.value}</div>
+            </div>
+          ))}
         </div>
 
         {/* Status chips as filters — reconciliation hides for ended events */}
