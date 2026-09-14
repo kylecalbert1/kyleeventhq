@@ -237,6 +237,12 @@ function ReplyNeededPage() {
           </Button>
         </header>
 
+        <p className="text-xs text-muted-foreground -mt-2">
+          Replies sync automatically every night. Use Scan Gmail to check right now, or to look
+          further back than the last 14 days.
+        </p>
+
+
         <div className="flex flex-wrap items-center gap-2">
           <FilterChip label={`All (${counts.all})`} active={activeFilter === "all"} onClick={() => setFilter("all")} />
           <FilterChip
