@@ -46,9 +46,112 @@ export function followUpSummary(
   },
   lastSendAt?: string | null,
 ): FollowUpSummary {
-  const lastAt = speaker.last_message_at ?? null;
-  const loggedDirection = speaker.last_message_direction ?? nullfer;
-  return null;
+  // A logged send is the authoritative outbound record — if it's newer than
+  // the speaker's stored last_message_at, it IS the last contact.
+  const sendAt = lastSendAt ?? null;
+  const lastMsgAt = speaker.last_message_at ?? null;
+  const sendNewer =
+    !!sendAt && (!lastMsgAt || +new Date(sendAt) >= +new Date(lastMsgAt));
+  const at = sendNewer ? sendAt : lastMsgAt;
+  const direction: "outbound" | "inbound" | null = sendNewer
+    ? "outbound"
+    : ((speaker.last_message_direction as "outbound" | "inbound" | null) ?? (lastMsgAt ? "outbound" : null));
+
+  if (!at || !direction) {
+    return {
+      tone: "slate",
+      label: "No contact logged",
+      cls: TONE_CLS.slate,
+      at: null,
+      direction: null,
+      days: null,
+      line: "No messages logged with this person yet.",
+    };
+  }
+
+  const days = daysBetween(new Date(at), new Date());
+
+  if (days === null) {
+    return {
+      tone: "slate",
+      label: "No contact logged",
+      cls: TONE_CLS.slate,
+      at,
+      direction,
+      days: null,
+      line: "No messages logged with this person yet.",
+    };
+  }
+
+  if (direction === "inbound") {
+    if (days > 14) {
+      return {
+        tone: "rose",
+        label: "At risk",
+        cls: TONE_CLS.rose,
+        at,
+        direction,
+        days,
+        line: `Replied ${daysLine(days)} — still no follow-up from you.`,
+      };
+    }
+    if (days > 2) {
+      return {
+        tone: "rose",
+        label: "Reply needed",
+        cls: TONE_CLS.rose,
+        at,
+        direction,
+        days,
+        line: `Replied ${daysLine(days)} — you haven't followed up yet.`,
+      };
+    }
+    return {
+      tone: "ok",
+      label: "On track",
+      cls: TONE_CLS.ok,
+      at,
+      direction,
+      days,
+      line: `Replied ${daysLine(days)} — you're on top of it.`,
+    };
+  }
+
+  // Outbound
+  if (days > 21) {
+    return {
+      tone: "rose",
+      label: "At risk",
+      cls: TONE_CLS.rose,
+      at,
+      direction,
+      days,
+      line: `${days} days since your last message — no reply logged.`,
+    };
+  }
+  if (days > 7) {
+    return {
+      tone: "amber",
+      label: "Needs follow-up",
+      cls: TONE_CLS.amber,
+      at,
+      direction,
+      days,
+      line: `${days} days since your last message — no reply logged.`,
+    };
+  }
+  return {
+    tone: "ok",
+    label: "On track",
+    cls: TONE_CLS.ok,
+    at,
+    direction,
+    days,
+    line:
+      days <= 0
+        ? "You messaged them today."
+        : `${days} day${days === 1 ? "" : "s"} since your last message — still recent.`,
+  };
 }
 
 
