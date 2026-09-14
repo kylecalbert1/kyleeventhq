@@ -174,6 +174,18 @@ function ReplyNeededPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Scan failed"),
   });
 
+  const statusUpdateFn = useServerFn(updateSpeaker);
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: SpeakerStatus }) =>
+      statusUpdateFn({ data: { id, patch: { status } } }),
+    onSuccess: () => {
+      toast.success("Status updated");
+      qc.invalidateQueries({ queryKey: ["speakers"] });
+      qc.invalidateQueries({ queryKey: ["eventSummaries"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Status update failed"),
+  });
+
   const rows = (queue.data?.rows ?? []) as Row[];
   const activeFilter = search.filter ?? "all";
   // Counts reflect what's visible after past-event suppression (see below).
