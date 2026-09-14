@@ -42,7 +42,7 @@ import {
   eventReconciliationQuery,
   eventTitoLinksQuery,
 } from "@/lib/queries";
-import { labels, pillClass } from "@/lib/status";
+import { labels, pillClass, normalizeSpeakerStatus } from "@/lib/status";
 import { getAsanaProofingDueDates } from "@/lib/asana.functions";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
 import { SpeakerFormDialog } from "@/components/dialogs/SpeakerFormDialog";
@@ -76,7 +76,7 @@ import { fuzzyFilter } from "@/lib/fuzzy-search";
 import { EventMessagesPanel } from "@/components/messages/EventMessagesPanel";
 import { weeksOutLabel } from "@/lib/message-render";
 import { SpeakerHealthTiles, useSpeakerHealth } from "@/components/speakers/useSpeakerHealth";
-import { isProspectiveSpeaker, isRespondedSpeaker, isSpeakerInConversation, speakerStageChipActiveTones, speakerStageChipTones } from "@/lib/speaker-stage";
+import { isProspectiveSpeaker, speakerStageChipActiveTones, speakerStageChipTones } from "@/lib/speaker-stage";
 
 export const Route = createFileRoute("/_authenticated/events/$eventId")({
   loader: ({ params, context }) =>
@@ -192,18 +192,9 @@ function EventDetail() {
 
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
-  const [filterKey, setFilterKey] = useState<
-    | "all"
-    | "confirmed"
-    | "prospective"
-    | "in_conversation"
-    | "responded"
-    | "needs_chasing"
-    | "missing_assets"
-    | "not_registered"
-    | "registered"
-    | "declined"
-  >("confirmed");
+  const [filterKey, setFilterKey] = useState<"all" | "confirmed" | "prospective" | "declined">(
+    "confirmed",
+  );
 
 
 
@@ -223,14 +214,12 @@ function EventDetail() {
 
   const allSpeakers = (speakers.data ?? []) as any[];
   const isProspective = isProspectiveSpeaker;
-  const isInConversation = isSpeakerInConversation;
-  const isResponded = isRespondedSpeaker;
   const isMissingAssets = (s: any) => {
     if (typeof s.bio_and_headshot_received === "boolean") return !s.bio_and_headshot_received;
     return !(s.bio_received && s.headshot_received);
   };
   const needsChasing = (s: any) => {
-    if (s.status !== "contacted" && s.status !== "in_conversation" && s.status !== "responded") return false;
+    if (normalizeSpeakerStatus(s.status) !== "prospective") return false;
     if (s.last_message_direction !== "outbound") return false;
     if (!s.last_message_at) return true;
     const days = (Date.now() - new Date(s.last_message_at).getTime()) / 86400000;
@@ -245,8 +234,6 @@ function EventDetail() {
     all: allSpeakers.length,
     confirmed: allSpeakers.filter((s) => s.status === "confirmed").length,
     prospective: allSpeakers.filter(isProspective).length,
-    inConversation: allSpeakers.filter(isInConversation).length,
-    responded: allSpeakers.filter(isResponded).length,
     needsChasing: allSpeakers.filter(needsChasing).length,
     missingAssets: allSpeakers.filter(isMissingAssets).length,
     notRegistered: allSpeakers.filter(notRegisteredInTito).length,
@@ -254,28 +241,12 @@ function EventDetail() {
     registeredTito: allSpeakers.filter(registeredInTito).length,
   };
 
-  type FilterKey =
-    | "all"
-    | "confirmed"
-    | "prospective"
-    | "in_conversation"
-    | "responded"
-    | "needs_chasing"
-    | "missing_assets"
-    | "not_registered"
-    | "registered"
-    | "declined";
+  type FilterKey = "all" | "confirmed" | "prospective" | "declined";
 
   function applyFilter(list: any[]): any[] {
     switch (filterKey) {
       case "confirmed": return list.filter((s) => s.status === "confirmed");
       case "prospective": return list.filter(isProspective);
-      case "in_conversation": return list.filter(isInConversation);
-      case "responded": return list.filter(isResponded);
-      case "needs_chasing": return list.filter(needsChasing);
-      case "missing_assets": return list.filter(isMissingAssets);
-      case "not_registered": return list.filter(notRegisteredInTito);
-      case "registered": return list.filter(registeredInTito);
       case "declined": return list.filter((s) => s.status === "declined");
       default: return list;
     }
