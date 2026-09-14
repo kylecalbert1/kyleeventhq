@@ -834,6 +834,66 @@ export type Database = {
         }
         Relationships: []
       }
+      message_generation_history: {
+        Row: {
+          body_markdown: string
+          created_at: string
+          event_format: string | null
+          event_id: string
+          id: string
+          name: string
+          prompt: string
+          source: string
+          stream: string
+          subject: string
+          template_id: string | null
+          typical_weeks: number[] | null
+        }
+        Insert: {
+          body_markdown?: string
+          created_at?: string
+          event_format?: string | null
+          event_id: string
+          id?: string
+          name?: string
+          prompt: string
+          source?: string
+          stream?: string
+          subject?: string
+          template_id?: string | null
+          typical_weeks?: number[] | null
+        }
+        Update: {
+          body_markdown?: string
+          created_at?: string
+          event_format?: string | null
+          event_id?: string
+          id?: string
+          name?: string
+          prompt?: string
+          source?: string
+          stream?: string
+          subject?: string
+          template_id?: string | null
+          typical_weeks?: number[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_generation_history_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_generation_history_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_templates: {
         Row: {
           body_markdown: string

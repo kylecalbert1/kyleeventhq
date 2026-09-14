@@ -113,6 +113,7 @@ export function GenerateMessageDialog({
         data: {
           prompt: refinement.trim(),
           event_id: event.id,
+          template_id: template?.id ?? null,
           current_draft: {
             name: template?.name ?? "AI draft",
             subject,
@@ -124,6 +125,7 @@ export function GenerateMessageDialog({
         },
       }),
     onSuccess: (draft) => {
+      qc.invalidateQueries({ queryKey: ["messageGenerationHistory", event.id] });
       // The AI returns template text, so resolve merge fields for this event
       // before it lands in the editable (already-rendered) fields.
       const values = buildPlaceholderValues(event, userFirstName);

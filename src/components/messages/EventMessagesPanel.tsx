@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Send, Settings2, Sparkles, Trash2 } from "lucide-react";
+import { History, Send, Settings2, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,6 +31,7 @@ import {
 } from "@/lib/message-render";
 import { GenerateMessageDialog, type DraftTemplate } from "./GenerateMessageDialog";
 import { AiComposeDialog } from "./AiComposeDialog";
+import { MessageHistoryDialog } from "./MessageHistoryDialog";
 
 export function EventMessagesPanel({
   event,
@@ -46,6 +47,10 @@ export function EventMessagesPanel({
   const [generating, setGenerating] = useState<DraftTemplate | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [picking, setPicking] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  // The event the compose dialog is rendering against; normally this event,
+  // but a history entry can be reused against a different one.
+  const [composeEvent, setComposeEvent] = useState<MessageEvent>(event);
   const [showAllSends, setShowAllSends] = useState(false);
 
   const unmark = useServerFn(deleteMessageSend);
@@ -100,6 +105,10 @@ export function EventMessagesPanel({
               <Settings2 className="mr-1.5 h-4 w-4" />
               Edit templates
             </Link>
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)}>
+            <History className="mr-1.5 h-4 w-4" />
+            History
           </Button>
           <Button size="sm" variant="outline" onClick={() => setAiOpen(true)}>
             <Sparkles className="mr-1.5 h-4 w-4" />
@@ -203,6 +212,7 @@ export function EventMessagesPanel({
         templates={applicable}
         onPick={(t) => {
           setPicking(false);
+          setComposeEvent(event);
           setGenerating(t);
         }}
       />
@@ -212,7 +222,8 @@ export function EventMessagesPanel({
         onOpenChange={setAiOpen}
         event={event}
         userFirstName={firstName}
-        onDraft={(d) =>
+        onDraft={(d) => {
+          setComposeEvent(event);
           setGenerating({
             id: null,
             name: d.name,
@@ -221,15 +232,34 @@ export function EventMessagesPanel({
             event_format: d.event_format,
             subject: d.subject,
             body_markdown: d.body_markdown,
-          })
-        }
+          });
+        }}
+      />
+
+      <MessageHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        event={event}
+        onUse={(h, target) => {
+          setHistoryOpen(false);
+          setComposeEvent(target);
+          setGenerating({
+            id: null,
+            name: h.name,
+            stream: h.stream,
+            typical_weeks: h.typical_weeks,
+            event_format: h.event_format,
+            subject: h.subject,
+            body_markdown: h.body_markdown,
+          });
+        }}
       />
 
       <GenerateMessageDialog
         open={Boolean(generating)}
         onOpenChange={(v) => !v && setGenerating(null)}
         template={generating}
-        event={event}
+        event={composeEvent}
         userFirstName={firstName}
         onEditEvent={onEditEvent}
       />
