@@ -233,3 +233,10 @@ export const speakerFlagsQuery = (eventId: string) =>
   });
 
 
+
+/* ---------------- speaker message previews ---------------- */
+export const speakerMessagePreviewsQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: ["speakerMessagePreviews", eventId] as const,
+    queryFn: () => listSpeakerMessagePreviews({ data: { event_id: eventId } }),
+  });

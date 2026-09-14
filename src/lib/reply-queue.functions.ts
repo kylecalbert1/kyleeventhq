@@ -664,3 +664,24 @@ export async function runReplyQueueScan(
     };
   }
 }
+
+/** Last-message previews for an event's speakers (card display). */
+export const listSpeakerMessagePreviews = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ event_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("reply_queue")
+      .select("speaker_id, snippet, last_message_from, last_message_at")
+      .eq("event_id", data.event_id)
+      .not("speaker_id", "is", null)
+      .order("last_message_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const map: Record<string, { text: string | null; from: "speaker" | "you" | null }> = {};
+    for (const r of (rows ?? []) as any[]) {
+      if (r.speaker_id && !map[r.speaker_id]) {
+        map[r.speaker_id] = { text: r.snippet ?? null, from: r.last_message_from ?? null };
+      }
+    }
+    return map;
+  });
