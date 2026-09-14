@@ -40,6 +40,7 @@ import { labels, pillClass, type OutreachChannel } from "@/lib/status";
 import { listSpeakerActivity } from "@/lib/speakers.functions";
 import { listSpeakerSends } from "@/lib/email-sends.functions";
 import { buildSpeakerTimeline, type TimelineKind } from "@/lib/speaker-timeline";
+import { followUpSummary } from "@/lib/speaker-stage";
 import { initialsOf } from "@/lib/gmail";
 import { linkedinSearchUrl } from "@/lib/linkedin-search";
 import { FindEmailButton } from "@/components/speakers/FindEmailButton";
@@ -126,6 +127,11 @@ export function SpeakerDetailDialog({
   const timeline = useMemo(
     () => (speaker ? buildSpeakerTimeline(speaker, activity.data ?? [], sends.data ?? []) : []),
     [speaker, activity.data, sends.data],
+  );
+  const lastSend = (sends.data ?? [])[0] ?? null;
+  const followUp = useMemo(
+    () => (speaker ? followUpSummary(speaker, lastSend?.sent_at ?? null) : null),
+    [speaker, lastSend?.sent_at],
   );
 
   const qc = useQueryClient();
@@ -315,35 +321,79 @@ export function SpeakerDetailDialog({
           {/* Activity */}
           <section className="space-y-3">
             <SectionTitle>Recent activity</SectionTitle>
-            <p className="text-[11px] text-muted-foreground -mt-1">
-              A plain-language history: status moves, emails sent and replies received. Similar
-              events in a row are grouped.
-            </p>
-            {timeline.length === 0 && !activity.isLoading ? (
-              <div className="text-xs text-muted-foreground">Nothing logged yet.</div>
+            {followUp ? (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <StatusPill className={followUp.cls}>
+                    {followUp.days !== null
+                      ? `${followUp.label} · ${followUp.days}d`
+                      : followUp.label}
+                  </StatusPill>
+                </div>
+                <div className="text-sm leading-snug">{followUp.line}</div>
+                {followUp.at && (
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div>
+                      Last logged contact: {fmtDateTime(followUp.at)} ·{" "}
+                      {followUp.direction === "inbound" ? "they replied" : "you emailed them"}
+                    </div>
+                    {followUp.direction === "outbound" && lastSend?.subject && (
+                      <div className="truncate">Subject: &ldquo;{lastSend.subject}&rdquo;</div>
+                    )}
+                  </div>
+                )}
+              </div>
             ) : (
-              <ol className="relative border-l border-border pl-4 space-y-3">
-                {timeline.map((t) => {
-                  const meta = timelineMeta(t.kind);
-                  return (
-                    <TimelineItem
-                      key={t.id}
-                      icon={meta.icon}
-                      iconCls={meta.cls}
-                      title={t.title}
-                      note={t.note}
-                      time={
-                        t.count > 1 && t.fromAt
-                          ? `${fmtDateTime(t.fromAt)} → ${fmtDateTime(t.at)}`
-                          : fmtDateTime(t.at)
-                      }
-                    />
-                  );
-                })}
-              </ol>
+              <div className="text-xs text-muted-foreground">Loading activity…</div>
             )}
-            {activity.isLoading && (
-              <div className="text-xs text-muted-foreground pl-4">Loading activity…</div>
+            {showHistory ? (
+              <>
+                <button
+                  type="button"
+                  className="text-xs font-medium text-primary hover:underline"
+                  onClick={() => setShowHistory(false)}
+                >
+                  Hide full history
+                </button>
+                <p className="text-[11px] text-muted-foreground -mt-1">
+                  A plain-language history: status moves, emails sent and replies received. Similar
+                  events in a row are grouped.
+                </p>
+                {timeline.length === 0 && !activity.isLoading ? (
+                  <div className="text-xs text-muted-foreground">Nothing logged yet.</div>
+                ) : (
+                  <ol className="relative border-l border-border pl-4 space-y-3">
+                    {timeline.map((t) => {
+                      const meta = timelineMeta(t.kind);
+                      return (
+                        <TimelineItem
+                          key={t.id}
+                          icon={meta.icon}
+                          iconCls={meta.cls}
+                          title={t.title}
+                          note={t.note}
+                          time={
+                            t.count > 1 && t.fromAt
+                              ? `${fmtDateTime(t.fromAt)} → ${fmtDateTime(t.at)}`
+                              : fmtDateTime(t.at)
+                          }
+                        />
+                      );
+                    })}
+                  </ol>
+                )}
+                {activity.isLoading && (
+                  <div className="text-xs text-muted-foreground pl-4">Loading activity…</div>
+                )}
+              </>
+            ) : (
+              <button
+                type="button"
+                className="text-xs font-medium text-primary hover:underline"
+                onClick={() => setShowHistory(true)}
+              >
+                Show full history
+              </button>
             )}
           </section>
 
