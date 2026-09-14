@@ -29,6 +29,7 @@ import {
   getMessageSenderName,
 
 } from "@/lib/message-templates.functions";
+import { listMessageGenerationHistory } from "@/lib/message-history.functions";
 
 export const userSettingsQuery = queryOptions({
   queryKey: ["userSettings"],
@@ -204,6 +205,12 @@ export const messageBlocksQuery = queryOptions({
   queryKey: ["messageBlocks"] as const,
   queryFn: () => listMessageBlocks(),
 });
+
+export const messageGenerationHistoryQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: ["messageGenerationHistory", eventId] as const,
+    queryFn: () => listMessageGenerationHistory({ data: { event_id: eventId } }),
+  });
 
 /* ---------------- event targets ---------------- */
 export const eventTargetsQuery = (eventId: string) =>
