@@ -124,8 +124,11 @@ export function GenerateMessageDialog({
         },
       }),
     onSuccess: (draft) => {
-      setSubject(draft.subject);
-      setBody(draft.body_markdown);
+      // The AI returns template text, so resolve merge fields for this event
+      // before it lands in the editable (already-rendered) fields.
+      const values = buildPlaceholderValues(event, userFirstName);
+      setSubject(renderPlaceholders(draft.subject, values).text);
+      setBody(renderPlaceholders(draft.body_markdown, values).text);
       setRefinement("");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not refine the draft"),
