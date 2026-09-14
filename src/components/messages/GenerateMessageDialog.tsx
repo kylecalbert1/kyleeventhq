@@ -334,7 +334,11 @@ export function GenerateMessageDialog({
                 </Label>
                 <div
                   className="min-h-[200px] rounded-lg border border-border bg-card px-4 py-3 text-sm leading-relaxed [&_a]:text-primary [&_a]:underline [&_h3]:mt-3 [&_h3]:font-semibold [&_li]:ml-4 [&_li]:list-disc [&_p]:my-2 [&_ul]:my-2"
-                  dangerouslySetInnerHTML={{ __html: markdownToHtml(body) }}
+                  dangerouslySetInnerHTML={{
+                    __html: markdownToHtml(
+                      fillPlaceholders(body, buildPlaceholderValues(event, userFirstName)),
+                    ),
+                  }}
                 />
                 <p className="text-[11px] text-muted-foreground">
                   {"{{curly_brace}}"} tags are Tito merge tags and are left untouched, Tito fills
