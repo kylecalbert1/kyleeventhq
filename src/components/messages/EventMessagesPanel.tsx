@@ -210,7 +210,8 @@ export function EventMessagesPanel({
       <AiComposeDialog
         open={aiOpen}
         onOpenChange={setAiOpen}
-        eventId={event.id}
+        event={event}
+        userFirstName={firstName}
         onDraft={(d) =>
           setGenerating({
             id: null,
