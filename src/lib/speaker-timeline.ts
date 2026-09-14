@@ -98,6 +98,16 @@ function fromActivity(a: ActivityRow): TimelineEntry | null {
         count: 1,
       };
     }
+    case "reply_received": {
+      return {
+        id: a.id,
+        kind: "received",
+        title: "Reply received",
+        note: a.note ? `“${a.note}”` : undefined,
+        at: a.created_at,
+        count: 1,
+      };
+    }
     case "message_direction_changed": {
       const inbound = /inbound/i.test(a.note ?? "");
       return {
