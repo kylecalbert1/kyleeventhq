@@ -375,9 +375,28 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       .select("id, name, email, status");
     if (error) throw new Error(error.message);
 
+    const { data: eventRows } = await context.supabase
+      .from("events")
+      .select("id, code, name");
+    const matchableEvents = (eventRows ?? []).map((e) => ({
+      id: e.id as string,
+      code: (e.code as string) ?? "",
+      name: (e.name as string) ?? "",
+    }));
+
+    const myEmail = await gmailProfileEmail(lovableKey, gmailKey);
+    const myDomain = domainOf(myEmail);
+
+    // Our own mailbox (and anyone on our own domain, e.g. Kyle's own speaker
+    // record) must never be a candidate match for an external contact — it is
+    // on every thread, so it used to win the thread-wide match every time.
     const speakersByEmail = new Map<string, { id: string; name: string; email: string; status: string }>();
     for (const s of speakers ?? []) {
-      if (s.email) speakersByEmail.set(s.email.toLowerCase().trim(), s as any);
+      if (!s.email) continue;
+      const e = s.email.toLowerCase().trim();
+      if (myEmail && e === myEmail.toLowerCase()) continue;
+      if (myDomain && domainOf(e) === myDomain) continue;
+      speakersByEmail.set(e, s as any);
     }
 
     const subjectQuery =
@@ -387,7 +406,6 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       ? `newer_than:60d (${emails.map((e) => `from:${e} OR to:${e}`).join(" OR ")})`
       : "";
 
-    const myEmail = await gmailProfileEmail(lovableKey, gmailKey);
 
     const threadIds = new Set<string>();
     const q1 = await gmailSearch(subjectQuery, lovableKey, gmailKey, 25);
