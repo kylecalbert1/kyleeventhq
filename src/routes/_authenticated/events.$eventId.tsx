@@ -40,6 +40,7 @@ import {
   emailSendsQuery,
   eventReconciliationQuery,
   eventTitoLinksQuery,
+  speakerMessagePreviewsQuery,
 } from "@/lib/queries";
 import { labels, pillClass, normalizeSpeakerStatus } from "@/lib/status";
 import { EventFormDialog } from "@/components/dialogs/EventFormDialog";
@@ -98,6 +99,7 @@ function EventDetail() {
   const { lookup: lookupHistory } = useContactHistory(speakerEmails);
   const milestones = useQuery(milestonesQuery(eventId));
   const targets = useQuery(eventTargetsQuery(eventId));
+  const messagePreviews = useQuery(speakerMessagePreviewsQuery(eventId));
 
 
   const [editingEvent, setEditingEvent] = useState(false);
@@ -569,6 +571,7 @@ function EventDetail() {
                       s={s}
                       ev={e}
                       showEventChip={false}
+                      lastMessagePreview={(messagePreviews.data as any)?.[s.id] ?? null}
                       selected={!!selected[s.id]}
                       onToggleSelect={(v) => setSelected({ ...selected, [s.id]: v })}
                       onOpenDetail={() => setDetailSpeaker(s)}
