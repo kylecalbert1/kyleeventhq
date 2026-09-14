@@ -20,11 +20,20 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { queryOptions } from "@tanstack/react-query";
 import { StatusPill } from "@/components/StatusPill";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SpeakerDetailDialog } from "@/components/dialogs/SpeakerDetailDialog";
 import { eventsQuery, speakersQuery } from "@/lib/queries";
 import { listReplyQueue, ackReplyQueueRow, scanReplyQueue } from "@/lib/reply-queue.functions";
 import { scanSpeakerContacts } from "@/lib/gmail-contact-sweep.functions";
+import { updateSpeaker } from "@/lib/speakers.functions";
 import { initialsOf, openGmailThread, gmailThreadUrl } from "@/lib/gmail";
+import { normalizeSpeakerStatus, SPEAKER_STATUSES, type SpeakerStatus } from "@/lib/status";
+import { stagePill } from "@/components/speakers/SpeakerListCard";
 import { cn } from "@/lib/utils";
 import { isPastEvent } from "@/lib/event-lifecycle";
 
@@ -165,6 +174,18 @@ function ReplyNeededPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Scan failed"),
   });
 
+  const statusUpdateFn = useServerFn(updateSpeaker);
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: SpeakerStatus }) =>
+      statusUpdateFn({ data: { id, patch: { status } } }),
+    onSuccess: () => {
+      toast.success("Status updated");
+      qc.invalidateQueries({ queryKey: ["speakers"] });
+      qc.invalidateQueries({ queryKey: ["eventSummaries"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Status update failed"),
+  });
+
   const rows = (queue.data?.rows ?? []) as Row[];
   const activeFilter = search.filter ?? "all";
   // Counts reflect what's visible after past-event suppression (see below).
@@ -288,9 +309,9 @@ function ReplyNeededPage() {
           </Card>
         ) : (
           <div className="space-y-8">
-            <Section title="Reply needed" rows={grouped.speakerReply} onAck={ackMutation.mutate} ackPending={ackMutation.isPending} speakerById={speakerById} eventById={eventById} onView={setDetailSpeaker} />
-            <Section title="You're mentioned" rows={grouped.mention} onAck={ackMutation.mutate} ackPending={ackMutation.isPending} speakerById={speakerById} eventById={eventById} onView={setDetailSpeaker} />
-            <Section title="Follow up (no reply 3+ days)" rows={grouped.followUp} onAck={ackMutation.mutate} ackPending={ackMutation.isPending} speakerById={speakerById} eventById={eventById} onView={setDetailSpeaker} followUp />
+            <Section title="Reply needed" rows={grouped.speakerReply} onAck={ackMutation.mutate} ackPending={ackMutation.isPending} speakerById={speakerById} eventById={eventById} onView={setDetailSpeaker} onStatusChange={(id, status) => statusMutation.mutate({ id, status })} />
+            <Section title="You're mentioned" rows={grouped.mention} onAck={ackMutation.mutate} ackPending={ackMutation.isPending} speakerById={speakerById} eventById={eventById} onView={setDetailSpeaker} onStatusChange={(id, status) => statusMutation.mutate({ id, status })} />
+            <Section title="Follow up (no reply 3+ days)" rows={grouped.followUp} onAck={ackMutation.mutate} ackPending={ackMutation.isPending} speakerById={speakerById} eventById={eventById} onView={setDetailSpeaker} onStatusChange={(id, status) => statusMutation.mutate({ id, status })} followUp />
           </div>
         )}
 
@@ -346,6 +367,7 @@ function Section({
   speakerById,
   eventById,
   onView,
+  onStatusChange,
   followUp,
 }: {
   title: string;
@@ -355,6 +377,7 @@ function Section({
   speakerById: Record<string, any>;
   eventById: Record<string, any>;
   onView: (s: any) => void;
+  onStatusChange: (speakerId: string, status: SpeakerStatus) => void;
   followUp?: boolean;
 }) {
   if (rows.length === 0) return null;
@@ -373,6 +396,7 @@ function Section({
             speaker={r.speaker_id ? speakerById[r.speaker_id] : null}
             event={r.event_id ? eventById[r.event_id] : null}
             onView={onView}
+            onStatusChange={onStatusChange}
             followUp={followUp}
           />
         ))}
@@ -388,6 +412,7 @@ function RowCard({
   speaker,
   event,
   onView,
+  onStatusChange,
   followUp,
 }: {
   r: Row;
@@ -396,12 +421,15 @@ function RowCard({
   speaker: any;
   event: any;
   onView: (s: any) => void;
+  onStatusChange: (speakerId: string, status: SpeakerStatus) => void;
   followUp?: boolean;
 }) {
   const meta = REASON_META[r.reason];
   const Icon = meta.icon;
   const display = r.person_name ?? r.person_email ?? "Unknown";
   const isThreadFake = r.gmail_thread_id.startsWith("seed:");
+  const [expanded, setExpanded] = useState(false);
+  const stage = speaker ? stagePill[normalizeSpeakerStatus(speaker.status)] : null;
   return (
     <Card className="p-4">
       <div className="flex items-start gap-4">
@@ -429,6 +457,32 @@ function RowCard({
                   {event.code}
                 </StatusPill>
               )}
+              {speaker && stage && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" title="Change status">
+                      <StatusPill
+                        className={cn(
+                          stage.cls,
+                          "text-[11px] px-2.5 py-0.5 font-semibold uppercase tracking-wide cursor-pointer hover:opacity-90",
+                        )}
+                      >
+                        {stage.label}
+                      </StatusPill>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {SPEAKER_STATUSES.map((s) => (
+                      <DropdownMenuItem
+                        key={s}
+                        onSelect={() => onStatusChange(speaker.id, s)}
+                      >
+                        {stagePill[s].label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <StatusPill className={cn(meta.chip, "text-[11px] font-semibold")}>
                 <Icon className="h-3 w-3" />
                 {meta.label}
@@ -442,7 +496,18 @@ function RowCard({
             </div>
           )}
           {r.summary && (
-            <div className="mt-1 text-sm text-slate-600 italic">"{r.summary}"</div>
+            <div className="mt-1 text-sm text-slate-600 italic">
+              <span className={cn(expanded ? "whitespace-pre-wrap" : "line-clamp-2")}>
+                "{r.summary}"
+              </span>
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="ml-1.5 text-xs font-medium not-italic text-indigo-600 hover:text-indigo-800"
+              >
+                {expanded ? "Show less" : "Show more"}
+              </button>
+            </div>
           )}
 
           <div className="mt-2 text-xs text-slate-500">
