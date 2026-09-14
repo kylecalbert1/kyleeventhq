@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { runSpeakerContactSweep } from "@/lib/gmail-contact-sweep.functions";
+import { matchEventFromText } from "@/lib/event-match";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const CAL_GATEWAY =
@@ -13,6 +14,14 @@ function domainOf(email: string | null | undefined) {
   if (!email) return "";
   const m = email.toLowerCase().match(/@([^>\s]+)/);
   return m?.[1] ?? "";
+}
+
+/** "Liz Salmoun <elizabeth@otter.ai>" -> "Liz Salmoun" */
+function parseDisplayName(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const m = raw.match(/^(.*?)\s*<[^>]+>$/);
+  const name = (m?.[1] ?? "").replace(/^"|"$/g, "").trim();
+  return name || null;
 }
 
 export const checkCalendarConnected = createServerFn({ method: "GET" })
@@ -375,9 +384,28 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       .select("id, name, email, status");
     if (error) throw new Error(error.message);
 
+    const { data: eventRows } = await context.supabase
+      .from("events")
+      .select("id, code, name");
+    const matchableEvents = (eventRows ?? []).map((e) => ({
+      id: e.id as string,
+      code: (e.code as string) ?? "",
+      name: (e.name as string) ?? "",
+    }));
+
+    const myEmail = await gmailProfileEmail(lovableKey, gmailKey);
+    const myDomain = domainOf(myEmail);
+
+    // Our own mailbox (and anyone on our own domain, e.g. Kyle's own speaker
+    // record) must never be a candidate match for an external contact — it is
+    // on every thread, so it used to win the thread-wide match every time.
     const speakersByEmail = new Map<string, { id: string; name: string; email: string; status: string }>();
     for (const s of speakers ?? []) {
-      if (s.email) speakersByEmail.set(s.email.toLowerCase().trim(), s as any);
+      if (!s.email) continue;
+      const e = s.email.toLowerCase().trim();
+      if (myEmail && e === myEmail.toLowerCase()) continue;
+      if (myDomain && domainOf(e) === myDomain) continue;
+      speakersByEmail.set(e, s as any);
     }
 
     const subjectQuery =
@@ -387,7 +415,6 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       ? `newer_than:60d (${emails.map((e) => `from:${e} OR to:${e}`).join(" OR ")})`
       : "";
 
-    const myEmail = await gmailProfileEmail(lovableKey, gmailKey);
 
     const threadIds = new Set<string>();
     const q1 = await gmailSearch(subjectQuery, lovableKey, gmailKey, 25);
@@ -402,6 +429,9 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       subject: string;
       snippet: string;
       from: string;
+      external_name: string | null;
+      external_email: string | null;
+      suggested_event_id: string | null;
       speaker_email: string | null;
       matched_speaker: { id: string; name: string; email: string; previous_status: string } | null;
       suggested_status: "confirmed" | "declined" | "needs_approval" | "unclear";
@@ -410,6 +440,7 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
       needs: { bio: boolean; headshot: boolean; banner: boolean };
       received_at: string;
     };
+
 
     const results: EmailSuggestion[] = [];
 
@@ -446,32 +477,55 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
 
         const lastBody = extractText(last.payload);
 
-        // Match speaker by any email address involved across the thread
+        // Match the speaker on the *external* participant's address first —
+        // never on our own mailbox, which is on every thread.
         let matched: EmailSuggestion["matched_speaker"] = null;
         let matchedEmail: string | null = null;
-        const involvedAll = messages
-          .flatMap((m) => [header(m.payload.headers, "From"), header(m.payload.headers, "To")])
-          .join(" ")
-          .toLowerCase();
-        for (const [email, sp] of speakersByEmail) {
-          if (involvedAll.includes(email)) {
-            matched = {
-              id: sp.id,
-              name: sp.name,
-              email: sp.email,
-              previous_status: sp.status,
-            };
-            matchedEmail = sp.email;
-            break;
+        const externalEmail = external?.email?.toLowerCase().trim() ?? null;
+        const exact = externalEmail ? speakersByEmail.get(externalEmail) : undefined;
+        if (exact) {
+          matched = {
+            id: exact.id,
+            name: exact.name,
+            email: exact.email,
+            previous_status: exact.status,
+          };
+          matchedEmail = exact.email;
+        } else {
+          // Fall back to any other external participant on the thread.
+          const involvedAll = messages
+            .flatMap((m) => [
+              header(m.payload.headers, "From"),
+              header(m.payload.headers, "To"),
+              header(m.payload.headers, "Cc"),
+            ])
+            .join(" ")
+            .toLowerCase();
+          for (const [email, sp] of speakersByEmail) {
+            if (involvedAll.includes(email)) {
+              matched = {
+                id: sp.id,
+                name: sp.name,
+                email: sp.email,
+                previous_status: sp.status,
+              };
+              matchedEmail = sp.email;
+              break;
+            }
           }
         }
 
         const ai = await classifyThread(threadText, lovableKey);
+        const suggestedEventId =
+          matchEventFromText(`${subject}\n${threadText}`, matchableEvents) ?? null;
         results.push({
           thread_id: tid,
           subject: subject || "(no subject)",
           snippet: lastBody.slice(0, 220).replace(/\s+/g, " ").trim(),
           from,
+          external_name: parseDisplayName(external?.raw ?? from),
+          external_email: externalEmail,
+          suggested_event_id: suggestedEventId,
           speaker_email: matchedEmail,
           matched_speaker: matched,
           suggested_status: ai.suggested_status,
@@ -480,6 +534,7 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
           needs: ai.needs,
           received_at: new Date(Number(last.internalDate)).toISOString(),
         });
+
       } catch (e) {
         console.error(`Skip thread ${tid}:`, e);
       }
