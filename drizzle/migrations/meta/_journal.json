@@ -43,6 +43,13 @@
       "when": 1789396373132,
       "tag": "0005_enable_cron_and_net",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789398522607,
+      "tag": "0006_speaker_status_prospective_and_reply_snippet",
+      "breakpoints": true
     }
   ]
 }

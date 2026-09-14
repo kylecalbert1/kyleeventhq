@@ -1,4 +1,4 @@
-import { daysBetween } from "@/lib/status";
+import { daysBetween, normalizeSpeakerStatus } from "@/lib/status";
 
 export type SpeakerStageRecord = {
   id: string;
@@ -172,27 +172,13 @@ export const speakerStageChipActiveTones = {
 export type SpeakerStageTone = keyof typeof speakerStageChipTones;
 
 export function isProspectiveSpeaker(speaker: SpeakerStageRecord): boolean {
-  return (speaker.status === "new" || speaker.status === "contacted") && !speaker.call_scheduled;
-}
-
-export function isSpeakerInConversation(speaker: SpeakerStageRecord): boolean {
-  return (
-    speaker.status === "in_conversation" ||
-    (Boolean(speaker.call_scheduled) &&
-      speaker.status !== "confirmed" &&
-      speaker.status !== "declined")
-  );
-}
-
-export function isRespondedSpeaker(speaker: SpeakerStageRecord): boolean {
-  return speaker.status === "responded";
+  return normalizeSpeakerStatus(speaker.status) === "prospective";
 }
 
 export function getCoreSpeakerStageCounts(speakers: SpeakerStageRecord[]) {
   return {
-    confirmed: speakers.filter((speaker) => speaker.status === "confirmed").length,
+    confirmed: speakers.filter((s) => normalizeSpeakerStatus(s.status) === "confirmed").length,
     prospective: speakers.filter(isProspectiveSpeaker).length,
-    inConversation: speakers.filter(isSpeakerInConversation).length,
-    responded: speakers.filter(isRespondedSpeaker).length,
+    declined: speakers.filter((s) => normalizeSpeakerStatus(s.status) === "declined").length,
   };
 }

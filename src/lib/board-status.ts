@@ -2,9 +2,9 @@
 export function statusForKind(kind: string | null | undefined): string | null {
   switch (kind) {
     case "interest":
-      return "new";
+      return "prospective";
     case "in_conversation":
-      return "in_conversation";
+      return "prospective";
     case "confirmed":
     case "registered":
       return "confirmed";

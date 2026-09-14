@@ -335,7 +335,7 @@ export function SendMessageDialog({
     if (group === "past_speakers") return pastRecipients;
     return speakerRecipients.filter((r) => {
       const s = speakers.find((x) => x.id === r.speaker_id)!;
-      if (group === "prospective") return ["new", "contacted", "responded"].includes(s.status);
+      if (group === "prospective") return ["prospective", "new", "contacted", "responded"].includes(s.status);
       if (group === "current_confirmed") return s.status === "confirmed";
       return s.status === "confirmed" && (s.source ?? "") !== "tito";
     });
@@ -397,7 +397,7 @@ export function SendMessageDialog({
     };
     for (const r of speakerRecipients) {
       const s = speakers.find((x) => x.id === r.speaker_id)!;
-      if (["new", "contacted", "responded"].includes(s.status)) map.prospective++;
+      if (["prospective", "new", "contacted", "responded"].includes(s.status)) map.prospective++;
       if (s.status === "confirmed") map.current_confirmed++;
       if (s.status === "confirmed" && (s.source ?? "") !== "tito") map.confirmed_not_registered++;
     }

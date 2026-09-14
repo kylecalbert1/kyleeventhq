@@ -285,7 +285,7 @@ export const tagDirectoryForEvent = createServerFn({ method: "POST" })
         email: p.email,
         company: p.company ?? null,
         title: p.title ?? null,
-        status: "new" as const,
+        status: "prospective" as const,
         banner_status: "not_started" as const,
         linkedin_post_confirmed: false,
         notes: p.past_event_name

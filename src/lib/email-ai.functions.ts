@@ -109,7 +109,7 @@ export const generateEmailDraft = createServerFn({ method: "POST" })
       .not("email", "is", null)
       .limit(8);
     if (data.group === "prospective") {
-      sampleQuery = sampleQuery.in("status", ["new", "contacted", "responded"]);
+      sampleQuery = sampleQuery.in("status", ["prospective", "new", "contacted", "responded"]);
     } else if (data.group === "current_confirmed" || data.group === "confirmed_not_registered") {
       sampleQuery = sampleQuery.eq("status", "confirmed");
     }

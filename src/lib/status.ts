@@ -4,8 +4,29 @@
 export const WEBSITE_STAGES = ["draft", "proof_1", "proof_2", "amendments", "signed_off", "live"] as const;
 export type WebsiteStage = (typeof WEBSITE_STAGES)[number];
 
-export const SPEAKER_STATUSES = ["new", "contacted", "in_conversation", "responded", "confirmed", "declined"] as const;
+/**
+ * The speaker pipeline has exactly three real stages. Anything else that used
+ * to be a "status" (needs chasing, missing assets, banner sent, not registered
+ * in Tito) is a derived indicator, not a stage.
+ */
+export const SPEAKER_STATUSES = ["prospective", "confirmed", "declined"] as const;
 export type SpeakerStatus = (typeof SPEAKER_STATUSES)[number];
+
+/** Pre-collapse values still present in the database enum. */
+export const LEGACY_SPEAKER_STATUSES = ["new", "contacted", "in_conversation", "responded"] as const;
+
+/** Every value the database will still accept on a write. */
+export const ALL_SPEAKER_STATUS_VALUES = [
+  ...SPEAKER_STATUSES,
+  ...LEGACY_SPEAKER_STATUSES,
+] as const;
+
+/** Map any stored value (including legacy ones) onto the three real stages. */
+export function normalizeSpeakerStatus(status: string | null | undefined): SpeakerStatus {
+  if (status === "confirmed") return "confirmed";
+  if (status === "declined") return "declined";
+  return "prospective";
+}
 
 export const BANNER_STATUSES = ["not_started", "created", "sent", "confirmed_live"] as const;
 export type BannerStatusVal = (typeof BANNER_STATUSES)[number];
@@ -66,13 +87,15 @@ export const labels = {
     live: "Live",
   } satisfies Record<WebsiteStage, string>,
   speaker: {
-    new: "New",
-    contacted: "Contacted",
-    in_conversation: "In conversation",
-    responded: "Responded",
+    prospective: "Prospective",
     confirmed: "Confirmed",
     declined: "Declined",
-  } satisfies Record<SpeakerStatus, string>,
+    // Legacy values kept only so old rows still render a sensible label.
+    new: "Prospective",
+    contacted: "Prospective",
+    in_conversation: "Prospective",
+    responded: "Prospective",
+  } satisfies Record<SpeakerStatus, string> & Record<string, string>,
   banner: {
     not_started: "Not Started",
     created: "Created",
@@ -129,13 +152,14 @@ export const pillClass = {
     live: "bg-emerald-100 text-emerald-800 ring-emerald-200",
   } satisfies Record<WebsiteStage, string>,
   speaker: {
-    new: "bg-slate-100 text-slate-700 ring-slate-200",
-    contacted: "bg-slate-100 text-slate-700 ring-slate-200",
-    in_conversation: "bg-amber-100 text-amber-800 ring-amber-200",
-    responded: "bg-sky-100 text-sky-800 ring-sky-200",
+    prospective: "bg-sky-100 text-sky-800 ring-sky-200",
     confirmed: "bg-emerald-100 text-emerald-800 ring-emerald-200",
     declined: "bg-rose-100 text-rose-700 ring-rose-200",
-  } satisfies Record<SpeakerStatus, string>,
+    new: "bg-sky-100 text-sky-800 ring-sky-200",
+    contacted: "bg-sky-100 text-sky-800 ring-sky-200",
+    in_conversation: "bg-sky-100 text-sky-800 ring-sky-200",
+    responded: "bg-sky-100 text-sky-800 ring-sky-200",
+  } satisfies Record<SpeakerStatus, string> & Record<string, string>,
   banner: {
     not_started: "bg-slate-100 text-slate-700 ring-slate-200",
     created: "bg-amber-100 text-amber-800 ring-amber-200",

@@ -617,7 +617,7 @@ export async function runReplyQueueScan(
       if (s.last_message_direction !== "outbound") continue;
       if (!s.last_message_at) continue;
       if (new Date(s.last_message_at).getTime() > threeDaysAgo) continue;
-      if (!["contacted", "responded"].includes(s.status)) continue;
+      if (["confirmed", "declined"].includes(s.status)) continue;
 
       const { data: existing } = await context.supabase
         .from("reply_queue")

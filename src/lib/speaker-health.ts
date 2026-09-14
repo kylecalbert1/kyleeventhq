@@ -209,12 +209,13 @@ export function computeAutoFlags(
     opts.daysToEvent <= HEALTH_THRESHOLDS.stuckLeadDaysToEvent;
   if (
     near &&
-    (speaker.status === "new" || speaker.status === "contacted" || speaker.status === "in_conversation")
+    speaker.status !== "confirmed" &&
+    speaker.status !== "declined"
   ) {
     flags.push({
       code: "stuck_lead_near_event",
       label: AUTO_FLAG_LABELS.stuck_lead_near_event,
-      detail: `Still "${speaker.status === "in_conversation" ? "in conversation" : "a lead"}" with ${opts.daysToEvent} day${opts.daysToEvent === 1 ? "" : "s"} to go.`,
+      detail: `Still a lead with ${opts.daysToEvent} day${opts.daysToEvent === 1 ? "" : "s"} to go.`,
     });
   }
 

@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/StatusPill";
-import { labels, pillClass, type OutreachChannel } from "@/lib/status";
+import { labels, pillClass, normalizeSpeakerStatus, type OutreachChannel } from "@/lib/status";
 import { listSpeakerActivity } from "@/lib/speakers.functions";
 import { listSpeakerSends } from "@/lib/email-sends.functions";
 import { buildSpeakerTimeline, type TimelineKind } from "@/lib/speaker-timeline";
@@ -53,18 +53,27 @@ function bhDone(s: any): boolean {
   return !!(s?.bio_received && s?.headshot_received);
 }
 
+/** The real pipeline status — never overridden by asset/banner progress. */
 function stageOf(s: any): { label: string; cls: string } {
-  if (bhDone(s))
-    return { label: "Bio/Headshot In", cls: "bg-teal-600 text-white ring-teal-600" };
-  if (s.banner_status === "sent" || s.banner_status === "confirmed_live")
-    return { label: "Banner Sent", cls: "bg-amber-500 text-white ring-amber-500" };
-  if (s.status === "confirmed")
+  const status = normalizeSpeakerStatus(s?.status);
+  if (status === "confirmed")
     return { label: "Confirmed", cls: "bg-emerald-600 text-white ring-emerald-600" };
-  if (s.status === "responded")
-    return { label: "Responded", cls: "border border-violet-400 text-violet-700 bg-violet-50/60" };
-  if (s.status === "declined")
+  if (status === "declined")
     return { label: "Declined", cls: "border border-rose-400 text-rose-700 bg-rose-50/60" };
-  return { label: "Contacted", cls: "border border-sky-400 text-sky-700 bg-sky-50/60" };
+  return { label: "Prospective", cls: "border border-sky-400 text-sky-700 bg-sky-50/60" };
+}
+
+/** Separate indicators, shown alongside — not instead of — the status. */
+function indicatorsOf(s: any): Array<{ label: string; cls: string }> {
+  const out: Array<{ label: string; cls: string }> = [];
+  out.push(
+    bhDone(s)
+      ? { label: "Bio & headshot in", cls: "bg-teal-50 text-teal-700 ring-teal-200" }
+      : { label: "Missing bio/headshot", cls: "bg-slate-100 text-slate-600 ring-slate-200" },
+  );
+  if (s.banner_status === "sent" || s.banner_status === "confirmed_live")
+    out.push({ label: "Banner sent", cls: "bg-amber-50 text-amber-800 ring-amber-200" });
+  return out;
 }
 
 function fmtDate(iso: string | null | undefined): string {
@@ -181,6 +190,7 @@ export function SpeakerDetailDialog({
   }
 
   const stage = useMemo(() => (speaker ? stageOf(speaker) : null), [speaker]);
+  const indicators = useMemo(() => (speaker ? indicatorsOf(speaker) : []), [speaker]);
   const liSearch = useMemo(
     () => linkedinSearchUrl(speaker?.name, speaker?.company),
     [speaker?.name, speaker?.company]
@@ -217,6 +227,11 @@ export function SpeakerDetailDialog({
               )}
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {stage && <StatusPill className={stage.cls}>{stage.label}</StatusPill>}
+                {indicators.map((i) => (
+                  <StatusPill key={i.label} className={i.cls}>
+                    {i.label}
+                  </StatusPill>
+                ))}
                 {event && (
                   <StatusPill className="border border-slate-300 text-slate-700 bg-white">
                     {event.code}

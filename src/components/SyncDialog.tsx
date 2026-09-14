@@ -372,7 +372,7 @@ export function SyncDialog({
           // instead so greeting helpers fall back to "Hi there,".
           name: (l.name ?? "").trim() || "Unnamed",
           email: l.email,
-          status: "contacted",
+          status: "prospective",
           banner_status: "not_started",
           bio_received: false,
           headshot_received: false,
@@ -434,7 +434,7 @@ export function SyncDialog({
     resolution: {
       speakerId?: string;
       newSpeaker?: { eventId: string; name: string; email: string };
-      status: "confirmed" | "declined" | "responded" | "in_conversation";
+      status: "confirmed" | "declined" | "prospective";
     },
   ) {
     let speakerId: string;
@@ -454,7 +454,7 @@ export function SyncDialog({
         });
         speakerId = row.id;
         speakerName = row.name;
-        previousStatus = "new";
+        previousStatus = "prospective";
       } else if (resolution.speakerId) {
         const speaker = allSpeakers.data?.find((s) => s.id === resolution.speakerId);
         if (!speaker) throw new Error("Speaker not found");
@@ -1011,7 +1011,7 @@ function ResolveEmailDialog({
   onResolve: (resolution: {
     speakerId?: string;
     newSpeaker?: { eventId: string; name: string; email: string };
-    status: "confirmed" | "declined" | "responded" | "in_conversation";
+    status: "confirmed" | "declined" | "prospective";
   }) => void;
 }) {
   const parsed = parseFromHeader(item.from);
@@ -1022,8 +1022,8 @@ function ResolveEmailDialog({
   const [eventId, setEventId] = useState<string>(events[0]?.id ?? "");
   const [name, setName] = useState<string>(item.matched_speaker?.name ?? matchedByEmail?.name ?? parsed.name ?? "");
   const [email, setEmail] = useState<string>(matchedEmail || "");
-  const [status, setStatus] = useState<"confirmed" | "declined" | "responded" | "in_conversation">(
-    item.suggested_status === "unclear" ? "responded" : item.suggested_status === "needs_approval" ? "responded" : item.suggested_status,
+  const [status, setStatus] = useState<"confirmed" | "declined" | "prospective">(
+    item.suggested_status === "confirmed" || item.suggested_status === "declined" ? item.suggested_status : "prospective",
   );
   const [submitting, setSubmitting] = useState(false);
 
@@ -1085,8 +1085,7 @@ function ResolveEmailDialog({
               <SelectContent>
                 <SelectItem value="confirmed">Confirmed</SelectItem>
                 <SelectItem value="declined">Declined</SelectItem>
-                <SelectItem value="responded">Responded</SelectItem>
-                <SelectItem value="in_conversation">In conversation</SelectItem>
+                <SelectItem value="prospective">Prospective</SelectItem>
               </SelectContent>
             </Select>
           </div>

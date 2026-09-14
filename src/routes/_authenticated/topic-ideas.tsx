@@ -108,7 +108,7 @@ function TopicIdeasPage() {
         data: {
           event_id: eventId,
           name: name.trim(),
-          status: "new",
+          status: "prospective",
           banner_status: "not_started",
           linkedin_post_confirmed: false,
           profile_notes: profile,
