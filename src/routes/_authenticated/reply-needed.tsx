@@ -317,6 +317,29 @@ function ReplyNeededPage() {
           />
         </div>
 
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            aria-label="Filter by event"
+            value={eventFilter}
+            onChange={(e) => setEventFilter(e.target.value)}
+            className="h-8 rounded-full border border-slate-200 bg-white px-3 text-xs text-slate-700"
+          >
+            <option value="all">All events</option>
+            <option value="none">No event linked</option>
+            {eventOptions.map((ev: any) => (
+              <option key={ev.id} value={ev.id}>
+                {ev.name}
+              </option>
+            ))}
+          </select>
+          <FilterChip
+            label={showPast ? "Hide past events" : `Show past events (${pastCount})`}
+            active={showPast}
+            onClick={() => setShowPast((v) => !v)}
+          />
+        </div>
+
+
         {filtered.length === 0 ? (
           <Card className="p-12 text-center">
             <CheckCircle2 className="h-8 w-8 mx-auto mb-3 text-emerald-500" />
