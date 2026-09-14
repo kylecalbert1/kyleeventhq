@@ -403,7 +403,26 @@ export const scanReplyQueue = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z.object({ lookback_days: z.number().int().min(1).max(60).default(14) }).parse(d ?? {}),
   )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }) =>
+    runReplyQueueScan(context.supabase, data.lookback_days),
+  );
+
+// Shared implementation, so both the manual "Scan Gmail" button and the
+// nightly scheduled hook run exactly the same logic. The hook passes the
+// privileged admin client; the button passes the caller's session client.
+export async function runReplyQueueScan(
+  supabase: any,
+  lookbackDays = 14,
+): Promise<{
+  connected: boolean;
+  scanned: number;
+  queued: number;
+  auto_acked: number;
+  skipped_auto: number;
+}> {
+  {
+    const data = { lookback_days: lookbackDays };
+    const context = { supabase };
     const lovable = process.env.LOVABLE_API_KEY;
     const gmail = process.env.GOOGLE_MAIL_API_KEY;
     if (!lovable || !gmail) {
@@ -637,4 +656,5 @@ export const scanReplyQueue = createServerFn({ method: "POST" })
       auto_acked: autoAcked,
       skipped_auto: skippedAuto,
     };
-  });
+  }
+}
