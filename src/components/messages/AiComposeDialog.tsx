@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Sparkles, RotateCcw, Check } from "lucide-react";
 import {
@@ -41,6 +41,7 @@ export function AiComposeDialog({
   const [draft, setDraft] = useState<AiMessageDraft | null>(null);
   const [refinement, setRefinement] = useState("");
   const generate = useServerFn(generateMessageDraft);
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (open) {
