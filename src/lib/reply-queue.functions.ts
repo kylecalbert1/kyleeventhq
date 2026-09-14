@@ -417,7 +417,7 @@ export const scanReplyQueue = createServerFn({ method: "POST" })
     const { data: speakers, error: spErr } = await context.supabase
       .from("speakers")
       .select(
-        "id, name, email, event_id, status, gmail_thread_id, last_message_at, last_message_direction",
+        "id, name, email, event_id, status, gmail_thread_id, last_message_at, last_message_direction, last_inbound_at",
       );
     if (spErr) throw new Error(spErr.message);
     const byEmail = new Map<string, (typeof speakers)[number]>();
