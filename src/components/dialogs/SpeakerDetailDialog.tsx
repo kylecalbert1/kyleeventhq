@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -133,6 +133,9 @@ export function SpeakerDetailDialog({
     () => (speaker ? followUpSummary(speaker, lastSend?.sent_at ?? null) : null),
     [speaker, lastSend?.sent_at],
   );
+  useEffect(() => {
+    setShowHistory(false);
+  }, [speaker?.id]);
 
   const qc = useQueryClient();
   const del = useServerFn(deleteSpeaker);
