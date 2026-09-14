@@ -414,37 +414,12 @@ function EventDetail() {
               count={counts.prospective}
             />
             <FilterChip
-              active={filterKey === "in_conversation"}
-              onClick={() => setFilterKey(filterKey === "in_conversation" ? "all" : "in_conversation")}
-              tone="amber"
-              label="In conversation"
-              count={counts.inConversation}
+              active={filterKey === "declined"}
+              onClick={() => setFilterKey(filterKey === "declined" ? "all" : "declined")}
+              tone="rose"
+              label="Declined"
+              count={counts.declined}
             />
-            <FilterChip
-              active={filterKey === "responded"}
-              onClick={() => setFilterKey(filterKey === "responded" ? "all" : "responded")}
-              tone="violet"
-              label="Responded"
-              count={counts.responded}
-            />
-            {(e as any).tito_slug && (
-              <>
-                <FilterChip
-                  active={filterKey === "registered"}
-                  onClick={() => setFilterKey(filterKey === "registered" ? "all" : "registered")}
-                  tone="violet"
-                  label="Registered in Tito"
-                  count={counts.registeredTito}
-                />
-                <FilterChip
-                  active={filterKey === "not_registered"}
-                  onClick={() => setFilterKey(filterKey === "not_registered" ? "all" : "not_registered")}
-                  tone="amber"
-                  label="Not yet registered"
-                  count={counts.notRegistered}
-                />
-              </>
-            )}
           </div>
         )}
       </Card>
@@ -492,17 +467,6 @@ function EventDetail() {
               <SelectItem value="all">All ({counts.all})</SelectItem>
               <SelectItem value="confirmed">Confirmed ({counts.confirmed})</SelectItem>
               <SelectItem value="prospective">Prospective ({counts.prospective})</SelectItem>
-              <SelectItem value="in_conversation">In conversation ({counts.inConversation})</SelectItem>
-              <SelectItem value="responded">Responded ({counts.responded})</SelectItem>
-              <SelectItem value="needs_chasing">Needs chasing ({counts.needsChasing})</SelectItem>
-              <SelectItem value="missing_assets">
-                Missing bio or headshot ({counts.missingAssets})
-              </SelectItem>
-              {(e as any).tito_slug && (
-                <SelectItem value="not_registered">
-                  Not registered in Tito ({counts.notRegistered})
-                </SelectItem>
-              )}
               <SelectItem value="declined">Declined ({counts.declined})</SelectItem>
             </SelectContent>
           </Select>
