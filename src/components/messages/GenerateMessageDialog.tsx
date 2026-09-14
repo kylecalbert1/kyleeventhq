@@ -113,6 +113,7 @@ export function GenerateMessageDialog({
         data: {
           prompt: refinement.trim(),
           event_id: event.id,
+          template_id: template?.id ?? null,
           current_draft: {
             name: template?.name ?? "AI draft",
             subject,

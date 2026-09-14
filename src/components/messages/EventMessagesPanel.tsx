@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Send, Settings2, Sparkles, Trash2 } from "lucide-react";
+import { History, Send, Settings2, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,6 +31,7 @@ import {
 } from "@/lib/message-render";
 import { GenerateMessageDialog, type DraftTemplate } from "./GenerateMessageDialog";
 import { AiComposeDialog } from "./AiComposeDialog";
+import { MessageHistoryDialog } from "./MessageHistoryDialog";
 
 export function EventMessagesPanel({
   event,
