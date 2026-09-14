@@ -276,6 +276,25 @@ function EventDetail() {
 
   const eventEnded = isPastEvent(e as any);
 
+  const shortDate = (v: string | null | undefined) =>
+    v
+      ? new Date(v).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+      : "Not set";
+  const milestoneDate = (type: "kickoff" | "washup") =>
+    (milestones.data ?? []).find((m: any) => m.type === type)?.scheduled_date ?? null;
+  const targetValue = (match: RegExp) => {
+    const t = (targets.data ?? []).find((row: any) => match.test(String(row.label ?? "")));
+    return t ? String(t.target_value) : "Not set";
+  };
+  const keyInfo = [
+    { label: "Event date", value: shortDate(e.event_date) },
+    { label: "Kick off", value: shortDate((e as any).kickoff_date ?? milestoneDate("kickoff")) },
+    { label: "Washup", value: shortDate((e as any).washup_date ?? milestoneDate("washup")) },
+    { label: "Sponsorship target", value: targetValue(/sponsor/i) },
+    { label: "Delegate target", value: targetValue(/delegate|attendee|registration/i) },
+  ];
+
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex items-center gap-3">
