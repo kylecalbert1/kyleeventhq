@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { runSpeakerContactSweep } from "@/lib/gmail-contact-sweep.functions";
+import { matchEventFromText } from "@/lib/event-match";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const CAL_GATEWAY =
