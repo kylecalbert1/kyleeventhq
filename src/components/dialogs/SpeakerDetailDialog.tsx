@@ -44,7 +44,8 @@ import { followUpSummary } from "@/lib/speaker-stage";
 import { initialsOf } from "@/lib/gmail";
 import { linkedinSearchUrl } from "@/lib/linkedin-search";
 import { FindEmailButton } from "@/components/speakers/FindEmailButton";
-import { TopicIdeasCard } from "@/components/speakers/TopicIdeasCard";
+import { agendaItemsQuery, speakersQuery } from "@/lib/queries";
+import { SESSION_LABELS } from "@/lib/agenda.functions";
 
 
 function bhDone(s: any): boolean {
@@ -129,6 +130,26 @@ export function SpeakerDetailDialog({
     [speaker, activity.data, sends.data],
   );
   const lastSend = (sends.data ?? [])[0] ?? null;
+
+  // Real session details come from the event agenda: slot, format and whoever
+  // else is on the same session.
+  const agenda = useQuery({ ...agendaItemsQuery(event?.id ?? ""), enabled: !!event?.id && open });
+  const eventSpeakers = useQuery({
+    ...speakersQuery(event?.id ?? undefined),
+    enabled: !!event?.id && open,
+  });
+  const session = useMemo(() => {
+    if (!speaker) return null;
+    const item = (agenda.data ?? []).find((a: any) =>
+      (a.speaker_ids ?? []).includes(speaker.id),
+    );
+    if (!item) return null;
+    const others = (item.speaker_ids ?? [])
+      .filter((id: string) => id !== speaker.id)
+      .map((id: string) => (eventSpeakers.data ?? []).find((s: any) => s.id === id))
+      .filter(Boolean) as any[];
+    return { item, others };
+  }, [speaker, agenda.data, eventSpeakers.data]);
   const followUp = useMemo(
     () => (speaker ? followUpSummary(speaker, lastSend?.sent_at ?? null) : null),
     [speaker, lastSend?.sent_at],
@@ -255,12 +276,9 @@ export function SpeakerDetailDialog({
           <section className="space-y-3">
             <SectionTitle>Contact</SectionTitle>
             <div className="space-y-1.5 text-sm">
-              {speaker.email ? (
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="truncate">{speaker.email}</span>
-                </div>
-              ) : (
+              {/* The email address itself is not repeated here — the Email
+                  button in the header uses it. Only the missing case needs UI. */}
+              {!speaker.email && (
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Mail className="h-4 w-4" /> No email on file
@@ -268,6 +286,7 @@ export function SpeakerDetailDialog({
                   <FindEmailButton speakerId={speaker.id} name={speaker.name} />
                 </div>
               )}
+
 
               {speaker.linkedin_url && (
                 <a
@@ -295,12 +314,9 @@ export function SpeakerDetailDialog({
               )}
             </div>
 
-            {speaker.session_title && (
-              <>
-                <SectionTitle>Session</SectionTitle>
-                <div className="text-sm">{speaker.session_title}</div>
-              </>
-            )}
+            <SectionTitle>Session</SectionTitle>
+            <SessionBlock speaker={speaker} session={session} />
+
 
             {speaker.profile_notes && (
               <>
@@ -400,9 +416,7 @@ export function SpeakerDetailDialog({
             )}
           </section>
 
-          <div className="md:col-span-2">
-            <TopicIdeasCard speaker={speaker} />
-          </div>
+
 
         </div>
 
@@ -446,6 +460,92 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+/** Session title, format, slot and co-panelists, from the event agenda. */
+function SessionBlock({
+  speaker,
+  session,
+}: {
+  speaker: any;
+  session: { item: any; others: any[] } | null;
+}) {
+  const item = session?.item ?? null;
+  const title = item?.title || speaker.session_title || null;
+  const format = item?.session_type
+    ? (SESSION_LABELS[item.session_type] ?? item.session_type)
+    : speaker.session_format
+      ? labels.sessionFormat[speaker.session_format as never]
+      : null;
+
+  if (!title && !format) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        No session assigned yet.
+      </div>
+    );
+  }
+
+  const slot = item?.start_time
+    ? `${item.start_time}${item.duration_min ? ` · ${item.duration_min} min` : ""}`
+    : null;
+
+  return (
+    <div className="space-y-2 text-sm">
+      {title && <div className="font-medium leading-snug">{title}</div>}
+      <div className="flex flex-wrap gap-1.5">
+        {format && (
+          <StatusPill className="border border-indigo-300 text-indigo-700 bg-indigo-50/60">
+            <Mic className="h-3 w-3" />
+            {format}
+          </StatusPill>
+        )}
+        {slot && (
+          <StatusPill className="border border-slate-300 text-slate-700 bg-white">
+            <Clock className="h-3 w-3" />
+            {slot}
+          </StatusPill>
+        )}
+        {item?.track && (
+          <StatusPill className="border border-slate-300 text-slate-700 bg-white">
+            {item.track}
+          </StatusPill>
+        )}
+      </div>
+
+      {item && (
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">
+            {session!.others.length > 0 || item.speaker_extra
+              ? "Also on this session"
+              : "No one else on this session yet"}
+          </div>
+          <div className="space-y-0.5">
+            {session!.others.map((o) => (
+              <div key={o.id} className="text-sm flex items-center gap-1.5">
+                <span>{o.name}</span>
+                {o.company && (
+                  <span className="text-xs text-muted-foreground truncate">· {o.company}</span>
+                )}
+                {o.status !== "confirmed" && (
+                  <span className="text-[11px] text-amber-700">(not confirmed)</span>
+                )}
+              </div>
+            ))}
+            {item.speaker_extra && (
+              <div className="text-sm text-muted-foreground">{item.speaker_extra}</div>
+            )}
+          </div>
+        </div>
+      )}
+      {!item && (
+        <div className="text-xs text-muted-foreground">
+          Not placed on the agenda yet — details above come from the speaker record.
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function TimelineItem({
   icon: Icon,

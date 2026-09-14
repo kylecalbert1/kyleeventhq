@@ -30,6 +30,7 @@ const SpeakerInput = z.object({
   source: z.string().nullable().optional(),
   source_ticket_id: z.string().uuid().nullable().optional(),
   copied_from_speaker_id: z.string().uuid().nullable().optional(),
+  health_override: z.enum(["ok", "follow_up", "at_risk"]).nullable().optional(),
 });
 
 export const listSpeakers = createServerFn({ method: "GET" })

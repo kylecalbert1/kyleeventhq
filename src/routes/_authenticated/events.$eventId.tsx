@@ -15,6 +15,7 @@ import {
   Search,
   CalendarDays,
   MapPin,
+  HeartPulse,
   Users as UsersIcon,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -489,6 +490,14 @@ function EventDetail() {
       {/* Speakers section: one search bar + one filter row */}
       <section className="space-y-3">
         <div className="accent-bar mb-2" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">Speakers</h2>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/events/$eventId/health" params={{ eventId }}>
+              <HeartPulse className="h-4 w-4 mr-1.5" /> Speaker health
+            </Link>
+          </Button>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[260px] max-w-xl">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
