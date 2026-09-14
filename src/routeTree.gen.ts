@@ -37,7 +37,6 @@ import { Route as ApiPublicHooksTitoWebhookRouteImport } from './routes/api/publ
 import { Route as ApiPublicHooksTitoNightlyRouteImport } from './routes/api/public/hooks/tito-nightly'
 import { Route as ApiPublicHooksGmailNightlyRouteImport } from './routes/api/public/hooks/gmail-nightly'
 import { Route as ApiPublicHooksAsanaNightlyRouteImport } from './routes/api/public/hooks/asana-nightly'
-import { Route as AuthenticatedEventsEventIdHealthRouteImport } from './routes/_authenticated/events.$eventId_.health'
 import { Route as AuthenticatedEventsEventIdDashboardRouteImport } from './routes/_authenticated/events.$eventId_.dashboard'
 
 const AuthRoute = AuthRouteImport.update({
@@ -193,12 +192,6 @@ const ApiPublicHooksAsanaNightlyRoute =
     path: '/api/public/hooks/asana-nightly',
     getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedEventsEventIdHealthRoute =
-  AuthenticatedEventsEventIdHealthRouteImport.update({
-    id: '/events/$eventId_/health',
-    path: '/events/$eventId/health',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedEventsEventIdDashboardRoute =
   AuthenticatedEventsEventIdDashboardRouteImport.update({
     id: '/events/$eventId_/dashboard',
@@ -231,7 +224,6 @@ export interface FileRoutesByFullPath {
   '/boards/': typeof AuthenticatedBoardsIndexRoute
   '/tito/': typeof AuthenticatedTitoIndexRoute
   '/events/$eventId/dashboard': typeof AuthenticatedEventsEventIdDashboardRoute
-  '/events/$eventId/health': typeof AuthenticatedEventsEventIdHealthRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
   '/api/public/hooks/gmail-nightly': typeof ApiPublicHooksGmailNightlyRoute
   '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
@@ -262,7 +254,6 @@ export interface FileRoutesByTo {
   '/boards': typeof AuthenticatedBoardsIndexRoute
   '/tito': typeof AuthenticatedTitoIndexRoute
   '/events/$eventId/dashboard': typeof AuthenticatedEventsEventIdDashboardRoute
-  '/events/$eventId/health': typeof AuthenticatedEventsEventIdHealthRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
   '/api/public/hooks/gmail-nightly': typeof ApiPublicHooksGmailNightlyRoute
   '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
@@ -295,7 +286,6 @@ export interface FileRoutesById {
   '/_authenticated/boards/': typeof AuthenticatedBoardsIndexRoute
   '/_authenticated/tito/': typeof AuthenticatedTitoIndexRoute
   '/_authenticated/events/$eventId_/dashboard': typeof AuthenticatedEventsEventIdDashboardRoute
-  '/_authenticated/events/$eventId_/health': typeof AuthenticatedEventsEventIdHealthRoute
   '/api/public/hooks/asana-nightly': typeof ApiPublicHooksAsanaNightlyRoute
   '/api/public/hooks/gmail-nightly': typeof ApiPublicHooksGmailNightlyRoute
   '/api/public/hooks/tito-nightly': typeof ApiPublicHooksTitoNightlyRoute
@@ -328,7 +318,6 @@ export interface FileRouteTypes {
     | '/boards/'
     | '/tito/'
     | '/events/$eventId/dashboard'
-    | '/events/$eventId/health'
     | '/api/public/hooks/asana-nightly'
     | '/api/public/hooks/gmail-nightly'
     | '/api/public/hooks/tito-nightly'
@@ -359,7 +348,6 @@ export interface FileRouteTypes {
     | '/boards'
     | '/tito'
     | '/events/$eventId/dashboard'
-    | '/events/$eventId/health'
     | '/api/public/hooks/asana-nightly'
     | '/api/public/hooks/gmail-nightly'
     | '/api/public/hooks/tito-nightly'
@@ -391,7 +379,6 @@ export interface FileRouteTypes {
     | '/_authenticated/boards/'
     | '/_authenticated/tito/'
     | '/_authenticated/events/$eventId_/dashboard'
-    | '/_authenticated/events/$eventId_/health'
     | '/api/public/hooks/asana-nightly'
     | '/api/public/hooks/gmail-nightly'
     | '/api/public/hooks/tito-nightly'
@@ -606,13 +593,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksAsanaNightlyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/events/$eventId_/health': {
-      id: '/_authenticated/events/$eventId_/health'
-      path: '/events/$eventId/health'
-      fullPath: '/events/$eventId/health'
-      preLoaderRoute: typeof AuthenticatedEventsEventIdHealthRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/events/$eventId_/dashboard': {
       id: '/_authenticated/events/$eventId_/dashboard'
       path: '/events/$eventId/dashboard'
@@ -658,7 +638,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBoardsIndexRoute: typeof AuthenticatedBoardsIndexRoute
   AuthenticatedTitoIndexRoute: typeof AuthenticatedTitoIndexRoute
   AuthenticatedEventsEventIdDashboardRoute: typeof AuthenticatedEventsEventIdDashboardRoute
-  AuthenticatedEventsEventIdHealthRoute: typeof AuthenticatedEventsEventIdHealthRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -684,7 +663,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTitoIndexRoute: AuthenticatedTitoIndexRoute,
   AuthenticatedEventsEventIdDashboardRoute:
     AuthenticatedEventsEventIdDashboardRoute,
-  AuthenticatedEventsEventIdHealthRoute: AuthenticatedEventsEventIdHealthRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
