@@ -188,31 +188,47 @@ function ReplyNeededPage() {
 
   const rows = (queue.data?.rows ?? []) as Row[];
   const activeFilter = search.filter ?? "all";
-  // Counts reflect what's visible after past-event suppression (see below).
-  const visibleCountRows = useMemo(
+
+  // Threads for summits that have already happened don't need chasing, so they
+  // are hidden by default and can be brought back with the toggle.
+  const [showPast, setShowPast] = useState(false);
+  const [eventFilter, setEventFilter] = useState<string>("all");
+
+  const pastCount = useMemo(
     () =>
       rows.filter((r) => {
-        if (r.reason !== "follow_up") return true;
         const ev = r.event_id ? eventById[r.event_id] : null;
-        return !ev || !isPastEvent(ev);
-      }),
+        return !!ev && isPastEvent(ev);
+      }).length,
     [rows, eventById],
   );
-  const counts = useMemo(() => {
-    const c = { speaker_reply: 0, mention: 0, follow_up: 0, all: visibleCountRows.length };
-    for (const r of visibleCountRows) c[r.reason]++;
-    return c;
-  }, [visibleCountRows]);
 
-  // Suppress follow_up rows for speakers of past events (no point chasing a reply
-  // for a finished event). speaker_reply and mention rows stay visible regardless.
+  // Rows left after the page-level (non-tab) filters: past events and event pick.
   const liveRows = useMemo(() => {
     return rows.filter((r) => {
-      if (r.reason !== "follow_up") return true;
       const ev = r.event_id ? eventById[r.event_id] : null;
-      if (!ev) return true;
-      return !isPastEvent(ev);
+      if (!showPast && ev && isPastEvent(ev)) return false;
+      // Follow-ups for a finished event are never worth chasing.
+      if (!showPast && r.reason === "follow_up" && ev && isPastEvent(ev)) return false;
+      if (eventFilter === "none" && r.event_id) return false;
+      if (eventFilter !== "all" && eventFilter !== "none" && r.event_id !== eventFilter)
+        return false;
+      return true;
     });
+  }, [rows, eventById, showPast, eventFilter]);
+
+  const counts = useMemo(() => {
+    const c = { speaker_reply: 0, mention: 0, follow_up: 0, all: liveRows.length };
+    for (const r of liveRows) c[r.reason]++;
+    return c;
+  }, [liveRows]);
+
+  const eventOptions = useMemo(() => {
+    const ids = new Set(rows.map((r) => r.event_id).filter(Boolean) as string[]);
+    return Array.from(ids)
+      .map((id) => eventById[id])
+      .filter(Boolean)
+      .sort((a: any, b: any) => (a.name ?? "").localeCompare(b.name ?? ""));
   }, [rows, eventById]);
 
   const filtered = useMemo(() => {
@@ -226,6 +242,7 @@ function ReplyNeededPage() {
     const followUp = filtered.filter((r) => r.reason === "follow_up");
     return { speakerReply, mention, followUp };
   }, [filtered]);
+
 
   function setFilter(f: "all" | Row["reason"]) {
     navigate({
