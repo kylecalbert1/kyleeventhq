@@ -108,6 +108,16 @@ function fromActivity(a: ActivityRow): TimelineEntry | null {
         count: 1,
       };
     }
+    case "external_email_sent": {
+      return {
+        id: a.id,
+        kind: "sent",
+        title: "Email sent",
+        note: a.note?.trim() || undefined,
+        at: a.created_at,
+        count: 1,
+      };
+    }
     case "message_direction_changed": {
       const inbound = /inbound/i.test(a.note ?? "");
       return {

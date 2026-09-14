@@ -19,18 +19,20 @@ export const Route = createFileRoute("/api/public/hooks/gmail-nightly")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { runReplyQueueScan } = await import("@/lib/reply-queue.functions");
+        const { runSpeakerContactSweep } = await import("@/lib/gmail-contact-sweep.functions");
 
         try {
           const result = await runReplyQueueScan(supabaseAdmin, 14);
+          const sweep = await runSpeakerContactSweep(supabaseAdmin);
           await stampHealth(
             supabaseAdmin,
             "gmail_replies",
             result.connected,
             result.connected
-              ? `${result.scanned} threads scanned, ${result.queued} queued, ${result.auto_acked} auto-acked`
+              ? `${result.scanned} threads scanned, ${result.queued} queued, ${result.auto_acked} auto-acked, ${sweep.contacts_logged} contacts logged`
               : "Gmail connector not linked",
           );
-          return Response.json({ ok: true, ...result });
+          return Response.json({ ok: true, ...result, sweep });
         } catch (err: any) {
           console.error("[gmail-nightly] scan failed", err);
           await stampHealth(

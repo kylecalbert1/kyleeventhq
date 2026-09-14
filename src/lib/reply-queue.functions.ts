@@ -8,21 +8,21 @@ const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1";
 
 // ------------------- shared helpers -------------------
 
-type GmailHeader = { name: string; value: string };
-type GmailPayload = {
+export type GmailHeader = { name: string; value: string };
+export type GmailPayload = {
   headers: GmailHeader[];
   mimeType?: string;
   body?: { data?: string };
   parts?: GmailPayload[];
 };
-type GmailMessage = {
+export type GmailMessage = {
   id: string;
   threadId: string;
   internalDate: string;
   payload: GmailPayload;
 };
 
-function h(headers: GmailHeader[], name: string): string {
+export function h(headers: GmailHeader[], name: string): string {
   return headers.find((x) => x.name.toLowerCase() === name.toLowerCase())?.value ?? "";
 }
 
@@ -34,7 +34,7 @@ function decodeB64Url(s: string) {
   }
 }
 
-function extractText(payload: GmailPayload | undefined): string {
+export function extractText(payload: GmailPayload | undefined): string {
   if (!payload) return "";
   if (payload.mimeType === "text/plain" && payload.body?.data)
     return decodeB64Url(payload.body.data);
@@ -59,7 +59,7 @@ function collectMimeTypes(payload: GmailPayload | undefined, out: string[] = [])
   return out;
 }
 
-function extractEmailAddress(raw: string): string {
+export function extractEmailAddress(raw: string): string {
   if (!raw) return "";
   const m = raw.match(/<([^>]+)>/);
   return (m?.[1] ?? raw).trim().toLowerCase();
@@ -108,14 +108,14 @@ export function isAutoOrCalendarMessage(msg: GmailMessage): boolean {
 
 // -------- Gmail helpers --------
 
-function gmailHeaders(lovable: string, gmail: string) {
+export function gmailHeaders(lovable: string, gmail: string) {
   return {
     Authorization: `Bearer ${lovable}`,
     "X-Connection-Api-Key": gmail,
   };
 }
 
-async function gmailProfile(lovable: string, gmail: string): Promise<string> {
+export async function gmailProfile(lovable: string, gmail: string): Promise<string> {
   const res = await fetch(`${GMAIL_GATEWAY}/users/me/profile`, {
     headers: gmailHeaders(lovable, gmail),
   });
@@ -124,7 +124,7 @@ async function gmailProfile(lovable: string, gmail: string): Promise<string> {
   return (j.emailAddress ?? "").toLowerCase();
 }
 
-async function gmailSearch(
+export async function gmailSearch(
   q: string,
   lovable: string,
   gmail: string,
@@ -142,7 +142,7 @@ async function gmailSearch(
   return j.messages ?? [];
 }
 
-async function gmailGetThread(
+export async function gmailGetThread(
   tid: string,
   lovable: string,
   gmail: string,

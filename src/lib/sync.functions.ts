@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { runSpeakerContactSweep } from "@/lib/gmail-contact-sweep.functions";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const CAL_GATEWAY =
@@ -359,6 +360,14 @@ export const fetchEmailSuggestions = createServerFn({ method: "POST" })
     const gmailKey = process.env.GOOGLE_MAIL_API_KEY;
     if (!lovableKey || !gmailKey) {
       return { connected: false as const, suggestions: [] };
+    }
+
+    // A manual scan should catch everything the nightly automation does:
+    // sweep all speaker mail (both directions, long lookback) first.
+    try {
+      await runSpeakerContactSweep(context.supabase);
+    } catch (e) {
+      console.error("[scan] contact sweep failed", e);
     }
 
     const { data: speakers, error } = await context.supabase
