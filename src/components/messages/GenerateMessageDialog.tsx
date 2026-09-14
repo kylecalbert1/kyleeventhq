@@ -199,7 +199,8 @@ export function GenerateMessageDialog({
 
   async function copy(text: string, which: "subject" | "body") {
     try {
-      await navigator.clipboard.writeText(text);
+      const resolved = fillPlaceholders(text, buildPlaceholderValues(event, userFirstName));
+      await navigator.clipboard.writeText(resolved);
       setCopied(which);
       setTimeout(() => setCopied(null), 1500);
       return true;
