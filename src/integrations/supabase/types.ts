@@ -1082,6 +1082,7 @@ export type Database = {
       speaker_activity_log: {
         Row: {
           created_at: string
+          dedupe_key: string | null
           event_type: string
           id: string
           note: string | null
@@ -1089,6 +1090,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dedupe_key?: string | null
           event_type: string
           id?: string
           note?: string | null
@@ -1096,6 +1098,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dedupe_key?: string | null
           event_type?: string
           id?: string
           note?: string | null
@@ -1208,6 +1211,7 @@ export type Database = {
           gmail_thread_id: string | null
           headshot_received: boolean
           id: string
+          last_inbound_at: string | null
           last_message_at: string | null
           last_message_direction: string | null
           last_message_unread: boolean
@@ -1246,6 +1250,7 @@ export type Database = {
           gmail_thread_id?: string | null
           headshot_received?: boolean
           id?: string
+          last_inbound_at?: string | null
           last_message_at?: string | null
           last_message_direction?: string | null
           last_message_unread?: boolean
@@ -1284,6 +1289,7 @@ export type Database = {
           gmail_thread_id?: string | null
           headshot_received?: boolean
           id?: string
+          last_inbound_at?: string | null
           last_message_at?: string | null
           last_message_direction?: string | null
           last_message_unread?: boolean
