@@ -457,6 +457,32 @@ function RowCard({
                   {event.code}
                 </StatusPill>
               )}
+              {speaker && stage && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" title="Change status">
+                      <StatusPill
+                        className={cn(
+                          stage.cls,
+                          "text-[11px] px-2.5 py-0.5 font-semibold uppercase tracking-wide cursor-pointer hover:opacity-90",
+                        )}
+                      >
+                        {stage.label}
+                      </StatusPill>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {SPEAKER_STATUSES.map((s) => (
+                      <DropdownMenuItem
+                        key={s}
+                        onSelect={() => onStatusChange(speaker.id, s)}
+                      >
+                        {stagePill[s].label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <StatusPill className={cn(meta.chip, "text-[11px] font-semibold")}>
                 <Icon className="h-3 w-3" />
                 {meta.label}
@@ -470,7 +496,18 @@ function RowCard({
             </div>
           )}
           {r.summary && (
-            <div className="mt-1 text-sm text-slate-600 italic">"{r.summary}"</div>
+            <div className="mt-1 text-sm text-slate-600 italic">
+              <span className={cn(expanded ? "whitespace-pre-wrap" : "line-clamp-2")}>
+                "{r.summary}"
+              </span>
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="ml-1.5 text-xs font-medium not-italic text-indigo-600 hover:text-indigo-800"
+              >
+                {expanded ? "Show less" : "Show more"}
+              </button>
+            </div>
           )}
 
           <div className="mt-2 text-xs text-slate-500">
