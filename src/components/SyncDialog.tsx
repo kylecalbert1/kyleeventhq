@@ -1021,13 +1021,30 @@ function ResolveEmailDialog({
   }) => void;
 }) {
   const parsed = parseFromHeader(item.from);
-  const matchedEmail = (item.speaker_email ?? item.matched_speaker?.email ?? parsed.email).toLowerCase().trim();
-  const matchedByEmail = speakers.find((s) => (s.email ?? "").toLowerCase().trim() === matchedEmail);
-  const [mode, setMode] = useState<"existing" | "new">(matchedByEmail || item.matched_speaker ? "existing" : "new");
-  const [speakerId, setSpeakerId] = useState<string>(item.matched_speaker?.id ?? matchedByEmail?.id ?? "");
-  const [eventId, setEventId] = useState<string>(events[0]?.id ?? "");
-  const [name, setName] = useState<string>(item.matched_speaker?.name ?? matchedByEmail?.name ?? parsed.name ?? "");
-  const [email, setEmail] = useState<string>(matchedEmail || "");
+  // Always anchor on the external contact's own address — never on whichever
+  // record the scan happened to touch first.
+  const senderEmail = (item.external_email ?? parsed.email ?? "").toLowerCase().trim();
+  const senderName = item.external_name ?? parsed.name ?? "";
+  const matchedByEmail = senderEmail
+    ? speakers.find((s) => (s.email ?? "").toLowerCase().trim() === senderEmail)
+    : undefined;
+  // Only treat the scan's match as valid when it is the same person as the sender.
+  const scanMatch =
+    item.matched_speaker &&
+    (!senderEmail ||
+      item.matched_speaker.email?.toLowerCase().trim() === senderEmail)
+      ? item.matched_speaker
+      : null;
+  const existing = matchedByEmail ?? scanMatch ?? null;
+  const [mode, setMode] = useState<"existing" | "new">(existing ? "existing" : "new");
+  const [speakerId, setSpeakerId] = useState<string>(existing?.id ?? "");
+  const [eventId, setEventId] = useState<string>(
+    item.suggested_event_id && events.some((e) => e.id === item.suggested_event_id)
+      ? item.suggested_event_id
+      : "",
+  );
+  const [name, setName] = useState<string>(existing?.name ?? senderName ?? "");
+  const [email, setEmail] = useState<string>(senderEmail || "");
   const [status, setStatus] = useState<"confirmed" | "declined" | "prospective">(
     item.suggested_status === "confirmed" || item.suggested_status === "declined" ? item.suggested_status : "prospective",
   );
