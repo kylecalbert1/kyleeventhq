@@ -314,6 +314,11 @@ export function SpeakerListCard({
                     {alert.label}
                   </StatusPill>
                 )}
+                {health && (
+                  <StatusPill className={cn(health.cls, "text-[11px] font-semibold")} title={health.line}>
+                    {health.days !== null ? `${health.label} · ${health.days}d` : health.label}
+                  </StatusPill>
+                )}
               </div>
               {titleAtCompany && (
                 <div className="mt-1.5 text-sm leading-relaxed text-slate-500 truncate">
