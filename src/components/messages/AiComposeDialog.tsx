@@ -15,19 +15,28 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { generateMessageDraft, type AiMessageDraft } from "@/lib/message-ai.functions";
-import { markdownToHtml } from "@/lib/message-render";
+import {
+  markdownToHtml,
+  fillPlaceholders,
+  buildPlaceholderValues,
+  type MessageEvent,
+} from "@/lib/message-render";
 
 export function AiComposeDialog({
   open,
   onOpenChange,
-  eventId,
+  event,
+  userFirstName,
   onDraft,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  eventId: string;
+  event: MessageEvent;
+  userFirstName: string;
   onDraft: (draft: AiMessageDraft) => void;
 }) {
+  const eventId = event.id;
+  const placeholderValues = buildPlaceholderValues(event, userFirstName);
   const [prompt, setPrompt] = useState("");
   const [draft, setDraft] = useState<AiMessageDraft | null>(null);
   const [refinement, setRefinement] = useState("");
@@ -108,7 +117,7 @@ export function AiComposeDialog({
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Preview</div>
                   <div
                     className="min-h-[200px] rounded-lg border border-border bg-card px-4 py-3 text-sm leading-relaxed [&_a]:text-primary [&_a]:underline [&_p]:my-2"
-                    dangerouslySetInnerHTML={{ __html: markdownToHtml(draft.body_markdown) }}
+                    dangerouslySetInnerHTML={{ __html: markdownToHtml(fillPlaceholders(draft.body_markdown, placeholderValues)) }}
                   />
                 </div>
               </div>

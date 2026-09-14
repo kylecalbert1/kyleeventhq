@@ -28,6 +28,8 @@ import { toast } from "sonner";
 import {
   renderMessage,
   markdownToHtml,
+  fillPlaceholders,
+  renderPlaceholders,
   streamMeta,
   typicalWeeksLabel,
   buildPlaceholderValues,
@@ -122,8 +124,11 @@ export function GenerateMessageDialog({
         },
       }),
     onSuccess: (draft) => {
-      setSubject(draft.subject);
-      setBody(draft.body_markdown);
+      // The AI returns template text, so resolve merge fields for this event
+      // before it lands in the editable (already-rendered) fields.
+      const values = buildPlaceholderValues(event, userFirstName);
+      setSubject(renderPlaceholders(draft.subject, values).text);
+      setBody(renderPlaceholders(draft.body_markdown, values).text);
       setRefinement("");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not refine the draft"),
@@ -194,7 +199,8 @@ export function GenerateMessageDialog({
 
   async function copy(text: string, which: "subject" | "body") {
     try {
-      await navigator.clipboard.writeText(text);
+      const resolved = fillPlaceholders(text, buildPlaceholderValues(event, userFirstName));
+      await navigator.clipboard.writeText(resolved);
       setCopied(which);
       setTimeout(() => setCopied(null), 1500);
       return true;
@@ -329,7 +335,11 @@ export function GenerateMessageDialog({
                 </Label>
                 <div
                   className="min-h-[200px] rounded-lg border border-border bg-card px-4 py-3 text-sm leading-relaxed [&_a]:text-primary [&_a]:underline [&_h3]:mt-3 [&_h3]:font-semibold [&_li]:ml-4 [&_li]:list-disc [&_p]:my-2 [&_ul]:my-2"
-                  dangerouslySetInnerHTML={{ __html: markdownToHtml(body) }}
+                  dangerouslySetInnerHTML={{
+                    __html: markdownToHtml(
+                      fillPlaceholders(body, buildPlaceholderValues(event, userFirstName)),
+                    ),
+                  }}
                 />
                 <p className="text-[11px] text-muted-foreground">
                   {"{{curly_brace}}"} tags are Tito merge tags and are left untouched, Tito fills

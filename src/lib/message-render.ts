@@ -301,6 +301,55 @@ export function renderPlaceholders(
   return { text: out, missing: [...missing], unknown: [...unknown] };
 }
 
+/**
+ * Obvious stand-in values used when an event field is blank, so a preview or a
+ * copied message never contains a raw [[token]] (which would otherwise end up
+ * as a broken href inside a markdown link).
+ */
+export const PLACEHOLDER_FALLBACK: Record<string, string> = {
+  event_name: "Example Summit",
+  event_site_url: "https://example.com/event",
+  event_date_long: "1 January 2026",
+  event_day_name: "Thursday",
+  agenda_url: "https://example.com/agenda",
+  venue_name: "Example Venue",
+  venue_url: "https://example.com/venue",
+  venue_address: "1 Example Street, London",
+  registration_time: "8AM",
+  sessions_start_time: "9AM",
+  venue_notes: "Venue notes to be confirmed",
+  join_instructions: "Joining instructions to be confirmed",
+  dietary_url: "https://example.com/dietary-requirements",
+  room_block_url: "https://example.com/hotel-room-block",
+  room_block_notes: "Room block details to be confirmed",
+  signoff: "The Team",
+};
+
+function fallbackFor(key: string): string {
+  if (PLACEHOLDER_FALLBACK[key]) return PLACEHOLDER_FALLBACK[key];
+  if (key.endsWith("_url") || key.endsWith("_link")) {
+    return `https://example.com/${key.replace(/_(url|link)$/, "").replace(/_/g, "-")}`;
+  }
+  return `Example ${key.replace(/_/g, " ")}`;
+}
+
+/**
+ * Resolve every [[placeholder]] to a real value, substituting an obvious
+ * example stand-in when the event has no value for that field. The output
+ * never contains a raw [[token]]. {{curly}} Tito tags stay untouched.
+ */
+export function fillPlaceholders(
+  text: string,
+  values: Record<string, string | null>,
+): string {
+  return (text ?? "").replace(PLACEHOLDER_RE, (_whole, rawKey: string) => {
+    const key = String(rawKey).toLowerCase();
+    const v = values[key];
+    if (v !== null && v !== undefined && String(v).trim() !== "") return String(v);
+    return fallbackFor(key);
+  });
+}
+
 export function renderMessage(
   template: { subject: string; body_markdown: string },
   event: MessageEvent,
