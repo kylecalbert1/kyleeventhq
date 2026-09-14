@@ -28,6 +28,8 @@ import { toast } from "sonner";
 import {
   renderMessage,
   markdownToHtml,
+  fillPlaceholders,
+  renderPlaceholders,
   streamMeta,
   typicalWeeksLabel,
   buildPlaceholderValues,
