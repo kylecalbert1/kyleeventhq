@@ -196,7 +196,7 @@ function SpeakerBoard() {
   // Stage counts (pre-stage-filter, so the dropdown shows real totals).
   const stageCounts = useMemo(() => {
     const c: Record<ColKey, number> = {
-      new: 0, contacted: 0, responded: 0, confirmed: 0, banner_sent: 0,
+      prospective: 0, confirmed: 0, declined: 0,
     };
     preStageFiltered.forEach((s: any) => { c[columnFor(s)]++; });
     return c;
@@ -254,7 +254,7 @@ function SpeakerBoard() {
   }, [candidatesSorted, eventById]);
 
   const grouped: Record<ColKey, any[]> = {
-    new: [], contacted: [], responded: [], confirmed: [], banner_sent: [],
+    prospective: [], confirmed: [], declined: [],
   };
   pipelineSorted.forEach((s: any) => grouped[columnFor(s)].push(s));
 
