@@ -380,7 +380,44 @@ function formatRelative(iso: string): string {
 // Static export for the dashboard banner to consume without duplicating logic.
 export const _staleness = staleness;
 
+/** Logos used in the branded email header, one per business line. */
+function BrandingCard() {
+  const qc = useQueryClient();
+  const q = useQuery(brandingQuery);
+  const setLogo = useServerFn(setBusinessLineLogo);
+
+  async function save(line: "AIAI" | "CSC", path: string | null) {
+    try {
+      await setLogo({ data: { business_line: line, logo_url: path } });
+      qc.invalidateQueries({ queryKey: ["branding"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save logo");
+    }
+  }
+
+  return (
+    <Card className="p-5">
+      <h2 className="text-sm font-semibold mb-1">Email logos</h2>
+      <p className="text-xs text-muted-foreground mb-4">
+        Shown at the top of every branded email. Events can override this with their own logo.
+      </p>
+      <div className="grid gap-5 sm:grid-cols-2">
+        {(["AIAI", "CSC"] as const).map((line) => (
+          <LogoUploadField
+            key={line}
+            label={line}
+            folder={line}
+            value={q.data?.lines.find((l) => l.business_line === line)?.logo_url ?? null}
+            onChange={(p) => save(line, p)}
+          />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function SignatureCard() {
+
   const qc = useQueryClient();
   const q = useQuery(userSettingsQuery);
   const updateFn = useServerFn(updateUserSettings);
