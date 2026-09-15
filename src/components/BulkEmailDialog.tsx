@@ -28,9 +28,12 @@ import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
 import { toEmailHtml } from "@/lib/email-format";
 import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
 import { listUnsubscribes } from "@/lib/unsubscribe.functions";
-import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery, eventQuery } from "@/lib/queries";
+import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery, eventQuery, brandingQuery, confirmAttendanceLinksQuery } from "@/lib/queries";
 import { EmailTemplateManagerDialog } from "@/components/EmailTemplateManagerDialog";
+import { brandingLogoSrc } from "@/lib/branding.functions";
+import { renderBrandedEmail, type TemplateKind } from "@/lib/branded-email";
 import { toast } from "sonner";
+
 
 // Sentinel for the "start from a blank slate" option, since real template
 // IDs are UUIDs and won't collide with this value.
