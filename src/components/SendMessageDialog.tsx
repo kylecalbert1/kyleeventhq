@@ -111,7 +111,16 @@ type Ctx = {
   salesContactName: string;
   salesContactEmail: string;
   salesContactBookingLink: string;
+  /** Per-speaker signed confirm-your-speaking-date links. */
+  confirmLinks?: { byId: Record<string, string>; byEmail: Record<string, string> };
 };
+function confirmLinkFor(r: Recipient, ctx: Ctx): string {
+  const m = ctx.confirmLinks;
+  if (!m) return "";
+  return (
+    (r.speaker_id ? m.byId[r.speaker_id] : "") || m.byEmail[r.email.toLowerCase()] || ""
+  );
+}
 function resolvePlaceholders(text: string, r: Recipient, ctx: Ctx): string {
   const map: Record<string, string> = {
     first_name: r.first_name || "there",
@@ -127,7 +136,9 @@ function resolvePlaceholders(text: string, r: Recipient, ctx: Ctx): string {
     sales_contact_name: ctx.salesContactName,
     sales_contact_email: ctx.salesContactEmail,
     sales_contact_booking_link: ctx.salesContactBookingLink,
+    confirm_attendance_link: confirmLinkFor(r, ctx),
   };
+
   return text.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_m, k) => map[k.toLowerCase()] ?? `{{${k}}}`);
 }
 
