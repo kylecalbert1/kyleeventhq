@@ -219,6 +219,44 @@ export function BulkEmailDialog({
   const salesContactEmail = evQ.data?.sales_contact_email ?? "";
   const salesContactBookingLink = evQ.data?.sales_contact_booking_link ?? "";
 
+  // Shared branding: per-event logo override, else the business line logo.
+  const brandingQ = useQuery(brandingQuery);
+  const lineLogo =
+    brandingQ.data?.lines.find((l) => l.business_line === evQ.data?.business_line)?.logo_url ?? null;
+  const logoUrl = brandingLogoSrc(
+    brandingQ.data?.publicBaseUrl ?? "",
+    (evQ.data as { logo_url?: string | null } | undefined)?.logo_url || lineLogo,
+  );
+
+  // Per-speaker signed confirm-your-speaking-date links.
+  const confirmLinksQ = useQuery({
+    ...confirmAttendanceLinksQuery(eventId ?? ""),
+    enabled: !!eventId,
+  });
+
+  const activeTemplate = templates.find((x) => x.id === templateId);
+  const activeKind: TemplateKind = activeTemplate?.kind ?? null;
+  const activeCta =
+    activeTemplate?.cta_label && activeTemplate?.cta_url
+      ? { label: activeTemplate.cta_label, url: activeTemplate.cta_url }
+      : null;
+
+  /** Wrap an edited/rendered body in the one shared branded email template. */
+  function wrapBranded(bodyHtml: string, cta = activeCta): string {
+    return renderBrandedEmail({
+      eventName,
+      eventDate,
+      venue,
+      logoUrl,
+      bodyHtml,
+      signatureHtml,
+      kind: activeKind,
+      cta,
+    });
+  }
+
+
+
   const rows = useMemo(() => {
     return speakers.map((s) => {
       const firstName = firstNameOf(s.name, s.email);
