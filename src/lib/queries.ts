@@ -32,6 +32,9 @@ import {
 } from "@/lib/message-templates.functions";
 import { listMessageGenerationHistory } from "@/lib/message-history.functions";
 import { listSpeakerFlags } from "@/lib/speaker-flags.functions";
+import { getBranding } from "@/lib/branding.functions";
+import { listConfirmAttendanceLinks } from "@/lib/attendance.functions";
+
 
 export const userSettingsQuery = queryOptions({
   queryKey: ["userSettings"],
