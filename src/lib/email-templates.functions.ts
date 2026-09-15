@@ -8,6 +8,10 @@ export type EmailTemplate = {
   name: string;
   subject: string;
   body: string;
+  /** Drives the branded CTA button colour: confirm | reminder | info | ... */
+  kind: string | null;
+  cta_label: string | null;
+  cta_url: string | null;
   is_seed: boolean;
   is_archived: boolean;
   created_at: string;
@@ -31,7 +35,11 @@ const TemplateInput = z.object({
   name: z.string().min(1),
   subject: z.string(),
   body: z.string(),
+  kind: z.string().nullable().optional(),
+  cta_label: z.string().nullable().optional(),
+  cta_url: z.string().nullable().optional(),
 });
+
 
 function slugify(s: string): string {
   return (
