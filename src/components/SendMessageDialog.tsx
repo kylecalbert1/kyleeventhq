@@ -41,6 +41,7 @@ import { SendHistoryPanel } from "@/components/SendHistoryPanel";
 import { formatEventDateRange } from "@/lib/message-render";
 import { AiComposeEmailDialog } from "@/components/AiComposeEmailDialog";
 import type { AiEmailDraft } from "@/lib/email-ai.functions";
+import { containsHtml } from "@/lib/email-format";
 
 
 
@@ -142,6 +143,23 @@ function escapeToInitialHtml(body: string): string {
   return escaped.replace(/\n/g, "<br>");
 }
 
+/**
+ * Seed the editable body. Templates saved from the rich-text editor are already
+ * real HTML — escaping those turns their `<br/>` tags into visible text. Only
+ * plain-text sources get the newline-to-<br> conversion.
+ */
+function seedBodyHtml(body: string): string {
+  return containsHtml(body ?? "") ? body : escapeToInitialHtml(body ?? "");
+}
+
+/** Greeting prefix that matches the source flavour (HTML vs plain text). */
+function withGreeting(body: string): string {
+  if (/^\s*(<[^>]+>\s*)*(hi|hello|dear)\b/i.test(body)) return body;
+  return containsHtml(body)
+    ? `<div>Hi {{first_name}},</div><div><br></div>${body}`
+    : `Hi {{first_name}},\n\n${body}`;
+}
+
 const PLACEHOLDERS: Array<{ key: string; label: string }> = [
   { key: "first_name", label: "First name" },
   { key: "company", label: "Company" },
@@ -223,12 +241,14 @@ export function SendMessageDialog({
   eventId,
   seedRecipientEmails,
   seedGroup,
+  seedTemplateSlug,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   eventId: string;
   seedRecipientEmails?: string[];
   seedGroup?: GroupKey;
+  seedTemplateSlug?: string;
 }) {
   const evQ = useQuery(eventQuery(eventId));
   const speakersQ = useQuery(speakersQuery(eventId));
@@ -274,13 +294,14 @@ export function SendMessageDialog({
   }, [open]);
 
   // Restore editable body innerHTML when returning from Preview (the div unmounts
-  // during preview, so React state is our source of truth).
+  // during preview, so React state is our source of truth), and when a template
+  // was seeded before the editor was mounted.
   useEffect(() => {
     if (!previewing && bodyRef.current && bodyRef.current.innerHTML !== bodyHtml) {
       bodyRef.current.innerHTML = bodyHtml;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewing]);
+  }, [previewing, bodyHtml]);
 
   const speakers = speakersQ.data ?? [];
   const past = pastQ.data ?? [];
@@ -413,7 +434,10 @@ export function SendMessageDialog({
         past_speakers: "future_event_invite",
         confirmed_not_registered: "speaker_pass_reminder",
       };
-      const preferred = templates.find((t) => t.slug === seedByGroup[group]);
+      const seeded = seedTemplateSlug
+        ? templates.find((t) => t.slug === seedTemplateSlug)
+        : undefined;
+      const preferred = seeded ?? templates.find((t) => t.slug === seedByGroup[group]);
       const first = preferred ?? templates[0];
       if (first) applyTemplate(first.id);
     }
@@ -426,23 +450,20 @@ export function SendMessageDialog({
     setTemplateId(id);
     setSubject(t.subject);
     // Make the greeting part of the editable body so it can be removed or reworded.
-    const bodyWithGreeting = /^\s*(hi|hello|dear)\b/i.test(t.body)
-      ? t.body
-      : `Hi {{first_name}},\n\n${t.body}`;
-    setBodyHtml(escapeToInitialHtml(bodyWithGreeting));
+    const bodyWithGreeting = withGreeting(t.body);
+    const html = seedBodyHtml(bodyWithGreeting);
+    setBodyHtml(html);
     setOriginalSubject(t.subject);
     setOriginalBody(bodyWithGreeting);
-    if (bodyRef.current) bodyRef.current.innerHTML = escapeToInitialHtml(bodyWithGreeting);
+    if (bodyRef.current) bodyRef.current.innerHTML = html;
   }
 
   function applyAiDraft(draft: AiEmailDraft) {
     // Same path as applyTemplate, but not backed by a saved template.
     setTemplateId("");
     setSubject(draft.subject);
-    const bodyWithGreeting = /^\s*(hi|hello|dear)\b/i.test(draft.body)
-      ? draft.body
-      : `Hi {{first_name}},\n\n${draft.body}`;
-    const html = escapeToInitialHtml(bodyWithGreeting);
+    const bodyWithGreeting = withGreeting(draft.body);
+    const html = seedBodyHtml(bodyWithGreeting);
     setBodyHtml(html);
     setOriginalSubject(draft.subject);
     setOriginalBody(bodyWithGreeting);
@@ -453,7 +474,7 @@ export function SendMessageDialog({
 
   function resetToTemplate() {
     setSubject(originalSubject);
-    const html = escapeToInitialHtml(originalBody);
+    const html = seedBodyHtml(originalBody);
     setBodyHtml(html);
     if (bodyRef.current) bodyRef.current.innerHTML = html;
   }

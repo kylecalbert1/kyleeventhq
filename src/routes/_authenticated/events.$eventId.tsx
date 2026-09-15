@@ -62,6 +62,7 @@ import { SyncDialog } from "@/components/SyncDialog";
 import { EventTargetsSummaryCard } from "@/components/events/EventTargetsSummaryCard";
 import { EventLinksCard } from "@/components/events/EventLinksCard";
 import { TitoPassLinksCard } from "@/components/events/TitoPassLinksCard";
+import { QuickSendCard } from "@/components/events/QuickSendCard";
 import { EventBoardLink } from "@/components/boards/EventBoardLink";
 import { EventSpeakerBoardCard } from "@/components/boards/EventSpeakerBoardCard";
 import { OutreachKitCard } from "@/components/outreach/OutreachKitCard";
@@ -113,7 +114,7 @@ function EventDetail() {
   const [confirmEmail, setConfirmEmail] = useState<ConfirmDraft | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
   const [speakerQ, setSpeakerQ] = useState("");
-  const [sendOpen, setSendOpen] = useState<null | { seedEmails?: string[]; seedGroup?: "prospective" | "current_confirmed" | "past_speakers" | "confirmed_not_registered" }>(null);
+  const [sendOpen, setSendOpen] = useState<null | { seedEmails?: string[]; seedGroup?: "prospective" | "current_confirmed" | "past_speakers" | "confirmed_not_registered"; seedTemplateSlug?: string }>(null);
   const [templateMgrOpen, setTemplateMgrOpen] = useState(false);
   const sendEmail = useServerFn(sendGmailEmail);
   const logSend = useServerFn(logEmailSend);
@@ -445,6 +446,13 @@ function EventDetail() {
       <EventSpeakerBoardCard eventId={eventId} speakerTarget={speakerTarget} />
 
       <TitoPassLinksCard eventId={eventId} hasTitoEvent={Boolean((e as any).tito_slug)} />
+
+      <QuickSendCard
+        eventId={eventId}
+        onQuickSend={(q) =>
+          setSendOpen({ seedEmails: q.emails, seedTemplateSlug: q.templateSlug })
+        }
+      />
 
       <EventMessagesPanel event={e as never} onEditEvent={() => setEditingEvent(true)} />
 
@@ -797,6 +805,7 @@ function EventDetail() {
           eventId={eventId}
           seedRecipientEmails={sendOpen.seedEmails}
           seedGroup={sendOpen.seedGroup}
+          seedTemplateSlug={sendOpen.seedTemplateSlug}
         />
       )}
       <EmailTemplateManagerDialog open={templateMgrOpen} onOpenChange={setTemplateMgrOpen} />

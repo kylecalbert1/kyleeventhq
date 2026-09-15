@@ -50,6 +50,13 @@
       "when": 1789398522607,
       "tag": "0006_speaker_status_prospective_and_reply_snippet",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789476726636,
+      "tag": "0007_quick_send_templates",
+      "breakpoints": true
     }
   ]
 }
