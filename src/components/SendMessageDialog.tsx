@@ -197,6 +197,8 @@ const PLACEHOLDERS: Array<{ key: string; label: string }> = [
   { key: "sales_contact_name", label: "Sales contact name" },
   { key: "sales_contact_email", label: "Sales contact email" },
   { key: "sales_contact_booking_link", label: "Sales contact booking link" },
+  { key: "confirm_attendance_link", label: "Confirm speaking date link" },
+
 ];
 
 // ---------- Small building blocks ----------
@@ -279,6 +281,9 @@ export function SendMessageDialog({
   const titoLinksQ = useQuery(eventTitoLinksQuery(eventId));
   const pastQ = useQuery(pastSpeakersQuery(false));
   const settingsQ = useQuery(userSettingsQuery);
+  const brandingQ = useQuery(brandingQuery);
+  const confirmLinksQ = useQuery(confirmAttendanceLinksQuery(eventId));
+
 
   const [audienceMode, setAudienceMode] = useState<AudienceMode>("group");
   const [group, setGroup] = useState<GroupKey>(seedGroup ?? "current_confirmed");
