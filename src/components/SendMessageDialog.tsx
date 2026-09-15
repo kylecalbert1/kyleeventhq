@@ -826,34 +826,40 @@ export function SendMessageDialog({
                 </div>
               </div>
 
-              {/* Branded inline email preview (directly editable). */}
-              <div className="rounded-xl overflow-hidden border-2 border-border">
-                <div className="bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold">
-                  {eventName || "Event Ops"}
-                </div>
-                <div
-                  ref={bodyRef}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onInput={(e) => setBodyHtml((e.target as HTMLDivElement).innerHTML)}
-                  className="bg-white px-5 py-4 text-[13px] leading-relaxed text-foreground outline-none min-h-[240px] whitespace-pre-wrap [&_a]:text-primary [&_a]:underline"
-                />
-                {signatureHtml ? (
+              {/* Branded inline email preview (directly editable) — same wrapper
+                  markup the recipient gets, with the body area editable. */}
+              <div className="rounded-xl overflow-hidden border-2 border-border bg-[#f5f4f1] p-3">
+                <div className="bg-white rounded-xl overflow-hidden border border-[#e7e5e4]">
+                  <div dangerouslySetInnerHTML={{ __html: brandedHeaderHtml({ eventName, logoUrl }) }} />
                   <div
-                    className="bg-white px-5 pb-4 text-[13px] leading-relaxed text-foreground border-t border-dashed border-border pt-3 [&_a]:text-primary [&_a]:underline"
-                    dangerouslySetInnerHTML={{ __html: signatureHtml }}
-                    title="Signature (edit in Settings)"
+                    ref={bodyRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    onInput={(e) => setBodyHtml((e.target as HTMLDivElement).innerHTML)}
+                    className="bg-white px-6 pt-5 pb-1 text-[15px] leading-relaxed text-[#1c1917] outline-none min-h-[220px] [&_a]:text-primary [&_a]:underline"
                   />
-                ) : (
-                  <div className="bg-white px-5 pb-3 text-[11px] text-muted-foreground italic">
-                    No signature set. Add one in Settings → Email signature.
-                  </div>
-                )}
-                <div className="bg-white px-5 py-3 border-t border-border text-[11px] text-muted-foreground">
-                  {eventName} · {eventDate}
-                  {venue ? ` · ${venue}` : ""}
+                  {signatureHtml ? (
+                    <div
+                      className="bg-white px-6 pb-4 mt-3 pt-3 text-[15px] leading-relaxed text-[#1c1917] border-t border-dashed border-border [&_a]:text-primary [&_a]:underline"
+                      dangerouslySetInnerHTML={{ __html: signatureHtml }}
+                      title="Signature (edit in Settings)"
+                    />
+                  ) : (
+                    <div className="bg-white px-6 pb-3 text-[11px] text-muted-foreground italic">
+                      No signature set. Add one in Settings → Email signature.
+                    </div>
+                  )}
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        brandedInfoCardHtml({ eventName, eventDate, venue }) +
+                        brandedCtaHtml(activeCta, activeKind) +
+                        brandedFooterHtml({ eventName, eventDate, venue }),
+                    }}
+                  />
                 </div>
               </div>
+
 
               {/* 10. Placeholder chips */}
               <div className="pt-1">
