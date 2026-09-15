@@ -32,12 +32,16 @@ export function ConfirmSendEmailDialog({
   onOpenChange,
   draft,
   onConfirm,
+  renderPreview,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   draft: ConfirmDraft | null;
   onConfirm: (edited: { subject: string; body: string }) => Promise<void>;
+  /** Wraps the edited body in the shared branded email template for preview. */
+  renderPreview?: (bodyHtml: string) => string;
 }) {
+
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
