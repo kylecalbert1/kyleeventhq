@@ -977,14 +977,15 @@ function PreviewPane({
           </div>
         )}
         <div className="rounded-xl border-2 border-border overflow-hidden">
-          <div className="bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold">
-            {subject}
+          <div className="bg-muted px-4 py-2.5 text-xs font-semibold text-foreground">
+            Subject: {subject}
           </div>
           <div
-            className="bg-white px-5 py-4 text-[13px] whitespace-pre-wrap font-sans text-foreground leading-relaxed [&_a]:text-primary [&_a]:underline"
+            className="text-[13px] font-sans [&_a]:underline"
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
           />
         </div>
+
         <details className="mt-2 text-[11px] text-muted-foreground">
           <summary className="cursor-pointer">Plain-text fallback</summary>
           <pre className="mt-1 whitespace-pre-wrap font-sans">{bodyPlain}</pre>
