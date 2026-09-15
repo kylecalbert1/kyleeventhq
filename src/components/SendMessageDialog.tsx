@@ -34,6 +34,8 @@ import {
   eventQuery,
   pastSpeakersQuery,
   userSettingsQuery,
+  brandingQuery,
+  confirmAttendanceLinksQuery,
 } from "@/lib/queries";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { logEmailSend } from "@/lib/email-sends.functions";
@@ -42,6 +44,16 @@ import { formatEventDateRange } from "@/lib/message-render";
 import { AiComposeEmailDialog } from "@/components/AiComposeEmailDialog";
 import type { AiEmailDraft } from "@/lib/email-ai.functions";
 import { containsHtml } from "@/lib/email-format";
+import { brandingLogoSrc } from "@/lib/branding.functions";
+import {
+  renderBrandedEmail,
+  brandedHeaderHtml,
+  brandedInfoCardHtml,
+  brandedCtaHtml,
+  brandedFooterHtml,
+  type TemplateKind,
+} from "@/lib/branded-email";
+
 
 
 
