@@ -64,6 +64,13 @@
       "when": 1789479759280,
       "tag": "0008_email_branding_and_attendance_confirm",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789479794442,
+      "tag": "0009_branding_bucket_policies",
+      "breakpoints": true
     }
   ]
 }
