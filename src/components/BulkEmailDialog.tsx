@@ -324,14 +324,11 @@ export function BulkEmailDialog({
     setStatus((s) => ({ ...s, [r.id]: "sending" }));
     try {
       // Every outbound message goes as HTML with `\n` → `<br/>` and any
-      // stray `**bold**` promoted to real `<strong>` tags, plus the user's
-      // saved signature. Without this, Gmail collapses the whole body to a
-      // single paragraph and shows literal asterisks.
+      // stray `**bold**` promoted to real `<strong>` tags, then through the one
+      // shared branded wrapper (header, info card, CTA, footer + signature) so
+      // the sent email matches the preview exactly.
       const rawBody = override?.body ?? r.rBody;
-      const bodyHtml = toEmailHtml(rawBody);
-      const withSig = signatureHtml
-        ? `${bodyHtml}<br/><br/>${signatureHtml}`
-        : bodyHtml;
+      const withSig = wrapBranded(toEmailHtml(rawBody), r.rCta);
       const finalSubject = override?.subject ?? r.rSubject;
       await send({
         data: {
@@ -342,6 +339,7 @@ export function BulkEmailDialog({
           allowUnsubscribe: true,
         },
       });
+
       setStatus((s) => ({ ...s, [r.id]: "sent" }));
       if (logIndividually) {
         // Single-recipient sends must land in email_sends too, otherwise
