@@ -620,11 +620,21 @@ export function SendMessageDialog({
   }
 
   const firstR = filteredRecipients[0];
-  const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink };
+  const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink, confirmLinks };
   const previewSubject = firstR ? resolvePlaceholders(subject, firstR, ctx) : subject;
-  const previewFullHtml = signatureHtml ? `${bodyHtml}<br><br>${signatureHtml}` : bodyHtml;
+  const previewFullHtml = renderBrandedEmail({
+    eventName,
+    eventDate,
+    venue,
+    logoUrl,
+    bodyHtml,
+    signatureHtml,
+    kind: activeKind,
+    cta: activeCta,
+  });
   const previewBodyPlain = firstR ? resolvePlaceholders(htmlToPlain(previewFullHtml), firstR, ctx) : "";
   const previewBodyHtml = firstR ? resolvePlaceholders(previewFullHtml, firstR, ctx) : previewFullHtml;
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
