@@ -43,6 +43,9 @@ const EventInput = z.object({
   dietary_url: z.string().nullable().optional(),
   room_block_url: z.string().nullable().optional(),
   room_block_notes: z.string().nullable().optional(),
+  // Optional per-event email logo override (business line logo is the default).
+  logo_url: z.string().nullable().optional(),
+
 });
 
 
