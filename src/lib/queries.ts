@@ -32,6 +32,9 @@ import {
 } from "@/lib/message-templates.functions";
 import { listMessageGenerationHistory } from "@/lib/message-history.functions";
 import { listSpeakerFlags } from "@/lib/speaker-flags.functions";
+import { getBranding } from "@/lib/branding.functions";
+import { listConfirmAttendanceLinks } from "@/lib/attendance.functions";
+
 
 export const userSettingsQuery = queryOptions({
   queryKey: ["userSettings"],
@@ -88,6 +91,20 @@ export const emailTemplatesQuery = queryOptions({
   queryFn: () => listEmailTemplates(),
   staleTime: 30_000,
 });
+
+export const brandingQuery = queryOptions({
+  queryKey: ["branding"],
+  queryFn: () => getBranding(),
+  staleTime: 60_000,
+});
+
+export const confirmAttendanceLinksQuery = (eventId: string) =>
+  queryOptions({
+    queryKey: ["confirmAttendanceLinks", eventId],
+    queryFn: () => listConfirmAttendanceLinks({ data: { event_id: eventId } }),
+    staleTime: 60_000,
+  });
+
 
 export const pastSpeakersQuery = (includeAttendees: boolean) =>
   queryOptions({

@@ -32,12 +32,16 @@ export function ConfirmSendEmailDialog({
   onOpenChange,
   draft,
   onConfirm,
+  renderPreview,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   draft: ConfirmDraft | null;
   onConfirm: (edited: { subject: string; body: string }) => Promise<void>;
+  /** Wraps the edited body in the shared branded email template for preview. */
+  renderPreview?: (bodyHtml: string) => string;
 }) {
+
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
@@ -133,7 +137,18 @@ export function ConfirmSendEmailDialog({
               minRows={10}
             />
           </div>
+
+          {renderPreview && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Preview (exactly what the recipient gets)</Label>
+              <div
+                className="rounded-md border border-border overflow-hidden text-[13px] [&_a]:underline"
+                dangerouslySetInnerHTML={{ __html: renderPreview(body) }}
+              />
+            </div>
+          )}
         </div>
+
 
         <DialogFooter>
           <Button

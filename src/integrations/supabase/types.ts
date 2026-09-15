@@ -150,6 +150,24 @@ export type Database = {
           },
         ]
       }
+      business_line_branding: {
+        Row: {
+          business_line: string
+          logo_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_line: string
+          logo_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_line?: string
+          logo_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_recipients: {
         Row: {
           created_at: string
@@ -240,9 +258,12 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          cta_label: string | null
+          cta_url: string | null
           id: string
           is_archived: boolean
           is_seed: boolean
+          kind: string | null
           name: string
           slug: string
           subject: string
@@ -251,9 +272,12 @@ export type Database = {
         Insert: {
           body: string
           created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
           id?: string
           is_archived?: boolean
           is_seed?: boolean
+          kind?: string | null
           name: string
           slug: string
           subject: string
@@ -262,9 +286,12 @@ export type Database = {
         Update: {
           body?: string
           created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
           id?: string
           is_archived?: boolean
           is_seed?: boolean
+          kind?: string | null
           name?: string
           slug?: string
           subject?: string
@@ -662,6 +689,7 @@ export type Database = {
           join_instructions: string | null
           kickoff_date: string | null
           launch_date: string | null
+          logo_url: string | null
           name: string
           owner: string | null
           proof1_done: boolean
@@ -706,6 +734,7 @@ export type Database = {
           join_instructions?: string | null
           kickoff_date?: string | null
           launch_date?: string | null
+          logo_url?: string | null
           name: string
           owner?: string | null
           proof1_done?: boolean
@@ -750,6 +779,7 @@ export type Database = {
           join_instructions?: string | null
           kickoff_date?: string | null
           launch_date?: string | null
+          logo_url?: string | null
           name?: string
           owner?: string | null
           proof1_done?: boolean
@@ -1249,6 +1279,7 @@ export type Database = {
       }
       speakers: {
         Row: {
+          attendance_confirmed_at: string | null
           banner_status: Database["public"]["Enums"]["banner_status"]
           bio_and_headshot_received: boolean
           bio_received: boolean
@@ -1289,6 +1320,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attendance_confirmed_at?: string | null
           banner_status?: Database["public"]["Enums"]["banner_status"]
           bio_and_headshot_received?: boolean
           bio_received?: boolean
@@ -1329,6 +1361,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attendance_confirmed_at?: string | null
           banner_status?: Database["public"]["Enums"]["banner_status"]
           bio_and_headshot_received?: boolean
           bio_received?: boolean

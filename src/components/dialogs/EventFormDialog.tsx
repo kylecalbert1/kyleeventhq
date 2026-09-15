@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { createEvent, updateEvent, deleteEvent } from "@/lib/events.functions";
 import { BUSINESS_LINES, EVENT_FORMATS, WEBSITE_STAGES, SELF_STATUSES, labels } from "@/lib/status";
 import { qk, titoEventsPickerQuery } from "@/lib/queries";
+import { LogoUploadField } from "@/components/LogoUploadField";
+
 
 function parseAsanaGid(input: string): string | null {
   const v = input.trim();
@@ -62,6 +64,8 @@ type EventRow = {
   dietary_url?: string | null;
   room_block_url?: string | null;
   room_block_notes?: string | null;
+  logo_url?: string | null;
+
   sales_contact_name?: string | null;
   sales_contact_email?: string | null;
   sales_contact_booking_link?: string | null;
@@ -102,6 +106,8 @@ const initial = {
   dietary_url: "",
   room_block_url: "",
   room_block_notes: "",
+  logo_url: null as string | null,
+
 };
 
 export function EventFormDialog({
@@ -158,6 +164,8 @@ export function EventFormDialog({
         dietary_url: event.dietary_url ?? "",
         room_block_url: event.room_block_url ?? "",
         room_block_notes: event.room_block_notes ?? "",
+        logo_url: event.logo_url ?? null,
+
       });
     } else {
       setForm(initial);
@@ -197,6 +205,8 @@ export function EventFormDialog({
         dietary_url: form.dietary_url.trim() || null,
         room_block_url: form.room_block_url.trim() || null,
         room_block_notes: form.room_block_notes.trim() || null,
+        logo_url: form.logo_url || null,
+
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
@@ -279,6 +289,16 @@ export function EventFormDialog({
               </SelectContent>
             </Select>
           </Field>
+          <div className="col-span-2">
+            <LogoUploadField
+              label="Email logo (optional override)"
+              value={form.logo_url}
+              folder={event?.id ?? "events"}
+              onChange={(p) => setForm({ ...form, logo_url: p })}
+              help="Leave empty to use the business line logo in branded emails."
+            />
+          </div>
+
           <Field label="Event date">
             <Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
           </Field>

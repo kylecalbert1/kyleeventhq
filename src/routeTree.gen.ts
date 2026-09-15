@@ -27,6 +27,8 @@ import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedTitoIndexRouteImport } from './routes/_authenticated/tito.index'
 import { Route as AuthenticatedBoardsIndexRouteImport } from './routes/_authenticated/boards.index'
 import { Route as ApiPublicUnsubscribeRouteImport } from './routes/api/public/unsubscribe'
+import { Route as ApiPublicConfirmAttendanceRouteImport } from './routes/api/public/confirm-attendance'
+import { Route as ApiPublicBrandingLogoRouteImport } from './routes/api/public/branding-logo'
 import { Route as AuthenticatedToolsLogoConverterRouteImport } from './routes/_authenticated/tools.logo-converter'
 import { Route as AuthenticatedTitoSlugRouteImport } from './routes/_authenticated/tito.$slug'
 import { Route as AuthenticatedSpeakersSpeakerIdRouteImport } from './routes/_authenticated/speakers.$speakerId'
@@ -133,6 +135,17 @@ const ApiPublicUnsubscribeRoute = ApiPublicUnsubscribeRouteImport.update({
   path: '/api/public/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicConfirmAttendanceRoute =
+  ApiPublicConfirmAttendanceRouteImport.update({
+    id: '/api/public/confirm-attendance',
+    path: '/api/public/confirm-attendance',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBrandingLogoRoute = ApiPublicBrandingLogoRouteImport.update({
+  id: '/api/public/branding-logo',
+  path: '/api/public/branding-logo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedToolsLogoConverterRoute =
   AuthenticatedToolsLogoConverterRouteImport.update({
     id: '/tools/logo-converter',
@@ -213,6 +226,8 @@ export interface FileRoutesByFullPath {
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/tito/$slug': typeof AuthenticatedTitoSlugRoute
   '/tools/logo-converter': typeof AuthenticatedToolsLogoConverterRoute
+  '/api/public/branding-logo': typeof ApiPublicBrandingLogoRoute
+  '/api/public/confirm-attendance': typeof ApiPublicConfirmAttendanceRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/boards/': typeof AuthenticatedBoardsIndexRoute
   '/tito/': typeof AuthenticatedTitoIndexRoute
@@ -242,6 +257,8 @@ export interface FileRoutesByTo {
   '/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/tito/$slug': typeof AuthenticatedTitoSlugRoute
   '/tools/logo-converter': typeof AuthenticatedToolsLogoConverterRoute
+  '/api/public/branding-logo': typeof ApiPublicBrandingLogoRoute
+  '/api/public/confirm-attendance': typeof ApiPublicConfirmAttendanceRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/boards': typeof AuthenticatedBoardsIndexRoute
   '/tito': typeof AuthenticatedTitoIndexRoute
@@ -273,6 +290,8 @@ export interface FileRoutesById {
   '/_authenticated/speakers/$speakerId': typeof AuthenticatedSpeakersSpeakerIdRoute
   '/_authenticated/tito/$slug': typeof AuthenticatedTitoSlugRoute
   '/_authenticated/tools/logo-converter': typeof AuthenticatedToolsLogoConverterRoute
+  '/api/public/branding-logo': typeof ApiPublicBrandingLogoRoute
+  '/api/public/confirm-attendance': typeof ApiPublicConfirmAttendanceRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/_authenticated/boards/': typeof AuthenticatedBoardsIndexRoute
   '/_authenticated/tito/': typeof AuthenticatedTitoIndexRoute
@@ -304,6 +323,8 @@ export interface FileRouteTypes {
     | '/speakers/$speakerId'
     | '/tito/$slug'
     | '/tools/logo-converter'
+    | '/api/public/branding-logo'
+    | '/api/public/confirm-attendance'
     | '/api/public/unsubscribe'
     | '/boards/'
     | '/tito/'
@@ -333,6 +354,8 @@ export interface FileRouteTypes {
     | '/speakers/$speakerId'
     | '/tito/$slug'
     | '/tools/logo-converter'
+    | '/api/public/branding-logo'
+    | '/api/public/confirm-attendance'
     | '/api/public/unsubscribe'
     | '/boards'
     | '/tito'
@@ -363,6 +386,8 @@ export interface FileRouteTypes {
     | '/_authenticated/speakers/$speakerId'
     | '/_authenticated/tito/$slug'
     | '/_authenticated/tools/logo-converter'
+    | '/api/public/branding-logo'
+    | '/api/public/confirm-attendance'
     | '/api/public/unsubscribe'
     | '/_authenticated/boards/'
     | '/_authenticated/tito/'
@@ -376,6 +401,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicBrandingLogoRoute: typeof ApiPublicBrandingLogoRoute
+  ApiPublicConfirmAttendanceRoute: typeof ApiPublicConfirmAttendanceRoute
   ApiPublicUnsubscribeRoute: typeof ApiPublicUnsubscribeRoute
   ApiPublicHooksAsanaNightlyRoute: typeof ApiPublicHooksAsanaNightlyRoute
   ApiPublicHooksGmailNightlyRoute: typeof ApiPublicHooksGmailNightlyRoute
@@ -509,6 +536,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/unsubscribe'
       fullPath: '/api/public/unsubscribe'
       preLoaderRoute: typeof ApiPublicUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/confirm-attendance': {
+      id: '/api/public/confirm-attendance'
+      path: '/api/public/confirm-attendance'
+      fullPath: '/api/public/confirm-attendance'
+      preLoaderRoute: typeof ApiPublicConfirmAttendanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/branding-logo': {
+      id: '/api/public/branding-logo'
+      path: '/api/public/branding-logo'
+      fullPath: '/api/public/branding-logo'
+      preLoaderRoute: typeof ApiPublicBrandingLogoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/tools/logo-converter': {
@@ -650,6 +691,8 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicBrandingLogoRoute: ApiPublicBrandingLogoRoute,
+  ApiPublicConfirmAttendanceRoute: ApiPublicConfirmAttendanceRoute,
   ApiPublicUnsubscribeRoute: ApiPublicUnsubscribeRoute,
   ApiPublicHooksAsanaNightlyRoute: ApiPublicHooksAsanaNightlyRoute,
   ApiPublicHooksGmailNightlyRoute: ApiPublicHooksGmailNightlyRoute,

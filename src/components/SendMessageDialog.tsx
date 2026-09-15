@@ -34,6 +34,8 @@ import {
   eventQuery,
   pastSpeakersQuery,
   userSettingsQuery,
+  brandingQuery,
+  confirmAttendanceLinksQuery,
 } from "@/lib/queries";
 import { sendGmailEmail } from "@/lib/email.functions";
 import { logEmailSend } from "@/lib/email-sends.functions";
@@ -42,6 +44,16 @@ import { formatEventDateRange } from "@/lib/message-render";
 import { AiComposeEmailDialog } from "@/components/AiComposeEmailDialog";
 import type { AiEmailDraft } from "@/lib/email-ai.functions";
 import { containsHtml } from "@/lib/email-format";
+import { brandingLogoSrc } from "@/lib/branding.functions";
+import {
+  renderBrandedEmail,
+  brandedHeaderHtml,
+  brandedInfoCardHtml,
+  brandedCtaHtml,
+  brandedFooterHtml,
+  type TemplateKind,
+} from "@/lib/branded-email";
+
 
 
 
@@ -99,7 +111,16 @@ type Ctx = {
   salesContactName: string;
   salesContactEmail: string;
   salesContactBookingLink: string;
+  /** Per-speaker signed confirm-your-speaking-date links. */
+  confirmLinks?: { byId: Record<string, string>; byEmail: Record<string, string> };
 };
+function confirmLinkFor(r: Recipient, ctx: Ctx): string {
+  const m = ctx.confirmLinks;
+  if (!m) return "";
+  return (
+    (r.speaker_id ? m.byId[r.speaker_id] : "") || m.byEmail[r.email.toLowerCase()] || ""
+  );
+}
 function resolvePlaceholders(text: string, r: Recipient, ctx: Ctx): string {
   const map: Record<string, string> = {
     first_name: r.first_name || "there",
@@ -115,7 +136,9 @@ function resolvePlaceholders(text: string, r: Recipient, ctx: Ctx): string {
     sales_contact_name: ctx.salesContactName,
     sales_contact_email: ctx.salesContactEmail,
     sales_contact_booking_link: ctx.salesContactBookingLink,
+    confirm_attendance_link: confirmLinkFor(r, ctx),
   };
+
   return text.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_m, k) => map[k.toLowerCase()] ?? `{{${k}}}`);
 }
 
@@ -174,6 +197,8 @@ const PLACEHOLDERS: Array<{ key: string; label: string }> = [
   { key: "sales_contact_name", label: "Sales contact name" },
   { key: "sales_contact_email", label: "Sales contact email" },
   { key: "sales_contact_booking_link", label: "Sales contact booking link" },
+  { key: "confirm_attendance_link", label: "Confirm speaking date link" },
+
 ];
 
 // ---------- Small building blocks ----------
@@ -256,6 +281,9 @@ export function SendMessageDialog({
   const titoLinksQ = useQuery(eventTitoLinksQuery(eventId));
   const pastQ = useQuery(pastSpeakersQuery(false));
   const settingsQ = useQuery(userSettingsQuery);
+  const brandingQ = useQuery(brandingQuery);
+  const confirmLinksQ = useQuery(confirmAttendanceLinksQuery(eventId));
+
 
   const [audienceMode, setAudienceMode] = useState<AudienceMode>("group");
   const [group, setGroup] = useState<GroupKey>(seedGroup ?? "current_confirmed");
@@ -319,6 +347,17 @@ export function SendMessageDialog({
   const speakerPassLink = titoLinksQ.data?.speaker_pass_link ?? "";
   const guestPassLink = titoLinksQ.data?.guest_pass_link ?? "";
   const signatureHtml = settingsQ.data?.email_signature_html ?? "";
+
+  // Branding: per-event logo override wins, otherwise the business line logo.
+  const brandingBase = brandingQ.data?.publicBaseUrl ?? "";
+  const lineLogo =
+    brandingQ.data?.lines.find((l) => l.business_line === evQ.data?.business_line)?.logo_url ?? null;
+  const logoUrl = brandingLogoSrc(
+    brandingBase,
+    (evQ.data as { logo_url?: string | null } | undefined)?.logo_url || lineLogo,
+  );
+  const confirmLinks = confirmLinksQ.data;
+
 
   const speakerRecipients = useMemo<Recipient[]>(() => {
     return speakers
@@ -426,6 +465,13 @@ export function SendMessageDialog({
   }, [speakerRecipients, pastRecipients, speakers]);
 
   const templates = templatesQ.data ?? [];
+  const activeTemplate = templates.find((t) => t.id === templateId);
+  const activeKind: TemplateKind = activeTemplate?.kind ?? null;
+  const activeCta =
+    activeTemplate?.cta_label && activeTemplate?.cta_url
+      ? { label: activeTemplate.cta_label, url: activeTemplate.cta_url }
+      : null;
+
   useEffect(() => {
     if (!templateId && templates.length) {
       const seedByGroup: Partial<Record<GroupKey, string>> = {
@@ -507,17 +553,31 @@ export function SendMessageDialog({
     setSending(true);
     setSendError(null);
     setSendProgress({ done: 0, total });
-    const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink };
+    const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink, confirmLinks };
     const successful: Array<{ email: string; name: string; speaker_id: string | null }> = [];
-    const fullHtml = signatureHtml ? `${bodyHtml}<br><br>${signatureHtml}` : bodyHtml;
     try {
       for (let i = 0; i < filteredRecipients.length; i++) {
         const r = filteredRecipients[i];
         const s = resolvePlaceholders(subject, r, ctx);
-        const b = resolvePlaceholders(fullHtml, r, ctx);
+        // Same wrapper the preview renders, so what Kyle saw is what goes out.
+        const b = resolvePlaceholders(
+          renderBrandedEmail({
+            eventName,
+            eventDate,
+            venue,
+            logoUrl,
+            bodyHtml,
+            signatureHtml,
+            kind: activeKind,
+            cta: activeCta,
+          }),
+          r,
+          ctx,
+        );
         try {
           await sendEmail({ data: { to: r.email, subject: s, body: b, isHtml: true } });
           successful.push({ email: r.email, name: r.name, speaker_id: r.speaker_id });
+
         } catch (err: any) {
           console.error("send failed", r.email, err);
           setSendError(`${r.email}: ${err?.message ?? "send failed"}`);
@@ -532,7 +592,7 @@ export function SendMessageDialog({
               event_id: eventId,
               template_type: tpl?.slug ?? "custom",
               subject,
-              body: htmlToPlain(fullHtml),
+              body: htmlToPlain(signatureHtml ? `${bodyHtml}<br><br>${signatureHtml}` : bodyHtml),
               recipients: successful.map((r) => ({
                 speaker_id: r.speaker_id,
                 email: r.email,
@@ -567,11 +627,21 @@ export function SendMessageDialog({
   }
 
   const firstR = filteredRecipients[0];
-  const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink };
+  const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink, confirmLinks };
   const previewSubject = firstR ? resolvePlaceholders(subject, firstR, ctx) : subject;
-  const previewFullHtml = signatureHtml ? `${bodyHtml}<br><br>${signatureHtml}` : bodyHtml;
+  const previewFullHtml = renderBrandedEmail({
+    eventName,
+    eventDate,
+    venue,
+    logoUrl,
+    bodyHtml,
+    signatureHtml,
+    kind: activeKind,
+    cta: activeCta,
+  });
   const previewBodyPlain = firstR ? resolvePlaceholders(htmlToPlain(previewFullHtml), firstR, ctx) : "";
   const previewBodyHtml = firstR ? resolvePlaceholders(previewFullHtml, firstR, ctx) : previewFullHtml;
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -756,34 +826,40 @@ export function SendMessageDialog({
                 </div>
               </div>
 
-              {/* Branded inline email preview (directly editable). */}
-              <div className="rounded-xl overflow-hidden border-2 border-border">
-                <div className="bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold">
-                  {eventName || "Event Ops"}
-                </div>
-                <div
-                  ref={bodyRef}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onInput={(e) => setBodyHtml((e.target as HTMLDivElement).innerHTML)}
-                  className="bg-white px-5 py-4 text-[13px] leading-relaxed text-foreground outline-none min-h-[240px] whitespace-pre-wrap [&_a]:text-primary [&_a]:underline"
-                />
-                {signatureHtml ? (
+              {/* Branded inline email preview (directly editable) — same wrapper
+                  markup the recipient gets, with the body area editable. */}
+              <div className="rounded-xl overflow-hidden border-2 border-border bg-[#f5f4f1] p-3">
+                <div className="bg-white rounded-xl overflow-hidden border border-[#e7e5e4]">
+                  <div dangerouslySetInnerHTML={{ __html: brandedHeaderHtml({ eventName, logoUrl }) }} />
                   <div
-                    className="bg-white px-5 pb-4 text-[13px] leading-relaxed text-foreground border-t border-dashed border-border pt-3 [&_a]:text-primary [&_a]:underline"
-                    dangerouslySetInnerHTML={{ __html: signatureHtml }}
-                    title="Signature (edit in Settings)"
+                    ref={bodyRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    onInput={(e) => setBodyHtml((e.target as HTMLDivElement).innerHTML)}
+                    className="bg-white px-6 pt-5 pb-1 text-[15px] leading-relaxed text-[#1c1917] outline-none min-h-[220px] [&_a]:text-primary [&_a]:underline"
                   />
-                ) : (
-                  <div className="bg-white px-5 pb-3 text-[11px] text-muted-foreground italic">
-                    No signature set. Add one in Settings → Email signature.
-                  </div>
-                )}
-                <div className="bg-white px-5 py-3 border-t border-border text-[11px] text-muted-foreground">
-                  {eventName} · {eventDate}
-                  {venue ? ` · ${venue}` : ""}
+                  {signatureHtml ? (
+                    <div
+                      className="bg-white px-6 pb-4 mt-3 pt-3 text-[15px] leading-relaxed text-[#1c1917] border-t border-dashed border-border [&_a]:text-primary [&_a]:underline"
+                      dangerouslySetInnerHTML={{ __html: signatureHtml }}
+                      title="Signature (edit in Settings)"
+                    />
+                  ) : (
+                    <div className="bg-white px-6 pb-3 text-[11px] text-muted-foreground italic">
+                      No signature set. Add one in Settings → Email signature.
+                    </div>
+                  )}
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        brandedInfoCardHtml({ eventName, eventDate, venue }) +
+                        brandedCtaHtml(activeCta, activeKind) +
+                        brandedFooterHtml({ eventName, eventDate, venue }),
+                    }}
+                  />
                 </div>
               </div>
+
 
               {/* 10. Placeholder chips */}
               <div className="pt-1">
@@ -901,14 +977,15 @@ function PreviewPane({
           </div>
         )}
         <div className="rounded-xl border-2 border-border overflow-hidden">
-          <div className="bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold">
-            {subject}
+          <div className="bg-muted px-4 py-2.5 text-xs font-semibold text-foreground">
+            Subject: {subject}
           </div>
           <div
-            className="bg-white px-5 py-4 text-[13px] whitespace-pre-wrap font-sans text-foreground leading-relaxed [&_a]:text-primary [&_a]:underline"
+            className="text-[13px] font-sans [&_a]:underline"
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
           />
         </div>
+
         <details className="mt-2 text-[11px] text-muted-foreground">
           <summary className="cursor-pointer">Plain-text fallback</summary>
           <pre className="mt-1 whitespace-pre-wrap font-sans">{bodyPlain}</pre>

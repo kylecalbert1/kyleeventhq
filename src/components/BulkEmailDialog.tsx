@@ -28,9 +28,12 @@ import { RichTextEmailEditor } from "@/components/RichTextEmailEditor";
 import { toEmailHtml } from "@/lib/email-format";
 import { logEmailSend, type TemplateType } from "@/lib/email-sends.functions";
 import { listUnsubscribes } from "@/lib/unsubscribe.functions";
-import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery, eventQuery } from "@/lib/queries";
+import { emailTemplatesQuery, userSettingsQuery, eventTitoLinksQuery, eventQuery, brandingQuery, confirmAttendanceLinksQuery } from "@/lib/queries";
 import { EmailTemplateManagerDialog } from "@/components/EmailTemplateManagerDialog";
+import { brandingLogoSrc } from "@/lib/branding.functions";
+import { renderBrandedEmail, type TemplateKind } from "@/lib/branded-email";
 import { toast } from "sonner";
+
 
 // Sentinel for the "start from a blank slate" option, since real template
 // IDs are UUIDs and won't collide with this value.
@@ -216,6 +219,44 @@ export function BulkEmailDialog({
   const salesContactEmail = evQ.data?.sales_contact_email ?? "";
   const salesContactBookingLink = evQ.data?.sales_contact_booking_link ?? "";
 
+  // Shared branding: per-event logo override, else the business line logo.
+  const brandingQ = useQuery(brandingQuery);
+  const lineLogo =
+    brandingQ.data?.lines.find((l) => l.business_line === evQ.data?.business_line)?.logo_url ?? null;
+  const logoUrl = brandingLogoSrc(
+    brandingQ.data?.publicBaseUrl ?? "",
+    (evQ.data as { logo_url?: string | null } | undefined)?.logo_url || lineLogo,
+  );
+
+  // Per-speaker signed confirm-your-speaking-date links.
+  const confirmLinksQ = useQuery({
+    ...confirmAttendanceLinksQuery(eventId ?? ""),
+    enabled: !!eventId,
+  });
+
+  const activeTemplate = templates.find((x) => x.id === templateId);
+  const activeKind: TemplateKind = activeTemplate?.kind ?? null;
+  const activeCta =
+    activeTemplate?.cta_label && activeTemplate?.cta_url
+      ? { label: activeTemplate.cta_label, url: activeTemplate.cta_url }
+      : null;
+
+  /** Wrap an edited/rendered body in the one shared branded email template. */
+  function wrapBranded(bodyHtml: string, cta = activeCta): string {
+    return renderBrandedEmail({
+      eventName,
+      eventDate,
+      venue,
+      logoUrl,
+      bodyHtml,
+      signatureHtml,
+      kind: activeKind,
+      cta,
+    });
+  }
+
+
+
   const rows = useMemo(() => {
     return speakers.map((s) => {
       const firstName = firstNameOf(s.name, s.email);
@@ -236,6 +277,7 @@ export function BulkEmailDialog({
         sales_contact_name: salesContactName,
         sales_contact_email: salesContactEmail,
         sales_contact_booking_link: salesContactBookingLink,
+        confirm_attendance_link: confirmLinksQ.data?.byId[s.id] ?? "",
       };
       const override = perRecipientDrafts?.[s.id];
       return {
@@ -243,10 +285,17 @@ export function BulkEmailDialog({
         firstName,
         rSubject: override?.subject ?? renderTemplate(subject, vars),
         rBody: override?.body ?? renderTemplate(body, vars),
+        rCta: activeCta
+          ? {
+              label: renderTemplate(activeCta.label, vars),
+              url: renderTemplate(activeCta.url, vars),
+            }
+          : null,
         hasCustomDraft: !!override,
       };
     });
-  }, [speakers, subject, body, perRecipientDrafts, speakerPassLink, guestPassLink, eventName, eventDate, venue, salesContactName, salesContactEmail, salesContactBookingLink]);
+  }, [speakers, subject, body, perRecipientDrafts, speakerPassLink, guestPassLink, eventName, eventDate, venue, salesContactName, salesContactEmail, salesContactBookingLink, confirmLinksQ.data, activeCta]);
+
 
   const missingEmail = rows.filter((r) => !r.email).length;
   const unsubscribedCount = rows.filter((r) => isUnsubscribed(r.email)).length;
@@ -275,14 +324,11 @@ export function BulkEmailDialog({
     setStatus((s) => ({ ...s, [r.id]: "sending" }));
     try {
       // Every outbound message goes as HTML with `\n` → `<br/>` and any
-      // stray `**bold**` promoted to real `<strong>` tags, plus the user's
-      // saved signature. Without this, Gmail collapses the whole body to a
-      // single paragraph and shows literal asterisks.
+      // stray `**bold**` promoted to real `<strong>` tags, then through the one
+      // shared branded wrapper (header, info card, CTA, footer + signature) so
+      // the sent email matches the preview exactly.
       const rawBody = override?.body ?? r.rBody;
-      const bodyHtml = toEmailHtml(rawBody);
-      const withSig = signatureHtml
-        ? `${bodyHtml}<br/><br/>${signatureHtml}`
-        : bodyHtml;
+      const withSig = wrapBranded(toEmailHtml(rawBody), r.rCta);
       const finalSubject = override?.subject ?? r.rSubject;
       await send({
         data: {
@@ -293,6 +339,7 @@ export function BulkEmailDialog({
           allowUnsubscribe: true,
         },
       });
+
       setStatus((s) => ({ ...s, [r.id]: "sent" }));
       if (logIndividually) {
         // Single-recipient sends must land in email_sends too, otherwise
@@ -684,6 +731,13 @@ export function BulkEmailDialog({
         open={!!confirmOne}
         onOpenChange={(o) => !o && setConfirmOne(null)}
         draft={confirmOne}
+        renderPreview={(html) =>
+          wrapBranded(
+            toEmailHtml(html),
+            rows.find((x) => x.id === confirmOne?.id)?.rCta ?? null,
+          )
+        }
+
         onConfirm={async ({ subject: subj, body: bd }) => {
           if (!confirmOne) return;
           const row = rows.find((x) => x.id === confirmOne.id);
