@@ -465,6 +465,13 @@ export function SendMessageDialog({
   }, [speakerRecipients, pastRecipients, speakers]);
 
   const templates = templatesQ.data ?? [];
+  const activeTemplate = templates.find((t) => t.id === templateId);
+  const activeKind: TemplateKind = activeTemplate?.kind ?? null;
+  const activeCta =
+    activeTemplate?.cta_label && activeTemplate?.cta_url
+      ? { label: activeTemplate.cta_label, url: activeTemplate.cta_url }
+      : null;
+
   useEffect(() => {
     if (!templateId && templates.length) {
       const seedByGroup: Partial<Record<GroupKey, string>> = {
