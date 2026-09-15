@@ -277,6 +277,7 @@ export function BulkEmailDialog({
         sales_contact_name: salesContactName,
         sales_contact_email: salesContactEmail,
         sales_contact_booking_link: salesContactBookingLink,
+        confirm_attendance_link: confirmLinksQ.data?.byId[s.id] ?? "",
       };
       const override = perRecipientDrafts?.[s.id];
       return {
@@ -284,10 +285,17 @@ export function BulkEmailDialog({
         firstName,
         rSubject: override?.subject ?? renderTemplate(subject, vars),
         rBody: override?.body ?? renderTemplate(body, vars),
+        rCta: activeCta
+          ? {
+              label: renderTemplate(activeCta.label, vars),
+              url: renderTemplate(activeCta.url, vars),
+            }
+          : null,
         hasCustomDraft: !!override,
       };
     });
-  }, [speakers, subject, body, perRecipientDrafts, speakerPassLink, guestPassLink, eventName, eventDate, venue, salesContactName, salesContactEmail, salesContactBookingLink]);
+  }, [speakers, subject, body, perRecipientDrafts, speakerPassLink, guestPassLink, eventName, eventDate, venue, salesContactName, salesContactEmail, salesContactBookingLink, confirmLinksQ.data, activeCta]);
+
 
   const missingEmail = rows.filter((r) => !r.email).length;
   const unsubscribedCount = rows.filter((r) => isUnsubscribed(r.email)).length;
