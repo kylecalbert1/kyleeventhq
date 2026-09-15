@@ -137,7 +137,18 @@ export function ConfirmSendEmailDialog({
               minRows={10}
             />
           </div>
+
+          {renderPreview && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Preview (exactly what the recipient gets)</Label>
+              <div
+                className="rounded-md border border-border overflow-hidden text-[13px] [&_a]:underline"
+                dangerouslySetInnerHTML={{ __html: renderPreview(body) }}
+              />
+            </div>
+          )}
         </div>
+
 
         <DialogFooter>
           <Button
