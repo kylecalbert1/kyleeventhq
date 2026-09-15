@@ -203,6 +203,8 @@ export function EventFormDialog({
         dietary_url: form.dietary_url.trim() || null,
         room_block_url: form.room_block_url.trim() || null,
         room_block_notes: form.room_block_notes.trim() || null,
+        logo_url: form.logo_url || null,
+
       };
       if (event) return update({ data: { id: event.id, patch: payload } });
       return create({ data: payload });
