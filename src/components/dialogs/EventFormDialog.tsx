@@ -62,6 +62,8 @@ type EventRow = {
   dietary_url?: string | null;
   room_block_url?: string | null;
   room_block_notes?: string | null;
+  logo_url?: string | null;
+
   sales_contact_name?: string | null;
   sales_contact_email?: string | null;
   sales_contact_booking_link?: string | null;
@@ -102,6 +104,8 @@ const initial = {
   dietary_url: "",
   room_block_url: "",
   room_block_notes: "",
+  logo_url: null as string | null,
+
 };
 
 export function EventFormDialog({
