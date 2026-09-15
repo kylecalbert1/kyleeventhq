@@ -162,6 +162,8 @@ export function EventFormDialog({
         dietary_url: event.dietary_url ?? "",
         room_block_url: event.room_block_url ?? "",
         room_block_notes: event.room_block_notes ?? "",
+        logo_url: event.logo_url ?? null,
+
       });
     } else {
       setForm(initial);
