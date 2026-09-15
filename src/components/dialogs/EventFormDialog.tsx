@@ -287,6 +287,16 @@ export function EventFormDialog({
               </SelectContent>
             </Select>
           </Field>
+          <div className="col-span-2">
+            <LogoUploadField
+              label="Email logo (optional override)"
+              value={form.logo_url}
+              folder={event?.id ?? "events"}
+              onChange={(p) => setForm({ ...form, logo_url: p })}
+              help="Leave empty to use the business line logo in branded emails."
+            />
+          </div>
+
           <Field label="Event date">
             <Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
           </Field>
