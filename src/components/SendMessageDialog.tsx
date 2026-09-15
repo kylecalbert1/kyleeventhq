@@ -348,6 +348,17 @@ export function SendMessageDialog({
   const guestPassLink = titoLinksQ.data?.guest_pass_link ?? "";
   const signatureHtml = settingsQ.data?.email_signature_html ?? "";
 
+  // Branding: per-event logo override wins, otherwise the business line logo.
+  const brandingBase = brandingQ.data?.publicBaseUrl ?? "";
+  const lineLogo =
+    brandingQ.data?.lines.find((l) => l.business_line === evQ.data?.business_line)?.logo_url ?? null;
+  const logoUrl = brandingLogoSrc(
+    brandingBase,
+    (evQ.data as { logo_url?: string | null } | undefined)?.logo_url || lineLogo,
+  );
+  const confirmLinks = confirmLinksQ.data;
+
+
   const speakerRecipients = useMemo<Recipient[]>(() => {
     return speakers
       .filter((s) => !!s.email)
