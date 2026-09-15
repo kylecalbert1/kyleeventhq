@@ -731,6 +731,13 @@ export function BulkEmailDialog({
         open={!!confirmOne}
         onOpenChange={(o) => !o && setConfirmOne(null)}
         draft={confirmOne}
+        renderPreview={(html) =>
+          wrapBranded(
+            toEmailHtml(html),
+            rows.find((x) => x.id === confirmOne?.id)?.rCta ?? null,
+          )
+        }
+
         onConfirm={async ({ subject: subj, body: bd }) => {
           if (!confirmOne) return;
           const row = rows.find((x) => x.id === confirmOne.id);
