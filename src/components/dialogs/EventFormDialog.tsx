@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { createEvent, updateEvent, deleteEvent } from "@/lib/events.functions";
 import { BUSINESS_LINES, EVENT_FORMATS, WEBSITE_STAGES, SELF_STATUSES, labels } from "@/lib/status";
 import { qk, titoEventsPickerQuery } from "@/lib/queries";
+import { LogoUploadField } from "@/components/LogoUploadField";
+
 
 function parseAsanaGid(input: string): string | null {
   const v = input.trim();

@@ -250,8 +250,10 @@ function SettingsPage() {
         </div>
       </Card>
 
+      <BrandingCard />
       <SignatureCard />
       <UnsubscribesCard />
+
     </div>
   );
 }
