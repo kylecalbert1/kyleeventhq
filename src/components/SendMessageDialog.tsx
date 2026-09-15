@@ -585,7 +585,7 @@ export function SendMessageDialog({
               event_id: eventId,
               template_type: tpl?.slug ?? "custom",
               subject,
-              body: htmlToPlain(fullHtml),
+              body: htmlToPlain(signatureHtml ? `${bodyHtml}<br><br>${signatureHtml}` : bodyHtml),
               recipients: successful.map((r) => ({
                 speaker_id: r.speaker_id,
                 email: r.email,
