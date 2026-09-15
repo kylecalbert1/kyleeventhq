@@ -25,8 +25,11 @@ import {
   runAsanaNightlyNow,
   testAsanaConnection,
 } from "@/lib/sync-health.functions";
-import { userSettingsQuery } from "@/lib/queries";
+import { userSettingsQuery, brandingQuery } from "@/lib/queries";
 import { updateUserSettings } from "@/lib/user-settings.functions";
+import { setBusinessLineLogo } from "@/lib/branding.functions";
+import { LogoUploadField } from "@/components/LogoUploadField";
+
 import {
   listUnsubscribes,
   addUnsubscribe,
