@@ -59,8 +59,8 @@
 
 :root {
   --radius: 0.75rem; /* 12px */
-  /* Warm off-white page background (rgb(249,248,245) = ~oklch(0.976 0.005 90)) */
-  --background: oklch(0.976 0.005 90);
+  /* Pure white page background */
+  --background: oklch(1 0 0);
   /* Near-black ink (rgb(17,24,23)) */
   --foreground: oklch(0.205 0.006 180);
   --card: oklch(1 0 0);
