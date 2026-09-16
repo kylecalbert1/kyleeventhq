@@ -11,9 +11,12 @@ import {
   Eye,
   ArrowLeft,
   ChevronDown,
+  ChevronRight,
   Mail,
   Sparkles,
+  Users,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import {
   Dialog,
@@ -299,6 +302,9 @@ export function SendMessageDialog({
   const [aiOpen, setAiOpen] = useState(false);
 
 
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [excludedEmails, setExcludedEmails] = useState<Set<string>>(new Set());
+
   const [previewing, setPreviewing] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendProgress, setSendProgress] = useState<{ done: number; total: number } | null>(null);
@@ -317,6 +323,8 @@ export function SendMessageDialog({
       setPreviewing(false);
       setSendError(null);
       setSendProgress(null);
+      setReviewOpen(false);
+      setExcludedEmails(new Set());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -448,6 +456,26 @@ export function SendMessageDialog({
     return audienceRecipients.filter((r) => (r.release_title ?? "") === passFilter);
   }, [audienceRecipients, passFilter]);
 
+  // Clear any manual exclusions whenever the audience definition changes, so
+  // stale unticks never silently carry over to a new recipient list.
+  useEffect(() => {
+    setExcludedEmails(new Set());
+  }, [audienceMode, group, passFilter, pasteText]);
+
+  const recipientsToSend = useMemo(
+    () => filteredRecipients.filter((r) => !excludedEmails.has(r.email)),
+    [filteredRecipients, excludedEmails],
+  );
+
+  function toggleExcluded(email: string, checked: boolean) {
+    setExcludedEmails((prev) => {
+      const next = new Set(prev);
+      if (checked) next.delete(email);
+      else next.add(email);
+      return next;
+    });
+  }
+
   const groupCounts = useMemo(() => {
     const map: Record<GroupKey, number> = {
       prospective: 0,
@@ -545,7 +573,7 @@ export function SendMessageDialog({
     setBodyHtml(bodyRef.current?.innerHTML ?? "");
   }
 
-  const total = filteredRecipients.length;
+  const total = recipientsToSend.length;
   const zeroWarn = total === 0;
 
   async function handleSend() {
@@ -556,8 +584,8 @@ export function SendMessageDialog({
     const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink, confirmLinks };
     const successful: Array<{ email: string; name: string; speaker_id: string | null }> = [];
     try {
-      for (let i = 0; i < filteredRecipients.length; i++) {
-        const r = filteredRecipients[i];
+      for (let i = 0; i < recipientsToSend.length; i++) {
+        const r = recipientsToSend[i];
         const s = resolvePlaceholders(subject, r, ctx);
         // Same wrapper the preview renders, so what Kyle saw is what goes out.
         const b = resolvePlaceholders(
@@ -626,7 +654,7 @@ export function SendMessageDialog({
     }
   }
 
-  const firstR = filteredRecipients[0];
+  const firstR = recipientsToSend[0];
   const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink, confirmLinks };
   const previewSubject = firstR ? resolvePlaceholders(subject, firstR, ctx) : subject;
   const previewFullHtml = renderBrandedEmail({
@@ -675,7 +703,7 @@ export function SendMessageDialog({
             bodyHtml={previewBodyHtml}
             bodyPlain={previewBodyPlain}
             firstRecipient={firstR}
-            recipients={filteredRecipients}
+            recipients={recipientsToSend}
           />
         ) : (
           <div className="px-6 py-5 space-y-5">
@@ -687,6 +715,63 @@ export function SendMessageDialog({
               <div className="rounded-xl bg-[oklch(0.975_0.055_95)] border-2 border-[oklch(0.86_0.10_85)] px-3 py-2 text-xs font-medium text-[oklch(0.42_0.14_75)]">
                 Current filters match 0 recipients. Adjust the audience above.
               </div>
+            )}
+
+            {/* 3b. Reviewable recipient checklist — collapsed by default */}
+            {filteredRecipients.length > 0 && (
+              <section className="surface-card px-5 py-3">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 text-left"
+                  onClick={() => setReviewOpen((v) => !v)}
+                >
+                  {reviewOpen ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    View who ({total})
+                  </span>
+                  {excludedEmails.size > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      — {excludedEmails.size} excluded
+                    </span>
+                  )}
+                </button>
+                {reviewOpen && (
+                  <div className="mt-3 max-h-56 space-y-1 overflow-y-auto pr-1">
+                    <p className="text-xs text-muted-foreground">
+                      Untick anyone to exclude them before sending.
+                    </p>
+                    {filteredRecipients.map((r) => {
+                      const checked = !excludedEmails.has(r.email);
+                      return (
+                        <label
+                          key={r.email}
+                          className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-muted/50"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => toggleExcluded(r.email, v === true)}
+                          />
+                          <span className="min-w-0 flex-1 truncate text-sm">
+                            {r.name ? (
+                              <>
+                                <span className="font-medium">{r.name}</span>{" "}
+                                <span className="text-muted-foreground">&lt;{r.email}&gt;</span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">{r.email}</span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
             )}
 
             {/* 4. Audience toggle */}
