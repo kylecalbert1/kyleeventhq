@@ -306,6 +306,11 @@ export function SendMessageDialog({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [excludedEmails, setExcludedEmails] = useState<Set<string>>(new Set());
 
+  const CC_LAST_KEY = "sendMessageDialog:lastCc";
+  const draftKey = `sendMessageDialog:draft:${eventId}`;
+  const restoringDraftRef = useRef(false);
+  const draftRestoredRef = useRef(false);
+
   const [previewing, setPreviewing] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendProgress, setSendProgress] = useState<{ done: number; total: number } | null>(null);
@@ -316,19 +321,96 @@ export function SendMessageDialog({
   const qc = useQueryClient();
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    setPreviewing(false);
+    setSendError(null);
+    setSendProgress(null);
+    setReviewOpen(false);
+    let restored = false;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (raw) {
+        const d = JSON.parse(raw) as Record<string, unknown> | null;
+        if (d && typeof d === "object") {
+          restored = true;
+          restoringDraftRef.current = true;
+          draftRestoredRef.current = true;
+          if (typeof d.subject === "string") setSubject(d.subject);
+          if (typeof d.bodyHtml === "string") {
+            setBodyHtml(d.bodyHtml);
+            if (bodyRef.current) bodyRef.current.innerHTML = d.bodyHtml;
+          }
+          setCc(typeof d.cc === "string" ? d.cc : (localStorage.getItem(CC_LAST_KEY) ?? ""));
+          if (d.audienceMode === "group" || d.audienceMode === "paste") setAudienceMode(d.audienceMode);
+          if (typeof d.group === "string") setGroup(d.group as GroupKey);
+          if (typeof d.passFilter === "string") setPassFilter(d.passFilter);
+          if (typeof d.pasteText === "string") setPasteText(d.pasteText);
+          if (Array.isArray(d.excludedEmails)) {
+            setExcludedEmails(
+              new Set(d.excludedEmails.filter((x): x is string => typeof x === "string")),
+            );
+          }
+          if (typeof d.templateId === "string") setTemplateId(d.templateId);
+        }
+      }
+    } catch {
+      // Corrupt draft — fall through to defaults.
+    }
+    if (!restored) {
+      draftRestoredRef.current = false;
+      setCc(localStorage.getItem(CC_LAST_KEY) ?? "");
       setAudienceMode(seedRecipientEmails && seedRecipientEmails.length ? "paste" : "group");
       setPasteText(seedRecipientEmails?.length ? seedRecipientEmails.join(", ") : "");
       setGroup(seedGroup ?? "current_confirmed");
       setPassFilter("__all");
-      setPreviewing(false);
-      setSendError(null);
-      setSendProgress(null);
-      setReviewOpen(false);
       setExcludedEmails(new Set());
     }
+    // Let the exclusion-clearing effect skip one cycle while the draft restores.
+    setTimeout(() => {
+      restoringDraftRef.current = false;
+    }, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Autosave the in-progress draft (debounced) so closing without cancelling
+  // or sending keeps the work for the next open of this event's dialog.
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          draftKey,
+          JSON.stringify({
+            subject,
+            bodyHtml,
+            cc,
+            audienceMode,
+            group,
+            passFilter,
+            pasteText,
+            excludedEmails: Array.from(excludedEmails),
+            templateId,
+          }),
+        );
+      } catch {
+        // Storage unavailable — autosave is best-effort.
+      }
+    }, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    open,
+    draftKey,
+    subject,
+    bodyHtml,
+    cc,
+    audienceMode,
+    group,
+    passFilter,
+    pasteText,
+    excludedEmails,
+    templateId,
+  ]);
 
   // Restore editable body innerHTML when returning from Preview (the div unmounts
   // during preview, so React state is our source of truth), and when a template
@@ -460,6 +542,7 @@ export function SendMessageDialog({
   // Clear any manual exclusions whenever the audience definition changes, so
   // stale unticks never silently carry over to a new recipient list.
   useEffect(() => {
+    if (restoringDraftRef.current) return;
     setExcludedEmails(new Set());
   }, [audienceMode, group, passFilter, pasteText]);
 
@@ -502,6 +585,7 @@ export function SendMessageDialog({
       : null;
 
   useEffect(() => {
+    if (draftRestoredRef.current) return;
     if (!templateId && templates.length) {
       const seedByGroup: Partial<Record<GroupKey, string>> = {
         prospective: "future_event_invite",
