@@ -573,7 +573,7 @@ export function SendMessageDialog({
     setBodyHtml(bodyRef.current?.innerHTML ?? "");
   }
 
-  const total = filteredRecipients.length;
+  const total = recipientsToSend.length;
   const zeroWarn = total === 0;
 
   async function handleSend() {
@@ -584,8 +584,8 @@ export function SendMessageDialog({
     const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink, confirmLinks };
     const successful: Array<{ email: string; name: string; speaker_id: string | null }> = [];
     try {
-      for (let i = 0; i < filteredRecipients.length; i++) {
-        const r = filteredRecipients[i];
+      for (let i = 0; i < recipientsToSend.length; i++) {
+        const r = recipientsToSend[i];
         const s = resolvePlaceholders(subject, r, ctx);
         // Same wrapper the preview renders, so what Kyle saw is what goes out.
         const b = resolvePlaceholders(
