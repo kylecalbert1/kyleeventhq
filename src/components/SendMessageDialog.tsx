@@ -11,9 +11,12 @@ import {
   Eye,
   ArrowLeft,
   ChevronDown,
+  ChevronRight,
   Mail,
   Sparkles,
+  Users,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import {
   Dialog,
