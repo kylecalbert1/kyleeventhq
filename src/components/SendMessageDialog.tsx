@@ -654,7 +654,7 @@ export function SendMessageDialog({
     }
   }
 
-  const firstR = filteredRecipients[0];
+  const firstR = recipientsToSend[0];
   const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink, confirmLinks };
   const previewSubject = firstR ? resolvePlaceholders(subject, firstR, ctx) : subject;
   const previewFullHtml = renderBrandedEmail({
