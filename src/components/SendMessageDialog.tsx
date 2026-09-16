@@ -703,7 +703,7 @@ export function SendMessageDialog({
             bodyHtml={previewBodyHtml}
             bodyPlain={previewBodyPlain}
             firstRecipient={firstR}
-            recipients={filteredRecipients}
+            recipients={recipientsToSend}
           />
         ) : (
           <div className="px-6 py-5 space-y-5">
