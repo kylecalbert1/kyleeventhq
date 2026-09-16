@@ -456,6 +456,26 @@ export function SendMessageDialog({
     return audienceRecipients.filter((r) => (r.release_title ?? "") === passFilter);
   }, [audienceRecipients, passFilter]);
 
+  // Clear any manual exclusions whenever the audience definition changes, so
+  // stale unticks never silently carry over to a new recipient list.
+  useEffect(() => {
+    setExcludedEmails(new Set());
+  }, [audienceMode, group, passFilter, pasteText]);
+
+  const recipientsToSend = useMemo(
+    () => filteredRecipients.filter((r) => !excludedEmails.has(r.email)),
+    [filteredRecipients, excludedEmails],
+  );
+
+  function toggleExcluded(email: string, checked: boolean) {
+    setExcludedEmails((prev) => {
+      const next = new Set(prev);
+      if (checked) next.delete(email);
+      else next.add(email);
+      return next;
+    });
+  }
+
   const groupCounts = useMemo(() => {
     const map: Record<GroupKey, number> = {
       prospective: 0,
