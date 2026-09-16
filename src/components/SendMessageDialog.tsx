@@ -666,6 +666,11 @@ export function SendMessageDialog({
     setSending(true);
     setSendError(null);
     setSendProgress({ done: 0, total });
+    const ccTrim = cc
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join(", ");
     const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink, confirmLinks };
     const successful: Array<{ email: string; name: string; speaker_id: string | null }> = [];
     try {
@@ -688,7 +693,15 @@ export function SendMessageDialog({
           ctx,
         );
         try {
-          await sendEmail({ data: { to: r.email, subject: s, body: b, isHtml: true } });
+          await sendEmail({
+            data: {
+              to: r.email,
+              subject: s,
+              body: b,
+              isHtml: true,
+              ...(ccTrim ? { cc: ccTrim } : {}),
+            },
+          });
           successful.push({ email: r.email, name: r.name, speaker_id: r.speaker_id });
 
         } catch (err: any) {
@@ -698,6 +711,12 @@ export function SendMessageDialog({
         setSendProgress({ done: i + 1, total });
       }
       if (successful.length) {
+        // Successful send — discard the autosaved draft for this event.
+        try {
+          localStorage.removeItem(draftKey);
+        } catch {
+          // ignore
+        }
         const tpl = templates.find((t) => t.id === templateId);
         try {
           await logSend({
@@ -972,6 +991,25 @@ export function SendMessageDialog({
                 onChange={(e) => setSubject(e.target.value)}
                 className="text-[13px] h-11 rounded-xl border-2 font-medium"
               />
+              <div className="space-y-1 pt-1">
+                <Label className="text-[11px] font-medium text-muted-foreground">
+                  CC (optional)
+                </Label>
+                <Input
+                  value={cc}
+                  onChange={(e) => {
+                    setCc(e.target.value);
+                    try {
+                      localStorage.setItem(CC_LAST_KEY, e.target.value);
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                  placeholder="cc@company.com, another@company.com"
+                  className="text-[13px] h-10 rounded-xl border-2 font-normal"
+                />
+                <HelpText>Saved for next time. Separate multiple addresses with commas.</HelpText>
+              </div>
               <HelpText>Placeholders like {"{{first_name}}"} resolve per recipient.</HelpText>
             </section>
 
@@ -1076,7 +1114,19 @@ export function SendMessageDialog({
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Cancelling intentionally discards the autosaved draft.
+                  try {
+                    localStorage.removeItem(draftKey);
+                  } catch {
+                    // ignore
+                  }
+                  onOpenChange(false);
+                }}
+                disabled={sending}
+              >
                 Cancel
               </Button>
               <Button size="lg" className="rounded-xl font-semibold" onClick={() => setPreviewing(true)} disabled={total === 0}>
