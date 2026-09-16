@@ -1553,6 +1553,57 @@ export async function syncSingleEventBySlug(
     page = Number(next);
   }
 
+  // 4) Auto-link speakers to their Tito registration by exact email match.
+  // Only ever touches speakers whose `source` is still null, so it's idempotent
+  // and never overwrites an existing source ('tito_candidate', 'granola', etc.).
+  try {
+    const { data: linkedEvent } = await supabase
+      .from("events")
+      .select("id")
+      .eq("tito_slug", ev.slug)
+      .maybeSingle();
+    if (linkedEvent?.id) {
+      const { data: unlinked } = await supabase
+        .from("speakers")
+        .select("id, email")
+        .eq("event_id", linkedEvent.id as string)
+        .is("source", null)
+        .not("email", "is", null);
+      if (unlinked?.length) {
+        const { data: tickets } = await supabase
+          .from("tito_tickets")
+          .select("id, email, created_at")
+          .eq("event_slug", ev.slug)
+          .eq("state", "complete");
+        if (tickets?.length) {
+          // Latest complete ticket per email (trimmed/lowercased comparison).
+          const byEmail = new Map<string, { id: string; created_at: string | null }>();
+          for (const t of tickets) {
+            const e = (t.email ?? "").trim().toLowerCase();
+            if (!e) continue;
+            const prev = byEmail.get(e);
+            if (!prev || (t.created_at ?? "") > (prev.created_at ?? "")) {
+              byEmail.set(e, { id: t.id as string, created_at: t.created_at ?? null });
+            }
+          }
+          for (const s of unlinked) {
+            const e = (s.email ?? "").trim().toLowerCase();
+            const ticket = e ? byEmail.get(e) : undefined;
+            if (!ticket) continue;
+            await supabase
+              .from("speakers")
+              .update({ source: "tito", source_ticket_id: ticket.id })
+              .eq("id", (s as { id: string }).id)
+              .is("source", null);
+          }
+        }
+      }
+    }
+  } catch (linkErr) {
+    // Auto-linking must never break the ticket/release sync itself.
+    console.error("tito speaker auto-link failed:", linkErr);
+  }
+
   return { ok: true, event_slug: ev.slug, releases: releases.length, new: newCount, updated: updatedCount };
 }
 
