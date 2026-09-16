@@ -76,7 +76,7 @@ export function AiComposeDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
-            Describe a message
+            Describe a Tito message
           </DialogTitle>
           <DialogDescription>
             Say what you want to send, then refine it with follow-up instructions until it reads

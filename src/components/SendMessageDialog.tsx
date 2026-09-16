@@ -815,8 +815,9 @@ export function SendMessageDialog({
                     className="h-7 text-[11px]"
                     onClick={() => setAiOpen(true)}
                   >
+                    <Mail className="mr-1 h-3 w-3" />
                     <Sparkles className="mr-1 h-3 w-3" />
-                    Describe a message
+                    Describe an email
                   </Button>
                 }
               >

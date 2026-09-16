@@ -112,7 +112,7 @@ export function EventMessagesPanel({
           </Button>
           <Button size="sm" variant="outline" onClick={() => setAiOpen(true)}>
             <Sparkles className="mr-1.5 h-4 w-4" />
-            Describe a message
+            Describe a Tito message
           </Button>
           <Button size="sm" onClick={() => setPicking(true)}>
             <Send className="mr-1.5 h-4 w-4" />

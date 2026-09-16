@@ -97,10 +97,10 @@ export function AiComposeEmailDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
-            Describe a message
+            Describe an email
           </DialogTitle>
           <DialogDescription>
-            Say what you want to send. The draft stays templated with {"{{placeholders}}"} so it
+            Say what you want to send as an email. The draft stays templated with {"{{placeholders}}"} so it
             works for the whole audience, and you can edit it before previewing.
           </DialogDescription>
         </DialogHeader>
