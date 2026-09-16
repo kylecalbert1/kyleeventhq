@@ -295,6 +295,7 @@ export function SendMessageDialog({
 
   const [templateId, setTemplateId] = useState<string>("");
   const [subject, setSubject] = useState("");
+  const [cc, setCc] = useState("");
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const [bodyHtml, setBodyHtml] = useState<string>("");
   const [originalSubject, setOriginalSubject] = useState<string>("");
