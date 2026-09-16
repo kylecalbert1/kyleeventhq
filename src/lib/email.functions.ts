@@ -34,6 +34,7 @@ function chunk76(b64: string) {
 
 function buildRawEmail(opts: {
   to: string;
+  cc?: string;
   subject: string;
   body: string;
   isHtml?: boolean;
@@ -50,6 +51,7 @@ function buildRawEmail(opts: {
   const encodedBody = chunk76(Buffer.from(content, "utf-8").toString("base64"));
   const lines = [
     `To: ${opts.to}`,
+    ...(opts.cc ? [`Cc: ${opts.cc}`] : []),
     `Subject: =?UTF-8?B?${Buffer.from(opts.subject, "utf-8").toString("base64")}?=`,
     "MIME-Version: 1.0",
     ...(opts.listUnsubscribeUrl
@@ -83,6 +85,8 @@ export const sendGmailEmail = createServerFn({ method: "POST" })
         to: z.string().email(),
         subject: z.string().min(1),
         body: z.string().min(1),
+        /** Optional comma-separated CC addresses. */
+        cc: z.string().optional(),
         isHtml: z.boolean().optional(),
         /** Bulk/marketing send: append an unsubscribe footer + one-click header. */
         allowUnsubscribe: z.boolean().optional(),
@@ -126,6 +130,7 @@ export const sendGmailEmail = createServerFn({ method: "POST" })
     }
     const raw = buildRawEmail({
       to: data.to,
+      cc: data.cc,
       subject: data.subject,
       body,
       isHtml,

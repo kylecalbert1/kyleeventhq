@@ -295,6 +295,7 @@ export function SendMessageDialog({
 
   const [templateId, setTemplateId] = useState<string>("");
   const [subject, setSubject] = useState("");
+  const [cc, setCc] = useState("");
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const [bodyHtml, setBodyHtml] = useState<string>("");
   const [originalSubject, setOriginalSubject] = useState<string>("");
@@ -304,6 +305,11 @@ export function SendMessageDialog({
 
   const [reviewOpen, setReviewOpen] = useState(false);
   const [excludedEmails, setExcludedEmails] = useState<Set<string>>(new Set());
+
+  const CC_LAST_KEY = "sendMessageDialog:lastCc";
+  const draftKey = `sendMessageDialog:draft:${eventId}`;
+  const restoringDraftRef = useRef(false);
+  const draftRestoredRef = useRef(false);
 
   const [previewing, setPreviewing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -315,19 +321,96 @@ export function SendMessageDialog({
   const qc = useQueryClient();
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    setPreviewing(false);
+    setSendError(null);
+    setSendProgress(null);
+    setReviewOpen(false);
+    let restored = false;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (raw) {
+        const d = JSON.parse(raw) as Record<string, unknown> | null;
+        if (d && typeof d === "object") {
+          restored = true;
+          restoringDraftRef.current = true;
+          draftRestoredRef.current = true;
+          if (typeof d.subject === "string") setSubject(d.subject);
+          if (typeof d.bodyHtml === "string") {
+            setBodyHtml(d.bodyHtml);
+            if (bodyRef.current) bodyRef.current.innerHTML = d.bodyHtml;
+          }
+          setCc(typeof d.cc === "string" ? d.cc : (localStorage.getItem(CC_LAST_KEY) ?? ""));
+          if (d.audienceMode === "group" || d.audienceMode === "paste") setAudienceMode(d.audienceMode);
+          if (typeof d.group === "string") setGroup(d.group as GroupKey);
+          if (typeof d.passFilter === "string") setPassFilter(d.passFilter);
+          if (typeof d.pasteText === "string") setPasteText(d.pasteText);
+          if (Array.isArray(d.excludedEmails)) {
+            setExcludedEmails(
+              new Set(d.excludedEmails.filter((x): x is string => typeof x === "string")),
+            );
+          }
+          if (typeof d.templateId === "string") setTemplateId(d.templateId);
+        }
+      }
+    } catch {
+      // Corrupt draft — fall through to defaults.
+    }
+    if (!restored) {
+      draftRestoredRef.current = false;
+      setCc(localStorage.getItem(CC_LAST_KEY) ?? "");
       setAudienceMode(seedRecipientEmails && seedRecipientEmails.length ? "paste" : "group");
       setPasteText(seedRecipientEmails?.length ? seedRecipientEmails.join(", ") : "");
       setGroup(seedGroup ?? "current_confirmed");
       setPassFilter("__all");
-      setPreviewing(false);
-      setSendError(null);
-      setSendProgress(null);
-      setReviewOpen(false);
       setExcludedEmails(new Set());
     }
+    // Let the exclusion-clearing effect skip one cycle while the draft restores.
+    setTimeout(() => {
+      restoringDraftRef.current = false;
+    }, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Autosave the in-progress draft (debounced) so closing without cancelling
+  // or sending keeps the work for the next open of this event's dialog.
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          draftKey,
+          JSON.stringify({
+            subject,
+            bodyHtml,
+            cc,
+            audienceMode,
+            group,
+            passFilter,
+            pasteText,
+            excludedEmails: Array.from(excludedEmails),
+            templateId,
+          }),
+        );
+      } catch {
+        // Storage unavailable — autosave is best-effort.
+      }
+    }, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    open,
+    draftKey,
+    subject,
+    bodyHtml,
+    cc,
+    audienceMode,
+    group,
+    passFilter,
+    pasteText,
+    excludedEmails,
+    templateId,
+  ]);
 
   // Restore editable body innerHTML when returning from Preview (the div unmounts
   // during preview, so React state is our source of truth), and when a template
@@ -459,6 +542,7 @@ export function SendMessageDialog({
   // Clear any manual exclusions whenever the audience definition changes, so
   // stale unticks never silently carry over to a new recipient list.
   useEffect(() => {
+    if (restoringDraftRef.current) return;
     setExcludedEmails(new Set());
   }, [audienceMode, group, passFilter, pasteText]);
 
@@ -501,6 +585,7 @@ export function SendMessageDialog({
       : null;
 
   useEffect(() => {
+    if (draftRestoredRef.current) return;
     if (!templateId && templates.length) {
       const seedByGroup: Partial<Record<GroupKey, string>> = {
         prospective: "future_event_invite",
@@ -581,6 +666,11 @@ export function SendMessageDialog({
     setSending(true);
     setSendError(null);
     setSendProgress({ done: 0, total });
+    const ccTrim = cc
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join(", ");
     const ctx: Ctx = { eventName, eventDate, venue, speakerPassLink, guestPassLink, salesContactName, salesContactEmail, salesContactBookingLink, confirmLinks };
     const successful: Array<{ email: string; name: string; speaker_id: string | null }> = [];
     try {
@@ -603,7 +693,15 @@ export function SendMessageDialog({
           ctx,
         );
         try {
-          await sendEmail({ data: { to: r.email, subject: s, body: b, isHtml: true } });
+          await sendEmail({
+            data: {
+              to: r.email,
+              subject: s,
+              body: b,
+              isHtml: true,
+              ...(ccTrim ? { cc: ccTrim } : {}),
+            },
+          });
           successful.push({ email: r.email, name: r.name, speaker_id: r.speaker_id });
 
         } catch (err: any) {
@@ -613,6 +711,12 @@ export function SendMessageDialog({
         setSendProgress({ done: i + 1, total });
       }
       if (successful.length) {
+        // Successful send — discard the autosaved draft for this event.
+        try {
+          localStorage.removeItem(draftKey);
+        } catch {
+          // ignore
+        }
         const tpl = templates.find((t) => t.id === templateId);
         try {
           await logSend({
@@ -887,6 +991,25 @@ export function SendMessageDialog({
                 onChange={(e) => setSubject(e.target.value)}
                 className="text-[13px] h-11 rounded-xl border-2 font-medium"
               />
+              <div className="space-y-1 pt-1">
+                <Label className="text-[11px] font-medium text-muted-foreground">
+                  CC (optional)
+                </Label>
+                <Input
+                  value={cc}
+                  onChange={(e) => {
+                    setCc(e.target.value);
+                    try {
+                      localStorage.setItem(CC_LAST_KEY, e.target.value);
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                  placeholder="cc@company.com, another@company.com"
+                  className="text-[13px] h-10 rounded-xl border-2 font-normal"
+                />
+                <HelpText>Saved for next time. Separate multiple addresses with commas.</HelpText>
+              </div>
               <HelpText>Placeholders like {"{{first_name}}"} resolve per recipient.</HelpText>
             </section>
 
@@ -991,7 +1114,19 @@ export function SendMessageDialog({
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Cancelling intentionally discards the autosaved draft.
+                  try {
+                    localStorage.removeItem(draftKey);
+                  } catch {
+                    // ignore
+                  }
+                  onOpenChange(false);
+                }}
+                disabled={sending}
+              >
                 Cancel
               </Button>
               <Button size="lg" className="rounded-xl font-semibold" onClick={() => setPreviewing(true)} disabled={total === 0}>
