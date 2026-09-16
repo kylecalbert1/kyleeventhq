@@ -717,6 +717,63 @@ export function SendMessageDialog({
               </div>
             )}
 
+            {/* 3b. Reviewable recipient checklist — collapsed by default */}
+            {filteredRecipients.length > 0 && (
+              <section className="surface-card px-5 py-3">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 text-left"
+                  onClick={() => setReviewOpen((v) => !v)}
+                >
+                  {reviewOpen ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    View who ({total})
+                  </span>
+                  {excludedEmails.size > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      — {excludedEmails.size} excluded
+                    </span>
+                  )}
+                </button>
+                {reviewOpen && (
+                  <div className="mt-3 max-h-56 space-y-1 overflow-y-auto pr-1">
+                    <p className="text-xs text-muted-foreground">
+                      Untick anyone to exclude them before sending.
+                    </p>
+                    {filteredRecipients.map((r) => {
+                      const checked = !excludedEmails.has(r.email);
+                      return (
+                        <label
+                          key={r.email}
+                          className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-muted/50"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => toggleExcluded(r.email, v === true)}
+                          />
+                          <span className="min-w-0 flex-1 truncate text-sm">
+                            {r.name ? (
+                              <>
+                                <span className="font-medium">{r.name}</span>{" "}
+                                <span className="text-muted-foreground">&lt;{r.email}&gt;</span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">{r.email}</span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+
             {/* 4. Audience toggle */}
             <section className="surface-card p-5 space-y-3">
               <FieldLabel>Audience</FieldLabel>
