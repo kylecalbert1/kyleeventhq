@@ -302,6 +302,9 @@ export function SendMessageDialog({
   const [aiOpen, setAiOpen] = useState(false);
 
 
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [excludedEmails, setExcludedEmails] = useState<Set<string>>(new Set());
+
   const [previewing, setPreviewing] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendProgress, setSendProgress] = useState<{ done: number; total: number } | null>(null);
