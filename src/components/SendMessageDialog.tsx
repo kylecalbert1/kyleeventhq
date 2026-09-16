@@ -323,6 +323,8 @@ export function SendMessageDialog({
       setPreviewing(false);
       setSendError(null);
       setSendProgress(null);
+      setReviewOpen(false);
+      setExcludedEmails(new Set());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
