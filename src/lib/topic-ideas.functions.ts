@@ -10,7 +10,10 @@ export type TopicIdeasResult = {
   overlap_note: string | null;
   topics: TopicIdea[];
   generated_at?: string | null;
+  /** Plain-text public material found by the live web search step, null when nothing was found. */
+  research_note?: string | null;
 };
+
 
 const ResultShape = z.object({
   fit: z.enum(["good", "poor"]).catch("good"),
