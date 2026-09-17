@@ -158,6 +158,7 @@ export const generateTopicIdeas = createServerFn({ method: "POST" })
       .object({
         speaker_id: z.string().uuid(),
         series: z.enum(SUMMIT_SERIES).nullable().optional(),
+        event_priorities: z.string().nullable().optional(),
       })
       .parse(d),
   )
@@ -197,6 +198,7 @@ export const generateTopicIdeas = createServerFn({ method: "POST" })
       session_format: speaker.session_format,
       current_session_title: speaker.session_title,
       other_topics: others,
+      event_priorities: data.event_priorities ?? null,
     });
 
     const { error: uErr } = await context.supabase
@@ -227,6 +229,7 @@ export const generateTopicIdeasAdhoc = createServerFn({ method: "POST" })
           .optional(),
         speaker_name: z.string().nullable().optional(),
         other_topics: z.string().nullable().optional(),
+        event_priorities: z.string().nullable().optional(),
       })
       .parse(d),
   )
@@ -257,6 +260,7 @@ export const generateTopicIdeasAdhoc = createServerFn({ method: "POST" })
       speaker_name: data.speaker_name ?? null,
       session_format: data.session_format ?? null,
       other_topics: others,
+      event_priorities: data.event_priorities ?? null,
     });
   });
 
