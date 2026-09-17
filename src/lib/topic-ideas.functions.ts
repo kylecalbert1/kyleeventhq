@@ -57,6 +57,9 @@ HARD RULES
 - Reject vague, tagline-style topics. Every topic must have a concrete mechanism, method, number or genuine point of debate underneath it.
 - Do not force a single-industry-specific detail onto a mixed-industry audience.
 - If a topic is close to one already being pitched to another speaker at this event, say so explicitly in overlap_note, naming the other topic. Never silently duplicate it.
+- Before returning, check the three topics against each other. They must be three genuinely different angles, not one underlying idea dressed in three titles. If two overlap conceptually, merge them and replace the freed slot with a distinct angle.
+- If the event's stated priorities are given, at least one of the three topics must plausibly ladder up to one of those stated themes. Avoiding a clash with individual locked sessions is not enough.
+- Treat material the person has already said publicly and repeatedly (a podcast quote, a recurring talking point across their posts) as weaker and riskier, not stronger. Prefer a genuinely underused angle where one exists: a recent role change, a new company or industry they have not publicly addressed yet, a specific number or project not already widely repeated. If the only strong material is a well worn soundbite, it is fine to use it, but say so plainly in fit_note (for example "her strongest material here is something she has already said publicly on a podcast, worth checking if this room has heard it before").
 - Titles must sell the session to an attendee deciding which room to walk into. Do not just restate the speaker's job title. Avoid confessional or vulnerable framing ("what I got wrong about...") unless the profile clearly calls for it.
 - Match structure to format: keynote and fireside need one strong narrative; panel needs a topic several people could genuinely disagree about; workshop needs something the room can practise; roundtable needs a discussion prompt, not a lecture.
 - If the person's background does not fit the audience or the event's actual subject matter, set fit to "poor" and explain plainly in fit_note instead of inventing forced topics. Return an empty topics array in that case.
@@ -81,6 +84,7 @@ export type TopicIdeasCoreInput = {
   session_format?: string | null;
   current_session_title?: string | null;
   other_topics?: string | null;
+  event_priorities?: string | null;
 };
 
 // Core generation. Takes plain inputs, no database lookup, no persistence.
