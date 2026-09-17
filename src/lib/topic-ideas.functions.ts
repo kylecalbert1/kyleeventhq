@@ -104,6 +104,9 @@ export async function runTopicIdeas(input: TopicIdeasCoreInput): Promise<TopicId
     `name: ${input.event_name?.trim() || "(not given)"}`,
     ...(input.event_context ?? []),
     ``,
+    ...(input.event_priorities?.trim()
+      ? [`EVENT'S STATED PRIORITIES`, input.event_priorities.trim(), ``]
+      : []),
     `SPEAKER`,
     `name: ${input.speaker_name?.trim() || "(not given)"}`,
     `job title: ${input.speaker_title?.trim() || "(not set)"}`,
