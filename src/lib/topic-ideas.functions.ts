@@ -10,7 +10,10 @@ export type TopicIdeasResult = {
   overlap_note: string | null;
   topics: TopicIdea[];
   generated_at?: string | null;
+  /** Plain-text public material found by the live web search step, null when nothing was found. */
+  research_note?: string | null;
 };
+
 
 const ResultShape = z.object({
   fit: z.enum(["good", "poor"]).catch("good"),
@@ -65,6 +68,7 @@ HARD RULES
 - If the person's background does not fit the audience or the event's actual subject matter, set fit to "poor" and explain plainly in fit_note why it is a stretch. NEVER return an empty topics array. Even when fit is "poor", return the three best plausible topics given what the profile actually contains, with fit_note saying specifically and honestly why each angle is a stretch, so the organiser can judge for themselves rather than hitting a dead end.
 - Before concluding a profile is a poor fit, actively look for crossover material that could justify the booking despite a functional mismatch: has this person already spoken successfully at this event series or a similar or adjacent one? Is there a leadership, culture or change-management angle that transcends their specific job function? A genuine outsider's-perspective booking (for example a supply chain leader talking about leading change to a customer support audience) can be a deliberate, interesting choice rather than a bad fit, when there is evidence they can carry it (such as a documented prior speaking engagement in a similar room).
 - Pay close attention to any mention of prior speaking engagements in the pasted profile, especially at the same event series or a similar one run by the same organiser. That is strong evidence of audience fit even when the person's day job does not match the event's core subject matter, and should weigh heavily toward finding a workable angle rather than dismissing the profile.
+- A PUBLIC MATERIAL FOUND ONLINE section may be included. It comes from a live web search on the person's name and company and is second-hand, so treat it as supporting evidence, not gospel. Use it the same way as the pasted profile: only specific, verifiable facts (named projects, numbers, named articles, named events). Ignore anything that looks like a different person with the same name, or like generic company marketing copy. Prior speaking engagements found there count as strong fit evidence, exactly as they would if pasted.
 - No em dashes anywhere. Sentence case titles. No generic AI sounding marketing language.
 
 OUTPUT
@@ -87,7 +91,63 @@ export type TopicIdeasCoreInput = {
   current_session_title?: string | null;
   other_topics?: string | null;
   event_priorities?: string | null;
+  /** Findings from the live web search step, already plain text. */
+  web_research?: string | null;
 };
+
+/**
+ * Step one of two: a grounded, web-searching call that gathers public material about
+ * the person. Deliberately separate from generation because search grounding and the
+ * strict JSON response format cannot be combined on the gateway (the model returns an
+ * empty body). Returns null on any failure, so generation always still runs.
+ */
+export async function researchSpeakerPublicMaterial(args: {
+  name?: string | null;
+  company?: string | null;
+  title?: string | null;
+  event_name?: string | null;
+}): Promise<string | null> {
+  const key = process.env["LOVABLE_API_KEY"];
+  const name = (args.name ?? "").trim();
+  if (!key || name.length < 3) return null;
+
+  const who = [name, args.title?.trim(), args.company?.trim()].filter(Boolean).join(", ");
+  const prompt = `Search the web for public material about this person, so an event team can judge what they could speak about.
+
+PERSON: ${who}
+${args.event_name?.trim() ? `EVENT THEY MAY SPEAK AT: ${args.event_name.trim()}` : ""}
+
+Look for: prior conference or summit speaking appearances (sessions, speaker pages, agendas, videos), published articles or blog posts they wrote, press releases or news mentioning them by name, podcast appearances, and any specific numbers, named projects or product launches attributed to them.
+
+Rules:
+- Only report things you actually found in search results, with the source URL next to each item.
+- ${args.company?.trim() ? `Confirm the person is the one at ${args.company.trim()}. ` : ""}If results clearly refer to a different person with the same name, leave them out and say so.
+- Ignore generic company marketing copy that says nothing specific about this person.
+- Skip anything already obvious from a LinkedIn profile.
+
+Answer as short plain text, no JSON and no markdown headings: a handful of bullet lines, each one fact plus its URL. If you found nothing usable, reply with exactly: NOTHING FOUND`;
+
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: "google/gemini-3.7-flash",
+        messages: [{ role: "user", content: prompt }],
+        // Google Search grounding. Must NOT be combined with response_format.
+        tools: [{ google_search: {} }],
+      }),
+    });
+    if (!res.ok) return null;
+    const payload = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const text = (payload.choices?.[0]?.message?.content ?? "").trim();
+    if (!text || /^NOTHING FOUND/i.test(text) || text.length < 40) return null;
+    return text;
+  } catch {
+    return null;
+  }
+}
+
 
 // Core generation. Takes plain inputs, no database lookup, no persistence.
 export async function runTopicIdeas(input: TopicIdeasCoreInput): Promise<TopicIdeasResult> {
