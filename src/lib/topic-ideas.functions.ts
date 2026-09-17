@@ -62,13 +62,15 @@ HARD RULES
 - Treat material the person has already said publicly and repeatedly (a podcast quote, a recurring talking point across their posts) as weaker and riskier, not stronger. Prefer a genuinely underused angle where one exists: a recent role change, a new company or industry they have not publicly addressed yet, a specific number or project not already widely repeated. If the only strong material is a well worn soundbite, it is fine to use it, but say so plainly in fit_note (for example "her strongest material here is something she has already said publicly on a podcast, worth checking if this room has heard it before").
 - Titles must sell the session to an attendee deciding which room to walk into. Do not just restate the speaker's job title. Avoid confessional or vulnerable framing ("what I got wrong about...") unless the profile clearly calls for it.
 - Match structure to format: keynote and fireside need one strong narrative; panel needs a topic several people could genuinely disagree about; workshop needs something the room can practise; roundtable needs a discussion prompt, not a lecture.
-- If the person's background does not fit the audience or the event's actual subject matter, set fit to "poor" and explain plainly in fit_note instead of inventing forced topics. Return an empty topics array in that case.
+- If the person's background does not fit the audience or the event's actual subject matter, set fit to "poor" and explain plainly in fit_note why it is a stretch. NEVER return an empty topics array. Even when fit is "poor", return the three best plausible topics given what the profile actually contains, with fit_note saying specifically and honestly why each angle is a stretch, so the organiser can judge for themselves rather than hitting a dead end.
+- Before concluding a profile is a poor fit, actively look for crossover material that could justify the booking despite a functional mismatch: has this person already spoken successfully at this event series or a similar or adjacent one? Is there a leadership, culture or change-management angle that transcends their specific job function? A genuine outsider's-perspective booking (for example a supply chain leader talking about leading change to a customer support audience) can be a deliberate, interesting choice rather than a bad fit, when there is evidence they can carry it (such as a documented prior speaking engagement in a similar room).
+- Pay close attention to any mention of prior speaking engagements in the pasted profile, especially at the same event series or a similar one run by the same organiser. That is strong evidence of audience fit even when the person's day job does not match the event's core subject matter, and should weigh heavily toward finding a workable angle rather than dismissing the profile.
 - No em dashes anywhere. Sentence case titles. No generic AI sounding marketing language.
 
 OUTPUT
 Return strict JSON only:
 {"fit":"good"|"poor","fit_note":string|null,"overlap_note":string|null,"topics":[{"rank":1,"title":string,"description":string}]}
-- topics: exactly 3 when fit is "good", ranked 1 to 3 best first, description 1 to 2 sentences.
+- topics: exactly 3, always, even when fit is "poor", ranked 1 to 3 best first, description 1 to 2 sentences.
 - overlap_note: null when there is no meaningful overlap.
 - fit_note: null when the fit is good and needs no caveat.`;
 }
@@ -145,7 +147,7 @@ export async function runTopicIdeas(input: TopicIdeasCoreInput): Promise<TopicId
     throw new Error("The model returned an unreadable response, try again.");
   }
   const parsed = ResultShape.parse(raw);
-  if (parsed.fit === "good" && parsed.topics.length === 0) {
+  if (parsed.topics.length === 0) {
     throw new Error("The model returned no topics, try again.");
   }
   return { ...parsed, generated_at: new Date().toISOString() };
