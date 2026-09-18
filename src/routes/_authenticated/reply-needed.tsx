@@ -153,11 +153,12 @@ function ReplyNeededPage() {
   });
 
   const scanMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (mode: "quick" | "deep" = "quick") => {
       const r = await scanFn({ data: { lookback_days: 14 } });
-      // Also sweep every speaker's whole mail history (both directions), so a
-      // direct email from Gmail with no reply yet still shows as contact.
-      const sweep = await sweepFn({ data: { lookback_days: 180 } });
+      // Deep scan only: sweep every speaker's whole mail history (both
+      // directions), so a direct email from Gmail with no reply yet shows up.
+      // The nightly hook already does this, so the button stays fast.
+      const sweep = mode === "deep" ? await sweepFn({ data: { lookback_days: 180 } }) : null;
       return { ...r, sweep };
     },
     onSuccess: (r) => {
@@ -166,13 +167,15 @@ function ReplyNeededPage() {
         return;
       }
       toast.success(
-        `Scanned ${r.scanned} · queued ${r.queued} · auto-cleared ${r.auto_acked} · ${r.sweep.contacts_logged} contacts logged`,
+        `Scanned ${r.scanned} · queued ${r.queued} · auto-cleared ${r.auto_acked}` +
+          (r.sweep ? ` · ${r.sweep.contacts_logged} contacts logged` : ""),
       );
       qc.invalidateQueries({ queryKey: ["replyQueue"] });
       qc.invalidateQueries({ queryKey: ["speakers"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Scan failed"),
   });
+
 
   const statusUpdateFn = useServerFn(updateSpeaker);
   const statusMutation = useMutation({
