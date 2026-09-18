@@ -306,9 +306,14 @@ async function upsertQueueRow(input: UpsertInput) {
   // EXISTING row - only advance last_message_* when a genuinely newer msg arrived.
   const incomingTs = new Date(input.last_message_at).getTime();
   const existingTs = new Date(row.last_message_at).getTime();
+  // Synthetic follow-up ids must never win a same-timestamp tie-break: doing so
+  // rewrites the tip without acking it and resurrects an already-cleared row.
   const isNewer =
     incomingTs > existingTs ||
-    (incomingTs === existingTs && input.last_message_id !== row.last_message_id);
+    (input.reason !== "follow_up" &&
+      incomingTs === existingTs &&
+      input.last_message_id !== row.last_message_id);
+
 
   if (isNewer) {
     patch.last_message_id = input.last_message_id;
@@ -478,11 +483,12 @@ export async function runReplyQueueScan(
     let autoAcked = 0;
     let skippedAuto = 0;
 
-    for (const tid of Array.from(threadIds).slice(0, 80)) {
+    const processThread = async (tid: string) => {
       scanned++;
       try {
         const thread = await gmailGetThread(tid, lovable, gmail);
-        if (!thread || !thread.messages?.length) continue;
+        if (!thread || !thread.messages?.length) return;
+
 
         const messages = thread.messages;
 
@@ -496,7 +502,7 @@ export async function runReplyQueueScan(
             skippedAuto++;
           }
         }
-        if (!newestReal) continue;
+        if (!newestReal) return;
 
         const headers = newestReal.payload.headers;
         const fromRaw = h(headers, "From");
@@ -538,7 +544,7 @@ export async function runReplyQueueScan(
           const isRecipient =
             (toRaw + " " + ccRaw).toLowerCase().includes(ownerEmail);
           const looksLikeMention = !matchedSpeaker && isRecipient && detectMention(bodyText, ownerEmail);
-          if (!matchedSpeaker && !looksLikeMention) continue;
+          if (!matchedSpeaker && !looksLikeMention) return;
           if (looksLikeMention) reason = "mention";
 
           const ai = await classifyThreadNeedsReply(threadText, ownerEmail, lovable);
@@ -556,7 +562,7 @@ export async function runReplyQueueScan(
           .eq("gmail_thread_id", tid)
           .maybeSingle();
 
-        if (!existingRow && !needsReply && !ownerIsNewest) continue;
+        if (!existingRow && !needsReply && !ownerIsNewest) return;
 
         await upsertQueueRow({
           supabase: context.supabase,
@@ -612,7 +618,15 @@ export async function runReplyQueueScan(
       } catch (e) {
         console.error(`Reply-queue thread ${tid} failed:`, e);
       }
+    };
+
+    // Bounded concurrency: same per-thread work, run in small batches.
+    const allThreadIds = Array.from(threadIds).slice(0, 80);
+    const THREAD_CONCURRENCY = 8;
+    for (let i = 0; i < allThreadIds.length; i += THREAD_CONCURRENCY) {
+      await Promise.all(allThreadIds.slice(i, i + THREAD_CONCURRENCY).map(processThread));
     }
+
 
     // 4) Follow-up sweep: outbound speakers with no reply in 3+ days.
     // Only add follow-up rows for speakers with a gmail_thread_id. Never
@@ -627,7 +641,7 @@ export async function runReplyQueueScan(
 
       const { data: existing } = await context.supabase
         .from("reply_queue")
-        .select("id, acked_at, reason")
+        .select("id, acked_at, reason, last_message_id, acked_message_id")
         .eq("gmail_thread_id", s.gmail_thread_id)
         .maybeSingle();
 
@@ -637,6 +651,12 @@ export async function runReplyQueueScan(
       }
       // Skip if a speaker_reply / mention row is already active for this thread.
       if (existing && existing.reason !== "follow_up" && !existing.acked_at) continue;
+      // Fully acked at its current tip: nothing has happened since it was
+      // cleared, so writing a synthetic follow-up would only resurrect it.
+      if (existing && existing.acked_message_id && existing.acked_message_id === existing.last_message_id) {
+        continue;
+      }
+
 
       await upsertQueueRow({
         supabase: context.supabase,

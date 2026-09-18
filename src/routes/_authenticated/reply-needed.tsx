@@ -153,11 +153,12 @@ function ReplyNeededPage() {
   });
 
   const scanMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (mode: "quick" | "deep" = "quick") => {
       const r = await scanFn({ data: { lookback_days: 14 } });
-      // Also sweep every speaker's whole mail history (both directions), so a
-      // direct email from Gmail with no reply yet still shows as contact.
-      const sweep = await sweepFn({ data: { lookback_days: 180 } });
+      // Deep scan only: sweep every speaker's whole mail history (both
+      // directions), so a direct email from Gmail with no reply yet shows up.
+      // The nightly hook already does this, so the button stays fast.
+      const sweep = mode === "deep" ? await sweepFn({ data: { lookback_days: 180 } }) : null;
       return { ...r, sweep };
     },
     onSuccess: (r) => {
@@ -166,13 +167,15 @@ function ReplyNeededPage() {
         return;
       }
       toast.success(
-        `Scanned ${r.scanned} · queued ${r.queued} · auto-cleared ${r.auto_acked} · ${r.sweep.contacts_logged} contacts logged`,
+        `Scanned ${r.scanned} · queued ${r.queued} · auto-cleared ${r.auto_acked}` +
+          (r.sweep ? ` · ${r.sweep.contacts_logged} contacts logged` : ""),
       );
       qc.invalidateQueries({ queryKey: ["replyQueue"] });
       qc.invalidateQueries({ queryKey: ["speakers"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Scan failed"),
   });
+
 
   const statusUpdateFn = useServerFn(updateSpeaker);
   const statusMutation = useMutation({
@@ -269,24 +272,45 @@ function ReplyNeededPage() {
               are filtered out. Your own replies clear rows automatically.
             </p>
           </div>
-          <Button
-            onClick={() => scanMutation.mutate()}
-            disabled={scanMutation.isPending}
-            className="rounded-full"
-          >
-            {scanMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-1.5" />
-            )}
-            Scan Gmail
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => scanMutation.mutate("quick")}
+              disabled={scanMutation.isPending}
+              className="rounded-full"
+            >
+              {scanMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-1.5" />
+              )}
+              Scan Gmail
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  disabled={scanMutation.isPending}
+                >
+                  More
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => scanMutation.mutate("deep")}>
+                  Deep scan (180 days)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </header>
 
+
         <p className="text-xs text-muted-foreground -mt-2">
-          Replies sync automatically every night. Use Scan Gmail to check right now, or to look
-          further back than the last 14 days.
+          Replies sync automatically every night. Scan Gmail checks the last 14 days right now.
+          Use More → Deep scan to search back 180 days (slower).
         </p>
+
 
 
         <div className="flex flex-wrap items-center gap-2">

@@ -170,12 +170,12 @@ export async function runSpeakerContactSweep(
   };
   const tips = new Map<string, Tip>();
 
-  for (const id of toFetch) {
+  const processMessage = async (id: string) => {
     try {
       const msg = await gmailGetMessage(id, lovable, gmail);
-      if (!msg) continue;
+      if (!msg) return;
       examined++;
-      if (isAutoOrCalendarMessage(msg)) continue;
+      if (isAutoOrCalendarMessage(msg)) return;
 
       const headers = msg.payload?.headers ?? [];
       const fromEmail = extractEmailAddress(h(headers, "From"));
@@ -185,7 +185,7 @@ export async function runSpeakerContactSweep(
         .filter(Boolean);
       const subject = h(headers, "Subject") || "(no subject)";
       const at = Number(msg.internalDate);
-      if (!Number.isFinite(at)) continue;
+      if (!Number.isFinite(at)) return;
       const atIso = new Date(at).toISOString();
 
       const outbound = fromEmail === ownerEmail;
@@ -193,10 +193,10 @@ export async function runSpeakerContactSweep(
       const matched = counterparties
         .flatMap((e) => byEmail.get(e) ?? [])
         .filter((s, idx, arr) => arr.findIndex((x) => x.id === s.id) === idx);
-      if (matched.length === 0) continue;
+      if (matched.length === 0) return;
 
       const floorOk = matched.some((s) => at >= (floorByEmail.get((s.email ?? "").toLowerCase()) ?? globalFloor));
-      if (!floorOk) continue;
+      if (!floorOk) return;
 
       const body = extractText(msg.payload);
       const snippet = body ? body.replace(/\s+/g, " ").trim().slice(0, 600) : null;
@@ -231,7 +231,14 @@ export async function runSpeakerContactSweep(
     } catch (e) {
       console.error(`[contact-sweep] message ${id} failed`, e);
     }
+  };
+
+  // Bounded concurrency: same per-message work, run in small batches.
+  const MSG_CONCURRENCY = 10;
+  for (let i = 0; i < toFetch.length; i += MSG_CONCURRENCY) {
+    await Promise.all(toFetch.slice(i, i + MSG_CONCURRENCY).map(processMessage));
   }
+
 
   // Apply speaker tips — never move a timestamp backwards.
   let speakersUpdated = 0;
