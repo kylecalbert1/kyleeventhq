@@ -307,9 +307,10 @@ function ReplyNeededPage() {
 
 
         <p className="text-xs text-muted-foreground -mt-2">
-          Replies sync automatically every night. Use Scan Gmail to check right now, or to look
-          further back than the last 14 days.
+          Replies sync automatically every night. Scan Gmail checks the last 14 days right now.
+          Use More → Deep scan to search back 180 days (slower).
         </p>
+
 
 
         <div className="flex flex-wrap items-center gap-2">
