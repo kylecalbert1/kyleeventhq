@@ -306,9 +306,14 @@ async function upsertQueueRow(input: UpsertInput) {
   // EXISTING row - only advance last_message_* when a genuinely newer msg arrived.
   const incomingTs = new Date(input.last_message_at).getTime();
   const existingTs = new Date(row.last_message_at).getTime();
+  // Synthetic follow-up ids must never win a same-timestamp tie-break: doing so
+  // rewrites the tip without acking it and resurrects an already-cleared row.
   const isNewer =
     incomingTs > existingTs ||
-    (incomingTs === existingTs && input.last_message_id !== row.last_message_id);
+    (input.reason !== "follow_up" &&
+      incomingTs === existingTs &&
+      input.last_message_id !== row.last_message_id);
+
 
   if (isNewer) {
     patch.last_message_id = input.last_message_id;
@@ -627,7 +632,7 @@ export async function runReplyQueueScan(
 
       const { data: existing } = await context.supabase
         .from("reply_queue")
-        .select("id, acked_at, reason")
+        .select("id, acked_at, reason, last_message_id, acked_message_id")
         .eq("gmail_thread_id", s.gmail_thread_id)
         .maybeSingle();
 
@@ -637,6 +642,12 @@ export async function runReplyQueueScan(
       }
       // Skip if a speaker_reply / mention row is already active for this thread.
       if (existing && existing.reason !== "follow_up" && !existing.acked_at) continue;
+      // Fully acked at its current tip: nothing has happened since it was
+      // cleared, so writing a synthetic follow-up would only resurrect it.
+      if (existing && existing.acked_message_id && existing.acked_message_id === existing.last_message_id) {
+        continue;
+      }
+
 
       await upsertQueueRow({
         supabase: context.supabase,
