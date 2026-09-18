@@ -179,6 +179,9 @@ export async function runTopicIdeas(input: TopicIdeasCoreInput): Promise<TopicId
     `PASTED PROFILE TEXT`,
     profile,
     ``,
+    ...(input.web_research?.trim()
+      ? [`PUBLIC MATERIAL FOUND ONLINE`, input.web_research.trim(), ``]
+      : []),
     `TOPICS ALREADY BEING PITCHED AT THIS EVENT`,
     input.other_topics?.trim() || "(none yet)",
   ].join("\n");
@@ -210,7 +213,11 @@ export async function runTopicIdeas(input: TopicIdeasCoreInput): Promise<TopicId
   if (parsed.topics.length === 0) {
     throw new Error("The model returned no topics, try again.");
   }
-  return { ...parsed, generated_at: new Date().toISOString() };
+  return {
+    ...parsed,
+    generated_at: new Date().toISOString(),
+    research_note: input.web_research?.trim() || null,
+  };
 }
 
 export const generateTopicIdeas = createServerFn({ method: "POST" })
@@ -249,6 +256,13 @@ export const generateTopicIdeas = createServerFn({ method: "POST" })
 
     const others = await siblingTopics(context.supabase, speaker.event_id, speaker.id);
 
+    const web_research = await researchSpeakerPublicMaterial({
+      name: speaker.name,
+      company: speaker.company,
+      title: speaker.title,
+      event_name: event?.name ?? null,
+    });
+
     const result = await runTopicIdeas({
       profile,
       series: data.series ?? null,
@@ -261,6 +275,7 @@ export const generateTopicIdeas = createServerFn({ method: "POST" })
       current_session_title: speaker.session_title,
       other_topics: others,
       event_priorities: data.event_priorities ?? null,
+      web_research,
     });
 
     const { error: uErr } = await context.supabase
@@ -314,6 +329,11 @@ export const generateTopicIdeasAdhoc = createServerFn({ method: "POST" })
       }
     }
 
+    const web_research = await researchSpeakerPublicMaterial({
+      name: data.speaker_name ?? null,
+      event_name: eventName,
+    });
+
     return runTopicIdeas({
       profile: data.profile,
       series: data.series ?? null,
@@ -323,6 +343,7 @@ export const generateTopicIdeasAdhoc = createServerFn({ method: "POST" })
       session_format: data.session_format ?? null,
       other_topics: others,
       event_priorities: data.event_priorities ?? null,
+      web_research,
     });
   });
 
