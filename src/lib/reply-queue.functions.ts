@@ -483,11 +483,12 @@ export async function runReplyQueueScan(
     let autoAcked = 0;
     let skippedAuto = 0;
 
-    for (const tid of Array.from(threadIds).slice(0, 80)) {
+    const processThread = async (tid: string) => {
       scanned++;
       try {
         const thread = await gmailGetThread(tid, lovable, gmail);
-        if (!thread || !thread.messages?.length) continue;
+        if (!thread || !thread.messages?.length) return;
+
 
         const messages = thread.messages;
 
@@ -501,7 +502,7 @@ export async function runReplyQueueScan(
             skippedAuto++;
           }
         }
-        if (!newestReal) continue;
+        if (!newestReal) return;
 
         const headers = newestReal.payload.headers;
         const fromRaw = h(headers, "From");
@@ -543,7 +544,7 @@ export async function runReplyQueueScan(
           const isRecipient =
             (toRaw + " " + ccRaw).toLowerCase().includes(ownerEmail);
           const looksLikeMention = !matchedSpeaker && isRecipient && detectMention(bodyText, ownerEmail);
-          if (!matchedSpeaker && !looksLikeMention) continue;
+          if (!matchedSpeaker && !looksLikeMention) return;
           if (looksLikeMention) reason = "mention";
 
           const ai = await classifyThreadNeedsReply(threadText, ownerEmail, lovable);
@@ -561,7 +562,7 @@ export async function runReplyQueueScan(
           .eq("gmail_thread_id", tid)
           .maybeSingle();
 
-        if (!existingRow && !needsReply && !ownerIsNewest) continue;
+        if (!existingRow && !needsReply && !ownerIsNewest) return;
 
         await upsertQueueRow({
           supabase: context.supabase,
@@ -617,7 +618,15 @@ export async function runReplyQueueScan(
       } catch (e) {
         console.error(`Reply-queue thread ${tid} failed:`, e);
       }
+    };
+
+    // Bounded concurrency: same per-thread work, run in small batches.
+    const allThreadIds = Array.from(threadIds).slice(0, 80);
+    const THREAD_CONCURRENCY = 8;
+    for (let i = 0; i < allThreadIds.length; i += THREAD_CONCURRENCY) {
+      await Promise.all(allThreadIds.slice(i, i + THREAD_CONCURRENCY).map(processThread));
     }
+
 
     // 4) Follow-up sweep: outbound speakers with no reply in 3+ days.
     // Only add follow-up rows for speakers with a gmail_thread_id. Never
