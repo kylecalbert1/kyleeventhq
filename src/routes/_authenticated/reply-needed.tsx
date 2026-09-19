@@ -14,7 +14,9 @@ import {
   Eye,
   Inbox as InboxIcon,
   Loader2,
+  Search,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -106,7 +108,7 @@ function fmt(iso: string): string {
 }
 
 function ReplyNeededPage() {
-  const search = Route.useSearch();
+  const urlSearch = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -190,12 +192,13 @@ function ReplyNeededPage() {
   });
 
   const rows = (queue.data?.rows ?? []) as Row[];
-  const activeFilter = search.filter ?? "all";
+  const activeFilter = urlSearch.filter ?? "all";
 
   // Threads for summits that have already happened don't need chasing, so they
   // are hidden by default and can be brought back with the toggle.
   const [showPast, setShowPast] = useState(false);
   const [eventFilter, setEventFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
   const pastCount = useMemo(
     () =>
@@ -206,8 +209,10 @@ function ReplyNeededPage() {
     [rows, eventById],
   );
 
-  // Rows left after the page-level (non-tab) filters: past events and event pick.
+  // Rows left after the page-level (non-tab) filters: past events, event pick,
+  // and the free-text search (person name/email, subject, or event name).
   const liveRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return rows.filter((r) => {
       const ev = r.event_id ? eventById[r.event_id] : null;
       if (!showPast && ev && isPastEvent(ev)) return false;
@@ -216,9 +221,21 @@ function ReplyNeededPage() {
       if (eventFilter === "none" && r.event_id) return false;
       if (eventFilter !== "all" && eventFilter !== "none" && r.event_id !== eventFilter)
         return false;
+      if (q) {
+        const haystack = [
+          r.person_name,
+          r.person_email,
+          r.subject,
+          ev?.name,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
       return true;
     });
-  }, [rows, eventById, showPast, eventFilter]);
+  }, [rows, eventById, showPast, eventFilter, search]);
 
   const counts = useMemo(() => {
     const c = { speaker_reply: 0, mention: 0, follow_up: 0, all: liveRows.length };
@@ -314,6 +331,32 @@ function ReplyNeededPage() {
 
 
         <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, email, or event..."
+              className="pl-9"
+            />
+          </div>
+          <select
+            aria-label="Filter by event"
+            value={eventFilter}
+            onChange={(e) => setEventFilter(e.target.value)}
+            className="h-9 w-auto rounded-full border border-slate-200 bg-white px-3 text-xs text-slate-700"
+          >
+            <option value="all">All events</option>
+            <option value="none">No event linked</option>
+            {eventOptions.map((ev: any) => (
+              <option key={ev.id} value={ev.id}>
+                {ev.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
           <FilterChip label={`All (${counts.all})`} active={activeFilter === "all"} onClick={() => setFilter("all")} />
           <FilterChip
             label={`Reply needed (${counts.speaker_reply})`}
@@ -339,29 +382,13 @@ function ReplyNeededPage() {
             inactiveClass="text-amber-800"
             onClick={() => setFilter("follow_up")}
           />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            aria-label="Filter by event"
-            value={eventFilter}
-            onChange={(e) => setEventFilter(e.target.value)}
-            className="h-8 rounded-full border border-slate-200 bg-white px-3 text-xs text-slate-700"
-          >
-            <option value="all">All events</option>
-            <option value="none">No event linked</option>
-            {eventOptions.map((ev: any) => (
-              <option key={ev.id} value={ev.id}>
-                {ev.name}
-              </option>
-            ))}
-          </select>
           <FilterChip
             label={showPast ? "Hide past events" : `Show past events (${pastCount})`}
             active={showPast}
             onClick={() => setShowPast((v) => !v)}
           />
         </div>
+
 
 
         {filtered.length === 0 ? (
