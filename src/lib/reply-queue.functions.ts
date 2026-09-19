@@ -634,7 +634,9 @@ export async function runReplyQueueScan(
     };
 
     // Bounded concurrency: same per-thread work, run in small batches.
-    const allThreadIds = Array.from(threadIds).slice(0, 80);
+    // No cap over the combined set: known-open threads are all included above,
+    // and fresh inbox discovery is already capped at NEW_DISCOVERY_CAP.
+    const allThreadIds = Array.from(threadIds);
     const THREAD_CONCURRENCY = 8;
     for (let i = 0; i < allThreadIds.length; i += THREAD_CONCURRENCY) {
       await Promise.all(allThreadIds.slice(i, i + THREAD_CONCURRENCY).map(processThread));
