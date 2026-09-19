@@ -209,8 +209,10 @@ function ReplyNeededPage() {
     [rows, eventById],
   );
 
-  // Rows left after the page-level (non-tab) filters: past events and event pick.
+  // Rows left after the page-level (non-tab) filters: past events, event pick,
+  // and the free-text search (person name/email, subject, or event name).
   const liveRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return rows.filter((r) => {
       const ev = r.event_id ? eventById[r.event_id] : null;
       if (!showPast && ev && isPastEvent(ev)) return false;
@@ -219,9 +221,21 @@ function ReplyNeededPage() {
       if (eventFilter === "none" && r.event_id) return false;
       if (eventFilter !== "all" && eventFilter !== "none" && r.event_id !== eventFilter)
         return false;
+      if (q) {
+        const haystack = [
+          r.person_name,
+          r.person_email,
+          r.subject,
+          ev?.name,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
       return true;
     });
-  }, [rows, eventById, showPast, eventFilter]);
+  }, [rows, eventById, showPast, eventFilter, search]);
 
   const counts = useMemo(() => {
     const c = { speaker_reply: 0, mention: 0, follow_up: 0, all: liveRows.length };
