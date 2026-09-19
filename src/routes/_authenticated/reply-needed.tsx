@@ -331,6 +331,32 @@ function ReplyNeededPage() {
 
 
         <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, email, or event..."
+              className="pl-9"
+            />
+          </div>
+          <select
+            aria-label="Filter by event"
+            value={eventFilter}
+            onChange={(e) => setEventFilter(e.target.value)}
+            className="h-9 w-auto rounded-full border border-slate-200 bg-white px-3 text-xs text-slate-700"
+          >
+            <option value="all">All events</option>
+            <option value="none">No event linked</option>
+            {eventOptions.map((ev: any) => (
+              <option key={ev.id} value={ev.id}>
+                {ev.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
           <FilterChip label={`All (${counts.all})`} active={activeFilter === "all"} onClick={() => setFilter("all")} />
           <FilterChip
             label={`Reply needed (${counts.speaker_reply})`}
@@ -356,29 +382,13 @@ function ReplyNeededPage() {
             inactiveClass="text-amber-800"
             onClick={() => setFilter("follow_up")}
           />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            aria-label="Filter by event"
-            value={eventFilter}
-            onChange={(e) => setEventFilter(e.target.value)}
-            className="h-8 rounded-full border border-slate-200 bg-white px-3 text-xs text-slate-700"
-          >
-            <option value="all">All events</option>
-            <option value="none">No event linked</option>
-            {eventOptions.map((ev: any) => (
-              <option key={ev.id} value={ev.id}>
-                {ev.name}
-              </option>
-            ))}
-          </select>
           <FilterChip
             label={showPast ? "Hide past events" : `Show past events (${pastCount})`}
             active={showPast}
             onClick={() => setShowPast((v) => !v)}
           />
         </div>
+
 
 
         {filtered.length === 0 ? (
