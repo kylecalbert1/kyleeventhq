@@ -43,7 +43,7 @@ import {
 import { sendGmailEmail } from "@/lib/email.functions";
 import { logEmailSend } from "@/lib/email-sends.functions";
 import { SendHistoryPanel } from "@/components/SendHistoryPanel";
-import { formatEventDateRange } from "@/lib/message-render";
+import { formatEventDateRange, markdownToHtml } from "@/lib/message-render";
 import { AiComposeEmailDialog } from "@/components/AiComposeEmailDialog";
 import type { AiEmailDraft } from "@/lib/email-ai.functions";
 import { containsHtml } from "@/lib/email-format";
@@ -164,18 +164,14 @@ function htmlToPlain(html: string): string {
   return s.replace(/\n{3,}/g, "\n\n").trim();
 }
 
-function escapeToInitialHtml(body: string): string {
-  const escaped = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return escaped.replace(/\n/g, "<br>");
-}
-
 /**
  * Seed the editable body. Templates saved from the rich-text editor are already
- * real HTML — escaping those turns their `<br/>` tags into visible text. Only
- * plain-text sources get the newline-to-<br> conversion.
+ * real HTML — escaping those turns their `<br/>` tags into visible text. Plain
+ * text / markdown sources (AI drafts, older templates) get rendered to proper
+ * HTML so **bold** and bullets show up formatted instead of as literal symbols.
  */
 function seedBodyHtml(body: string): string {
-  return containsHtml(body ?? "") ? body : escapeToInitialHtml(body ?? "");
+  return containsHtml(body ?? "") ? body : markdownToHtml(body ?? "");
 }
 
 /** Greeting prefix that matches the source flavour (HTML vs plain text). */
