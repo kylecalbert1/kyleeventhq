@@ -192,12 +192,13 @@ function ReplyNeededPage() {
   });
 
   const rows = (queue.data?.rows ?? []) as Row[];
-  const activeFilter = search.filter ?? "all";
+  const activeFilter = urlSearch.filter ?? "all";
 
   // Threads for summits that have already happened don't need chasing, so they
   // are hidden by default and can be brought back with the toggle.
   const [showPast, setShowPast] = useState(false);
   const [eventFilter, setEventFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
   const pastCount = useMemo(
     () =>
