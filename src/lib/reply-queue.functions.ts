@@ -453,22 +453,18 @@ export async function runReplyQueueScan(
       if (s.email) byEmail.set(s.email.toLowerCase().trim(), s);
     }
 
-    // 2) Threads to inspect: inbox (last N days), current unacked queue rows.
-    const threadIds = new Set<string>();
-    const q1 = await gmailSearch(
-      `newer_than:${data.lookback_days}d in:inbox`,
-      lovable,
-      gmail,
-      100,
-    );
-    q1.forEach((m) => threadIds.add(m.threadId));
+    // 2) Threads to inspect: known open (unacked) queue rows and seed rows
+    // first — these must NEVER be subject to the discovery cap, otherwise a
+    // backlog of open threads silently starves behind fresh inbox results.
+    // Only fresh inbox discovery is capped.
+    const unackedThreadIds = new Set<string>();
 
     const { data: queueRows } = await context.supabase
       .from("reply_queue")
       .select("gmail_thread_id, acked_message_id, last_message_id, reason")
       .not("gmail_thread_id", "like", "seed:%");
     for (const r of queueRows ?? []) {
-      if (r.acked_message_id !== r.last_message_id) threadIds.add(r.gmail_thread_id);
+      if (r.acked_message_id !== r.last_message_id) unackedThreadIds.add(r.gmail_thread_id);
     }
 
     // 3) Also include seed rows so we replace synthetic ids on first scan.
@@ -476,7 +472,24 @@ export async function runReplyQueueScan(
       .from("reply_queue")
       .select("gmail_thread_id")
       .like("last_message_id", "seed:%");
-    for (const r of seedRows ?? []) threadIds.add(r.gmail_thread_id);
+    for (const r of seedRows ?? []) unackedThreadIds.add(r.gmail_thread_id);
+
+    // Fresh inbox discovery: capped on top of the known-open set above.
+    const q1 = await gmailSearch(
+      `newer_than:${data.lookback_days}d in:inbox`,
+      lovable,
+      gmail,
+      100,
+    );
+    const NEW_DISCOVERY_CAP = 80;
+    let newAdded = 0;
+    const threadIds = new Set(unackedThreadIds);
+    for (const m of q1) {
+      if (threadIds.has(m.threadId)) continue;
+      if (newAdded >= NEW_DISCOVERY_CAP) break;
+      threadIds.add(m.threadId);
+      newAdded++;
+    }
 
     let scanned = 0;
     let queued = 0;
@@ -621,7 +634,9 @@ export async function runReplyQueueScan(
     };
 
     // Bounded concurrency: same per-thread work, run in small batches.
-    const allThreadIds = Array.from(threadIds).slice(0, 80);
+    // No cap over the combined set: known-open threads are all included above,
+    // and fresh inbox discovery is already capped at NEW_DISCOVERY_CAP.
+    const allThreadIds = Array.from(threadIds);
     const THREAD_CONCURRENCY = 8;
     for (let i = 0; i < allThreadIds.length; i += THREAD_CONCURRENCY) {
       await Promise.all(allThreadIds.slice(i, i + THREAD_CONCURRENCY).map(processThread));
